@@ -1,0 +1,123 @@
+# Docker Compose configuration for Indian Palmistry AI
+services:
+  # Redis service for sessions, caching, and job queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - palmistry-network
+
+  # FastAPI backend service
+  api:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/dev.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - FILE_STORAGE_ROOT=./data/images
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - palmistry-network
+
+  # Celery worker for background jobs
+  worker:
+    build:
+      context: .
+      target: worker
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/dev.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - FILE_STORAGE_ROOT=./data/images
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - palmistry-network
+
+  # Next.js frontend (placeholder for Phase 1)
+  frontend:
+    image: node:18-alpine
+    ports:
+      - "3000:3000"
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: >
+      sh -c "
+        if [ ! -f package.json ]; then
+          echo 'Creating basic Next.js app placeholder...'
+          npm create next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias '@/*' --no-git --yes || true
+        fi
+        npm install
+        npm run dev
+      "
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - api
+    networks:
+      - palmistry-network
+
+  # Flower for Celery monitoring (development only)
+  flower:
+    build:
+      context: .
+      target: base
+    ports:
+      - "5555:5555"
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    command: celery -A app.core.celery_app flower --port=5555
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - palmistry-network
+    profiles:
+      - monitoring
+
+networks:
+  palmistry-network:
+    driver: bridge
+
+volumes:
+  redis_data:
