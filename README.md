@@ -1,362 +1,337 @@
-# Indian Palmistry AI 🔮
+# Indian Palmistry AI
 
-An AI-powered palmistry reading application that analyzes palm images using OpenAI's vision models to provide personalized palm readings. Built with modern web technologies and designed for scalability.
+An AI-powered application for traditional Indian palmistry readings using OpenAI's Vision API and natural language processing.
 
-## ✨ What It Does
+## Overview
 
-- **🖐️ Palm Analysis**: Upload photos of your palms for AI-powered readings
-- **🤖 AI Integration**: Uses OpenAI's advanced vision models for detailed analysis
-- **💬 Interactive Chat**: Ask follow-up questions about your palm reading
-- **🔐 Secure Sessions**: Session-based authentication with Redis storage
-- **⚡ Background Processing**: Non-blocking analysis with real-time progress updates
-- **📱 Modern UI**: Clean, responsive interface built with Next.js
+This project combines ancient Indian palmistry wisdom (Hast Rekha Shastra) with modern AI technology to provide personalized palm readings. Users can upload images of their palms and receive detailed analyses based on traditional palmistry principles, then engage in conversations about their readings.
 
-## 🏗️ Phase 1 Status - Foundation Complete
+## 🚀 Current Status: Phase 2 MVP Complete
 
-**Phase 1 Deliverables:**
-- ✅ Multi-container architecture with Docker Compose
-- ✅ FastAPI backend with health checks
-- ✅ Database support (SQLite dev / Supabase prod)
-- ✅ Redis for sessions, caching, and job queues
-- ✅ Celery background workers
-- ✅ Development tools and testing framework
-- ✅ Structured logging and monitoring
-- ✅ Code quality tools (Black, Ruff, MyPy)
+The application is now a fully functional AI-powered palmistry service with:
+- ✅ Complete user authentication system
+- ✅ AI-powered palm analysis using OpenAI GPT-4o-mini
+- ✅ Background job processing for scalable analysis
+- ✅ Conversation interface for follow-up questions
+- ✅ Secure image upload and processing
+- ✅ Production-ready infrastructure
 
-## 🚀 Quick Start
+## Features
+
+### 🔮 Core Palmistry Features
+- **AI Palm Analysis**: Upload palm images for instant AI-powered readings
+- **Traditional Indian Palmistry**: Based on authentic Hast Rekha Shastra principles
+- **Summary & Full Reports**: Public summaries with detailed reports for registered users
+- **Multi-Image Support**: Analyze both left and right palm (up to 2 images)
+- **Real-time Processing**: Background job processing with status polling
+
+### 💬 Interactive Experience  
+- **Conversation System**: Ask follow-up questions about your palm reading
+- **Contextual Responses**: AI responses grounded on your specific analysis
+- **Message History**: Complete conversation history with pagination
+- **Analysis-Scoped Chats**: Separate conversations for each palm reading
+
+### 👤 User Management
+- **User Registration & Login**: Secure email-based authentication
+- **Session Management**: Redis-based sessions with CSRF protection
+- **Analysis History**: View and manage all your previous palm readings
+- **Anonymous Uploads**: Try the service before registering
+
+### 🔒 Security & Performance
+- **Secure Authentication**: bcrypt password hashing, HTTP-only cookies
+- **File Security**: Image validation, secure storage, thumbnail generation
+- **Background Processing**: Non-blocking AI analysis with job queuing
+- **Cost Tracking**: Token usage and cost monitoring for OpenAI API
+
+## Technology Stack
+
+- **Backend**: Python 3.11, FastAPI, SQLAlchemy (async)
+- **AI/ML**: OpenAI GPT-4o-mini Vision API
+- **Database**: SQLite (dev), PostgreSQL/Supabase (prod)
+- **Caching & Jobs**: Redis, Celery
+- **Authentication**: Session-based with Redis, bcrypt
+- **Infrastructure**: Docker, Docker Compose, multi-stage builds
+- **Image Processing**: Pillow, thumbnail generation
+- **API Documentation**: Auto-generated OpenAPI/Swagger
+
+## Project Structure
+
+```
+indian-palmistry-ai/
+├── app/                    # Main application code
+│   ├── api/               # API endpoints
+│   │   └── v1/            # API version 1
+│   │       ├── auth.py    # Authentication endpoints
+│   │       ├── analyses.py # Palm analysis endpoints
+│   │       └── conversations.py # Conversation endpoints
+│   ├── core/              # Core functionality
+│   │   ├── config.py      # Configuration management
+│   │   ├── database.py    # Database setup
+│   │   ├── redis.py       # Redis integration
+│   │   ├── celery_app.py  # Background jobs
+│   │   └── logging.py     # Structured logging
+│   ├── models/            # SQLAlchemy models
+│   │   ├── user.py        # User authentication
+│   │   ├── analysis.py    # Palm analysis
+│   │   ├── conversation.py # Conversations
+│   │   └── message.py     # Chat messages
+│   ├── schemas/           # Pydantic schemas
+│   │   ├── auth.py        # Authentication schemas
+│   │   ├── analysis.py    # Analysis schemas
+│   │   └── conversation.py # Conversation schemas
+│   ├── services/          # Business logic
+│   │   ├── user_service.py # User management
+│   │   ├── analysis_service.py # Analysis lifecycle
+│   │   ├── conversation_service.py # Chat management
+│   │   ├── openai_service.py # AI integration
+│   │   ├── image_service.py # Image processing
+│   │   └── password_service.py # Security utilities
+│   ├── tasks/             # Background tasks
+│   │   └── analysis_tasks.py # AI processing tasks
+│   └── dependencies/      # FastAPI dependencies
+│       └── auth.py        # Authentication dependencies
+├── alembic/               # Database migrations
+├── tests/                 # Test suite
+├── docs/                  # Documentation
+├── data/                  # Local data storage
+└── docker-compose.yml     # Multi-service setup
+```
+
+## Quick Start
 
 ### Prerequisites
-- Docker and Docker Compose installed
-- At least 2GB free RAM
-- Ports 3000, 6379, and 8000 available
 
-### 1. Get Started
+- Docker and Docker Compose
+- OpenAI API key (for AI analysis)
+
+### Using Docker (Recommended)
+
+1. Clone the repository:
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd indian-palmistry-ai
+```
 
-# Start all services
+2. Set up environment variables:
+```bash
+cp .env.example .env
+# Add your OpenAI API key to .env:
+# OPENAI_API_KEY=your_openai_api_key_here
+```
+
+3. Start the services:
+```bash
 docker compose up -d
+```
 
-# Verify everything is running
+4. Check if services are running:
+```bash
 curl http://localhost:8000/healthz
 ```
 
-### 2. Access the Application
-- **API Backend**: http://localhost:8000
+The application will be available at:
+- **API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
-- **Frontend** (Phase 2): http://localhost:3000
 - **Health Check**: http://localhost:8000/healthz
 
-### 3. Development Setup
+## API Usage Examples
+
+### Register and Login
 ```bash
-# Copy environment template (optional)
+# Register a new user
+curl -X POST http://localhost:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "securepass123", "name": "John Doe"}'
+
+# Login and save session cookie
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "securepass123"}' \
+  -c cookies.txt
+```
+
+### Upload Palm Image for Analysis
+```bash
+# Upload palm image (creates analysis and queues AI processing)
+curl -X POST http://localhost:8000/api/v1/analyses/ \
+  -b cookies.txt \
+  -F "left_image=@palm_image.jpg"
+```
+
+### Check Analysis Status
+```bash
+# Poll for analysis completion
+curl -X GET http://localhost:8000/api/v1/analyses/1/status
+```
+
+### Get Analysis Results
+```bash
+# Get public summary (no auth required)
+curl -X GET http://localhost:8000/api/v1/analyses/1/summary
+
+# Get full analysis (requires authentication)
+curl -X GET http://localhost:8000/api/v1/analyses/1 -b cookies.txt
+```
+
+### Start a Conversation
+```bash
+# Create a conversation about the analysis
+curl -X POST http://localhost:8000/api/v1/analyses/1/conversations/ \
+  -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Questions about my palm reading"}'
+
+# Ask a follow-up question
+curl -X POST http://localhost:8000/api/v1/analyses/1/conversations/1/talk \
+  -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: your_csrf_token" \
+  -d '{"message": "What does my life line indicate about my health?"}'
+```
+
+## Local Development
+
+### Setup
+```bash
+# Install dependencies
+pip install -e .[dev]
+
+# Set up environment
 cp .env.example .env
+# Edit .env with your configuration
 
-# View service logs
-docker compose logs -f api
-docker compose logs -f worker
+# Run database migrations
+docker compose exec api python -m alembic upgrade head
+
+# Start Redis for local development
+docker compose up redis -d
+```
+
+### Development Commands
+```bash
+# Start API server with hot reload
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Start Celery worker
+celery -A app.core.celery_app worker --loglevel=info
 
 # Run tests
-docker compose exec api pytest
+pytest
 
-# Stop services
-docker compose down
+# Code formatting
+black app/ tests/
+ruff check app/ tests/
+
+# Type checking
+mypy app/
 ```
 
-## 🏛️ Architecture
+## API Documentation
 
-### Services
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   FastAPI       │    │   Background    │
-│   Next.js       │────▶   Backend       │────▶   Workers      │
-│   Port 3000     │    │   Port 8000     │    │   Celery        │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │                        │
-                              ▼                        ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │     Redis       │    │    Database     │
-                       │ Sessions/Cache/ │    │ SQLite (dev)    │
-                       │ Job Queue       │    │ Supabase (prod) │
-                       │ Port 6379       │    └─────────────────┘
-                       └─────────────────┘
-```
+Interactive API documentation is automatically generated:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-### Directory Structure
-```
-indian-palmistry-ai/
-├── app/                          # FastAPI backend
-│   ├── api/v1/                   # API endpoints
-│   ├── core/                     # Config, database, logging
-│   ├── models/                   # SQLAlchemy models
-│   ├── schemas/                  # Pydantic DTOs
-│   ├── services/                 # Business logic
-│   ├── tasks/                    # Celery background tasks
-│   └── main.py                   # FastAPI app factory
-├── frontend/                     # Next.js frontend
-├── tests/                        # Test suite
-├── docs/                         # Project documentation
-├── data/images/                  # Local file storage
-├── docker-compose.yml            # Multi-service orchestration
-├── Dockerfile                    # Multi-stage Docker build
-└── pyproject.toml               # Python dependencies
-```
+### Main API Endpoints
 
-## 🛠️ Development
+#### Authentication
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/logout` - User logout
+- `GET /api/v1/auth/me` - Current user info
 
-### Make Commands
-```bash
-make help              # Show all available commands
-make dev               # Start development environment
-make test              # Run tests
-make lint              # Run linting
-make format            # Format code
-make logs              # Show logs
-make shell             # Open shell in API container
-make clean             # Clean up containers
-```
+#### Palm Analysis
+- `POST /api/v1/analyses/` - Upload images for analysis
+- `GET /api/v1/analyses/{id}/status` - Check analysis job status
+- `GET /api/v1/analyses/{id}/summary` - Get public summary
+- `GET /api/v1/analyses/{id}` - Get full analysis (auth required)
+- `GET /api/v1/analyses/` - List user's analyses
 
-### Manual Commands
-```bash
-# Start services
-docker-compose up -d
+#### Conversations
+- `POST /api/v1/analyses/{id}/conversations/` - Create conversation
+- `GET /api/v1/analyses/{id}/conversations/` - List conversations
+- `POST /api/v1/analyses/{id}/conversations/{id}/talk` - Send message
+- `GET /api/v1/analyses/{id}/conversations/{id}/messages` - Get message history
 
-# View logs
-docker-compose logs -f api
-docker-compose logs -f worker
-docker-compose logs -f redis
+## Architecture
 
-# Run tests
-docker-compose exec api pytest
+### Multi-Container Architecture
+- **API Service**: FastAPI application with health monitoring
+- **Redis Service**: Session storage, caching, and job queuing
+- **Worker Service**: Celery workers for background AI processing
+- **Database**: SQLite (dev) / PostgreSQL (prod)
 
-# Format code
-docker-compose exec api black app/
-docker-compose exec api ruff check app/ --fix
+### Key Design Patterns
+- **Background Job Processing**: Non-blocking AI analysis with real-time status
+- **Session-based Authentication**: Secure Redis sessions with CSRF protection  
+- **Service Layer Architecture**: Clean separation of concerns
+- **Async/Await**: Full async support for database and external API calls
+- **Structured Logging**: JSON logs with correlation ID tracking
 
-# Access containers
-docker-compose exec api bash
-docker-compose exec redis redis-cli
-```
+## Development Roadmap
 
-### Background Jobs
-```bash
-# Test background job processing
-docker-compose exec api python -c "
-from app.tasks.analysis_tasks import process_palm_analysis
-job = process_palm_analysis.delay(123)
-print(f'Job ID: {job.id}')
-print(f'Result: {job.get()}')
-"
+### ✅ Phase 1: Foundation (Complete)
+- Multi-container Docker setup
+- FastAPI backend with async SQLAlchemy
+- Redis integration for sessions and jobs
+- Celery background task processing
+- Database migrations with Alembic
+- Structured logging and health monitoring
 
-# Monitor Celery workers
-docker-compose exec api celery -A app.core.celery_app inspect active
+### ✅ Phase 2: MVP (Complete)
+- User authentication and session management
+- Palm image upload and validation
+- OpenAI GPT-4o-mini integration for AI analysis
+- Background job processing for AI requests
+- Conversation system for follow-up questions
+- Complete API with documentation
 
-# Start Flower monitoring
-docker-compose --profile monitoring up -d flower
-```
+### 🔄 Phase 3: Enhancement (Next)
+- Frontend React/Next.js application
+- Enhanced UI/UX with real-time updates
+- Advanced palmistry features
+- Performance optimizations
+- Comprehensive testing suite
 
-## 🧪 Testing
+## Environment Variables
 
-### Run Tests
-```bash
-# All tests
-make test
-
-# With coverage
-make test-cov
-
-# Watch mode
-make test-watch
-
-# Specific test
-docker-compose exec api pytest tests/test_api/test_health.py -v
-```
-
-### Test Structure
-- `tests/test_api/` - API endpoint tests
-- `tests/test_services/` - Business logic tests  
-- `tests/test_models/` - Database model tests
-- `tests/conftest.py` - Shared test fixtures
-
-## 🔧 Configuration
-
-### Environment Variables
-Key variables in `.env`:
+Key environment variables (see `.env.example`):
 
 ```bash
-# Database (auto-detected)
+# OpenAI Integration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Database
 DATABASE_URL=sqlite+aiosqlite:///./data/dev.db
-# DATABASE_URL=postgresql+asyncpg://user:pass@host/db  # Production
 
 # Redis
 REDIS_URL=redis://localhost:6379/0
 CELERY_BROKER_URL=redis://localhost:6379/1
 
-# OpenAI (Phase 2)
-OPENAI_API_KEY=sk-your-key-here
-
-# Security
-SECRET_KEY=change-in-production
-ALLOWED_ORIGINS=http://localhost:3000
+# Security  
+SECRET_KEY=your-secret-key-here
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
 
 # File Storage
 FILE_STORAGE_ROOT=./data/images
 ```
 
-### Database Support
-- **Development**: SQLite with WAL mode
-- **Production**: Supabase (managed PostgreSQL)
-- Automatic detection based on `DATABASE_URL`
-- Migrations ready with Alembic
+## Monitoring and Logging
 
-## 📊 Monitoring & Logging
+- **Health Endpoints**: `/healthz` and `/api/v1/health`
+- **Structured Logging**: JSON format with correlation IDs
+- **Job Monitoring**: Real-time status tracking for background tasks
+- **Cost Tracking**: OpenAI token usage and cost monitoring
+- **Error Handling**: Comprehensive error tracking and reporting
 
-### Health Checks
-```bash
-# API health
-curl http://localhost:8000/healthz
+## Contributing
 
-# Service health
-make health
+This project is currently in active development. Contribution guidelines will be added once the core features are stabilized.
 
-# Redis health
-docker-compose exec redis redis-cli ping
-```
+## License
 
-### Logs
-- Structured JSON logging to stdout
-- Correlation ID tracking across requests
-- Request/response logging with duration
-- Error tracking with context
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-### Monitoring Tools
-- **Flower**: Celery task monitoring (port 5555)
-- **FastAPI Docs**: API documentation (port 8000/docs)
-- **Health Endpoints**: `/healthz`, `/api/v1/health`
+## Disclaimer
 
-## 🔄 Background Processing
-
-### Job Flow
-1. API receives request → queues background job
-2. Celery worker processes job asynchronously  
-3. Job status stored in Redis
-4. Frontend polls for job completion
-5. Results returned to user
-
-### Job Monitoring
-```bash
-# Queue status
-docker-compose exec api celery -A app.core.celery_app inspect reserved
-
-# Test job
-docker-compose exec api python -c "
-from app.core.celery_app import test_task
-result = test_task.delay('Hello World')
-print(result.get())
-"
-```
-
-## 📈 Phase 2 Preparation
-
-The foundation is ready for Phase 2 MVP development:
-- ✅ Authentication system (Redis sessions)
-- ✅ Background job processing (OpenAI integration)
-- ✅ File upload handling infrastructure
-- ✅ Database models and migrations
-- ✅ API versioning structure
-- ✅ Testing framework
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Services won't start:**
-```bash
-# Check Docker status
-docker --version
-docker-compose --version
-
-# Clean start
-make clean
-make build
-make up
-```
-
-**Database connection issues:**
-```bash
-# Check SQLite file
-ls -la data/
-# Reset database
-rm -f data/dev.db
-docker-compose exec api python -c "
-from app.core.database import create_tables
-import asyncio
-asyncio.run(create_tables())
-"
-```
-
-**Redis connection issues:**
-```bash
-# Check Redis
-docker-compose exec redis redis-cli ping
-# Expected: PONG
-
-# Check Redis logs
-docker-compose logs redis
-```
-
-**Worker not processing jobs:**
-```bash
-# Check worker logs
-docker-compose logs worker
-
-# Restart worker
-docker-compose restart worker
-
-# Manual worker start
-docker-compose exec api celery -A app.core.celery_app worker --loglevel=debug
-```
-
-### Port Conflicts
-If ports 3000, 6379, or 8000 are in use:
-```bash
-# Check what's using ports
-lsof -i :8000
-lsof -i :3000  
-lsof -i :6379
-
-# Kill processes or modify docker-compose.yml ports
-```
-
-### Performance Issues
-```bash
-# Check container resources
-docker stats
-
-# Check logs for errors
-make logs
-
-# Monitor Redis memory
-docker-compose exec redis redis-cli info memory
-```
-
-## 📚 Next Steps
-
-1. **Verify Phase 1**: Run `make test` and `make health`
-2. **Phase 2 Development**: Add authentication and OpenAI integration
-3. **Production Deploy**: Switch to Supabase and managed Redis
-
-## 🤝 Development Workflow
-
-1. Create feature branch
-2. Make changes with tests
-3. Run `make lint format test`
-4. Submit PR with passing CI
-5. Deploy to staging/production
-
----
-
-**Phase 1 Foundation - Complete ✅**  
-Ready for Phase 2 MVP development.
+This application is for entertainment and educational purposes only. Palmistry readings should not be considered as professional advice for life decisions. The AI-generated content is based on traditional palmistry interpretations but should not replace professional consultation for health, financial, or personal matters.

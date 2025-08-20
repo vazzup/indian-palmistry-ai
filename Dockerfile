@@ -53,7 +53,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 FROM base as worker
 
 # Override default command for workers
-CMD ["celery", "-A", "app.core.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+CMD ["celery", "-A", "app.core.celery_app", "worker", "--loglevel=info", "--concurrency=2", "--queues=default,analysis,images"]
 
 
 # Development stage with additional tools

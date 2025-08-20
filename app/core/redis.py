@@ -24,8 +24,7 @@ import logging
 from typing import Any, Optional, Dict
 from datetime import datetime, timedelta
 
-import aioredis
-from aioredis import Redis
+import redis.asyncio as redis
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -33,10 +32,10 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 # Global Redis client instance
-_redis_client: Optional[Redis] = None
+_redis_client: Optional[redis.Redis] = None
 
 
-async def create_redis_client() -> Redis:
+async def create_redis_client() -> redis.Redis:
     """
     Create Redis client with connection pooling.
     
@@ -47,7 +46,7 @@ async def create_redis_client() -> Redis:
         ConnectionError: If Redis connection fails
     """
     try:
-        client = aioredis.from_url(
+        client = redis.from_url(
             settings.redis_url,
             encoding="utf-8",
             decode_responses=True,
@@ -58,15 +57,15 @@ async def create_redis_client() -> Redis:
         
         # Test connection
         await client.ping()
-        logger.info("Redis connection established", url=settings.redis_url)
+        logger.info(f"Redis connection established: {settings.redis_url}")
         return client
         
     except Exception as e:
-        logger.error("Failed to connect to Redis", error=str(e))
+        logger.error(f"Failed to connect to Redis: {e}")
         raise ConnectionError(f"Redis connection failed: {e}")
 
 
-async def get_redis() -> Redis:
+async def get_redis() -> redis.Redis:
     """
     Get or create Redis client instance.
     
@@ -100,7 +99,7 @@ async def check_redis_connection() -> bool:
         await redis_client.ping()
         return True
     except Exception as e:
-        logger.error("Redis health check failed", error=str(e))
+        logger.error(f"Redis health check failed: {e}")
         return False
 
 
@@ -108,9 +107,9 @@ class RedisService:
     """Service class for Redis operations."""
     
     def __init__(self):
-        self.redis_client: Optional[Redis] = None
+        self.redis_client: Optional[redis.Redis] = None
     
-    async def get_client(self) -> Redis:
+    async def get_client(self) -> redis.Redis:
         """Get Redis client."""
         if self.redis_client is None:
             self.redis_client = await get_redis()
@@ -140,7 +139,7 @@ class RedisService:
             return bool(result)
             
         except Exception as e:
-            logger.error("Redis SET failed", key=key, error=str(e))
+            logger.error(f"Redis SET failed for key {key}: {e}")
             return False
     
     async def get(self, key: str) -> Optional[Any]:
@@ -163,7 +162,7 @@ class RedisService:
             return json.loads(value)
             
         except Exception as e:
-            logger.error("Redis GET failed", key=key, error=str(e))
+            logger.error(f"Redis GET failed for key {key}: {e}")
             return None
     
     async def delete(self, key: str) -> bool:
@@ -182,7 +181,7 @@ class RedisService:
             return bool(result)
             
         except Exception as e:
-            logger.error("Redis DELETE failed", key=key, error=str(e))
+            logger.error(f"Redis DELETE failed for key {key}: {e}")
             return False
     
     async def exists(self, key: str) -> bool:
@@ -201,7 +200,7 @@ class RedisService:
             return bool(result)
             
         except Exception as e:
-            logger.error("Redis EXISTS failed", key=key, error=str(e))
+            logger.error(f"Redis EXISTS failed for key {key}: {e}")
             return False
     
     async def expire(self, key: str, seconds: int) -> bool:
@@ -221,7 +220,7 @@ class RedisService:
             return bool(result)
             
         except Exception as e:
-            logger.error("Redis EXPIRE failed", key=key, error=str(e))
+            logger.error(f"Redis EXPIRE failed for key {key}: {e}")
             return False
     
     async def ttl(self, key: str) -> int:
@@ -239,7 +238,7 @@ class RedisService:
             return await client.ttl(key)
             
         except Exception as e:
-            logger.error("Redis TTL failed", key=key, error=str(e))
+            logger.error(f"Redis TTL failed for key {key}: {e}")
             return -2
 
 
