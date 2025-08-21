@@ -29,6 +29,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import init_sqlite_pragmas, check_database_connection
 from app.core.logging import setup_logging, get_logger, set_correlation_id, log_request, log_response
+from app.core.cache import cache_service
 
 
 # Setup logging before creating the app
@@ -46,6 +47,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     # Startup tasks
     logger.info("Starting Indian Palmistry AI Backend", extra={"version": "0.1.0"})
+    
+    # Initialize cache service
+    try:
+        await cache_service.connect()
+        logger.info("Redis cache service connected")
+    except Exception as e:
+        logger.warning(f"Failed to connect to Redis cache: {e}")
+        # Continue without cache - the service will handle fallbacks
     
     # Initialize database
     try:
@@ -70,6 +79,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     
     # Shutdown tasks
     logger.info("Application shutdown initiated")
+    
+    # Close cache connections
+    try:
+        await cache_service.close()
+        logger.info("Cache service connections closed")
+    except Exception as e:
+        logger.warning(f"Error closing cache connections: {e}")
+    
     logger.info("Application shutdown completed")
 
 
@@ -82,6 +99,10 @@ app = FastAPI(
     redoc_url="/redoc" if settings.debug else None,
     lifespan=lifespan,
 )
+
+# Add rate limiting and security middleware
+from app.middleware.rate_limiting import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware, enable_security_monitoring=True)
 
 # CORS middleware
 app.add_middleware(
@@ -156,15 +177,28 @@ async def health_check():
     # Check database connection
     db_healthy = await check_database_connection()
     
+    # Check cache connection
+    cache_healthy = True
+    try:
+        cache_health = await cache_service.health_check()
+        cache_healthy = cache_health.get("status") == "healthy"
+    except Exception as e:
+        logger.warning(f"Cache health check failed: {e}")
+        cache_healthy = False
+    
+    # Overall health
+    overall_healthy = db_healthy and cache_healthy
+    
     health_status = {
-        "status": "healthy" if db_healthy else "unhealthy",
+        "status": "healthy" if overall_healthy else "unhealthy",
         "version": "0.1.0",
         "timestamp": int(time.time()),
         "database": "connected" if db_healthy else "disconnected",
+        "cache": "connected" if cache_healthy else "disconnected",
         "environment": settings.environment,
     }
     
-    status_code = 200 if db_healthy else 503
+    status_code = 200 if overall_healthy else 503
     return JSONResponse(content=health_status, status_code=status_code)
 
 
@@ -189,6 +223,7 @@ from fastapi import APIRouter
 from app.api.v1.auth import router as auth_router
 from app.api.v1.analyses import router as analyses_router
 from app.api.v1.conversations import router as conversations_router
+from app.api.v1.enhanced_endpoints import router as enhanced_router
 
 api_v1_router = APIRouter(prefix="/api/v1", tags=["v1"])
 
@@ -205,6 +240,7 @@ async def api_health():
 api_v1_router.include_router(auth_router)
 api_v1_router.include_router(analyses_router)
 api_v1_router.include_router(conversations_router)
+api_v1_router.include_router(enhanced_router)
 
 app.include_router(api_v1_router)
 

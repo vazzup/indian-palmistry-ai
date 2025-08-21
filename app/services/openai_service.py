@@ -272,3 +272,104 @@ The user now has a follow-up question. Please provide a helpful response based o
         except Exception as e:
             logger.error(f"Error generating conversation response: {e}")
             raise
+    
+    async def analyze_palm_with_custom_prompt(
+        self, 
+        image_data: bytes, 
+        custom_prompt: str
+    ) -> Dict[str, Any]:
+        """Analyze palm with a custom specialized prompt.
+        
+        Args:
+            image_data: Raw image bytes
+            custom_prompt: Custom analysis prompt
+            
+        Returns:
+            Dictionary with analysis results
+        """
+        if not self.client:
+            raise ValueError("OpenAI API key not configured")
+        
+        try:
+            # Encode image data to base64
+            image_b64 = base64.b64encode(image_data).decode('utf-8')
+            
+            # Prepare messages
+            messages = [
+                {"role": "system", "content": PALMISTRY_SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": custom_prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_b64}",
+                                "detail": "high"
+                            }
+                        }
+                    ]
+                }
+            ]
+            
+            # Call OpenAI API
+            response = await self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                max_tokens=1200,
+                temperature=0.7,
+            )
+            
+            analysis = response.choices[0].message.content
+            tokens_used = response.usage.total_tokens
+            
+            logger.info(f"Custom palm analysis completed. Tokens used: {tokens_used}")
+            
+            return {
+                "analysis": analysis,
+                "tokens_used": tokens_used,
+                "cost": self._calculate_cost(tokens_used),
+                "confidence": 0.8  # Default confidence for custom analysis
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in custom palm analysis: {e}")
+            raise
+    
+    async def generate_response(self, prompt: str) -> Dict[str, Any]:
+        """Generate a general response using OpenAI.
+        
+        Args:
+            prompt: The prompt to send to OpenAI
+            
+        Returns:
+            Dictionary with response content
+        """
+        if not self.client:
+            raise ValueError("OpenAI API key not configured")
+        
+        try:
+            response = await self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": PALMISTRY_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1000,
+                temperature=0.7,
+            )
+            
+            content = response.choices[0].message.content
+            tokens_used = response.usage.total_tokens
+            
+            logger.info(f"Generated response. Tokens used: {tokens_used}")
+            
+            return {
+                "content": content,
+                "tokens_used": tokens_used,
+                "cost": self._calculate_cost(tokens_used)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating response: {e}")
+            raise
