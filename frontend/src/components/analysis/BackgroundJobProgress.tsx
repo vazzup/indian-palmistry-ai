@@ -1,0 +1,165 @@
+'use client';
+
+import React from 'react';
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Spinner } from '@/components/ui/Spinner';
+import { getRandomMessage } from '@/lib/cultural-theme';
+import { useAnalysisJobPolling } from '@/lib/redis-jobs';
+import type { JobStatus } from '@/types';
+
+interface BackgroundJobProgressProps {
+  analysisId: number;
+  onComplete?: (result: any) => void;
+  onError?: (error: string) => void;
+}
+
+export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
+  analysisId,
+  onComplete,
+  onError,
+}) => {
+  const { status, error, isPolling, startPolling } = useAnalysisJobPolling();
+  const [messages] = React.useState({
+    queued: getRandomMessage('loading'),
+    processing: getRandomMessage('loading'),
+    completed: getRandomMessage('success'),
+    failed: getRandomMessage('error'),
+  });
+  
+  // Start polling when component mounts
+  React.useEffect(() => {
+    const cleanup = startPolling(analysisId);
+    return cleanup;
+  }, [analysisId, startPolling]);
+  
+  // Handle completion and errors
+  React.useEffect(() => {
+    if (status?.status === 'completed' && onComplete) {
+      onComplete(status.result);
+    }
+    
+    if ((status?.status === 'failed' || error) && onError) {
+      onError(status?.error || error || 'Analysis failed');
+    }
+  }, [status, error, onComplete, onError]);
+  
+  const getStatusIcon = () => {
+    if (!status) return <Clock className="w-6 h-6 text-gray-400" />;
+    
+    switch (status.status) {
+      case 'queued':
+        return <Clock className="w-6 h-6 text-saffron-500" />;
+      case 'processing':
+        return <Spinner size="md" type="minimal" />;
+      case 'completed':
+        return <CheckCircle className="w-6 h-6 text-green-500" />;
+      case 'failed':
+        return <XCircle className="w-6 h-6 text-red-500" />;
+      default:
+        return <Clock className="w-6 h-6 text-gray-400" />;
+    }
+  };
+  
+  const getStatusMessage = () => {
+    if (!status) return 'Initializing...';
+    return messages[status.status as keyof typeof messages] || 'Processing...';
+  };
+  
+  const getProgressPercentage = () => {
+    if (!status) return 0;
+    
+    switch (status.status) {
+      case 'queued':
+        return 10;
+      case 'processing':
+        return status.progress || 50;
+      case 'completed':
+        return 100;
+      case 'failed':
+        return 0;
+      default:
+        return 0;
+    }
+  };
+  
+  const isComplete = status?.status === 'completed';
+  const isFailed = status?.status === 'failed' || !!error;
+  const isActive = isPolling && !isComplete && !isFailed;
+  
+  return (
+    <Card className="w-full max-w-md mx-auto">
+      <CardContent className="p-6">
+        <div className="text-center space-y-6">
+          {/* Status icon */}
+          <div className="flex justify-center">
+            {getStatusIcon()}
+          </div>
+          
+          {/* Title */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium text-gray-900">
+              {isComplete ? 'Analysis Complete!' : 
+               isFailed ? 'Analysis Failed' : 
+               'Reading Your Palm'}
+            </h3>
+            
+            <p className="text-sm text-gray-600">
+              {getStatusMessage()}
+            </p>
+          </div>
+          
+          {/* Progress bar */}
+          {!isFailed && (
+            <div className="space-y-2">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    isComplete ? 'bg-green-500' : 'bg-saffron-500'
+                  }`}
+                  style={{ width: `${getProgressPercentage()}%` }}
+                />
+              </div>
+              
+              <div className="text-xs text-gray-500">
+                {getProgressPercentage()}% complete
+              </div>
+            </div>
+          )}
+          
+          {/* Additional details */}
+          {status && (
+            <div className="text-xs text-gray-400 space-y-1">
+              <div>Status: {status.status.toUpperCase()}</div>
+              {isActive && (
+                <div className="flex items-center justify-center gap-1">
+                  <div className="w-1 h-1 bg-saffron-400 rounded-full animate-bounce" />
+                  <div className="w-1 h-1 bg-saffron-400 rounded-full animate-bounce delay-75" />
+                  <div className="w-1 h-1 bg-saffron-400 rounded-full animate-bounce delay-150" />
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Error details */}
+          {(status?.error || error) && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+              <p className="text-sm text-red-600">
+                {status?.error || error}
+              </p>
+            </div>
+          )}
+          
+          {/* Cultural encouragement */}
+          {isActive && (
+            <div className="bg-saffron-50 border border-saffron-200 rounded-md p-3">
+              <p className="text-xs text-saffron-700">
+                ✨ Ancient wisdom meets modern technology
+              </p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
