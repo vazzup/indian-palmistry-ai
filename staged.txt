@@ -1,0 +1,113 @@
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   Dockerfile
+	modified:   IMPLEMENTATION_STATUS.md
+	modified:   README.md
+	new file:   alembic/versions/819e95294bd3_add_phase_2_models_user_analysis_.py
+	new file:   app/api/v1/analyses.py
+	new file:   app/api/v1/auth.py
+	new file:   app/api/v1/conversations.py
+	modified:   app/core/redis.py
+	new file:   app/dependencies/__init__.py
+	new file:   app/dependencies/auth.py
+	modified:   app/main.py
+	modified:   app/models/__init__.py
+	new file:   app/models/analysis.py
+	new file:   app/models/conversation.py
+	new file:   app/models/message.py
+	new file:   app/models/user.py
+	new file:   app/schemas/analysis.py
+	new file:   app/schemas/auth.py
+	new file:   app/schemas/conversation.py
+	new file:   app/services/analysis_service.py
+	new file:   app/services/conversation_service.py
+	new file:   app/services/image_service.py
+	new file:   app/services/openai_service.py
+	new file:   app/services/password_service.py
+	new file:   app/services/user_service.py
+	modified:   app/tasks/__init__.py
+	modified:   app/tasks/analysis_tasks.py
+	new file:   cookies.txt
+	new file:   data/dev.db-shm
+	new file:   data/dev.db-wal
+	new file:   data/proper_palm.jpg
+	new file:   frontend/package-lock.json
+	modified:   pyproject.toml
+	new file:   run_tests.py
+	new file:   test_palm.png
+	new file:   tests/README.md
+	new file:   tests/test_api/test_analyses.py
+	new file:   tests/test_api/test_auth.py
+	new file:   tests/test_api/test_conversations.py
+	new file:   tests/test_integration/test_workflow.py
+	new file:   tests/test_services/test_analysis_service.py
+	new file:   tests/test_services/test_conversation_service.py
+	new file:   tests/test_services/test_openai_service.py
+	new file:   tests/test_services/test_user_service.py
+	new file:   tests/test_tasks/test_analysis_tasks.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	staged.txt
+
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   Dockerfile
+	modified:   IMPLEMENTATION_STATUS.md
+	modified:   README.md
+	new file:   alembic/versions/819e95294bd3_add_phase_2_models_user_analysis_.py
+	new file:   app/api/v1/analyses.py
+	new file:   app/api/v1/auth.py
+	new file:   app/api/v1/conversations.py
+	modified:   app/core/redis.py
+	new file:   app/dependencies/__init__.py
+	new file:   app/dependencies/auth.py
+	modified:   app/main.py
+	modified:   app/models/__init__.py
+	new file:   app/models/analysis.py
+	new file:   app/models/conversation.py
+	new file:   app/models/message.py
+	new file:   app/models/user.py
+	new file:   app/schemas/analysis.py
+	new file:   app/schemas/auth.py
+	new file:   app/schemas/conversation.py
+	new file:   app/services/analysis_service.py
+	new file:   app/services/conversation_service.py
+	new file:   app/services/image_service.py
+	new file:   app/services/openai_service.py
+	new file:   app/services/password_service.py
+	new file:   app/services/user_service.py
+	modified:   app/tasks/__init__.py
+	modified:   app/tasks/analysis_tasks.py
+	new file:   frontend/package-lock.json
+	modified:   pyproject.toml
+	new file:   run_tests.py
+	new file:   tests/README.md
+	new file:   tests/test_api/test_analyses.py
+	new file:   tests/test_api/test_auth.py
+	new file:   tests/test_api/test_conversations.py
+	new file:   tests/test_integration/test_workflow.py
+	new file:   tests/test_services/test_analysis_service.py
+	new file:   tests/test_services/test_conversation_service.py
+	new file:   tests/test_services/test_openai_service.py
+	new file:   tests/test_services/test_user_service.py
+	new file:   tests/test_tasks/test_analysis_tasks.py
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .gitignore
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	cookies.txt
+	data/proper_palm.jpg
+	staged.txt
+	test_palm.png
+
