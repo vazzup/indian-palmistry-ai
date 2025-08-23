@@ -17,7 +17,6 @@ from app.models.user import User
 from app.models.message import Message
 from app.core.database import get_db_session
 from app.core.cache import cache_service
-from app.core.redis import redis_client
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)

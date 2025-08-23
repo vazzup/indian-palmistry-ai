@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db_session
+from app.core.database import get_db
 from app.dependencies.auth import get_current_user, get_current_user_optional
 from app.models.user import User
 from app.models.analysis import Analysis
@@ -40,7 +40,7 @@ async def get_advanced_analysis(
     analysis_id: int,
     line_types: List[PalmLineType],
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get specialized analysis for specific palm lines."""
     
@@ -70,7 +70,7 @@ async def get_advanced_analysis(
 async def compare_analyses(
     analysis_ids: List[int],
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Compare multiple analyses for temporal insights."""
     
@@ -105,7 +105,7 @@ async def compare_analyses(
 async def get_analysis_history(
     current_user: User = Depends(get_current_user),
     limit: int = Query(50, ge=1, le=100),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get user's analysis history with trends."""
     
@@ -156,7 +156,7 @@ async def enhanced_conversation_talk(
     message: str,
     context_window: Optional[int] = Query(10, ge=1, le=20),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Send message with enhanced context memory."""
     
@@ -190,7 +190,7 @@ async def search_conversations(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=50),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Search conversations and messages."""
     
@@ -221,7 +221,7 @@ async def export_conversation(
     conversation_id: int,
     format_type: str = Query("json", regex="^(json|markdown|text)$"),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Export conversation data."""
     
@@ -252,7 +252,7 @@ async def get_conversation_analytics(
     analysis_id: Optional[int] = Query(None),
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get conversation analytics for user."""
     
@@ -281,7 +281,7 @@ async def get_conversation_analytics(
 @router.get("/monitoring/dashboard")
 async def get_monitoring_dashboard(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get comprehensive monitoring dashboard (admin only)."""
     
@@ -331,7 +331,7 @@ async def get_system_health(
 async def get_cost_analytics(
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get cost analytics for user."""
     
@@ -358,7 +358,7 @@ async def get_cost_analytics(
 async def get_usage_analytics(
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get usage analytics for user."""
     
@@ -386,7 +386,7 @@ async def get_usage_analytics(
 @router.get("/dashboard")
 async def get_user_dashboard(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get comprehensive user dashboard."""
     
@@ -409,7 +409,7 @@ async def get_user_dashboard(
 @router.get("/dashboard/preferences")
 async def get_user_preferences(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get user preferences and settings."""
     
@@ -433,7 +433,7 @@ async def get_user_preferences(
 async def update_user_preferences(
     preferences_update: Dict[str, Any],
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Update user preferences."""
     
@@ -462,7 +462,7 @@ async def update_user_preferences(
 async def get_user_statistics(
     period_days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get detailed user statistics."""
     
@@ -488,7 +488,7 @@ async def get_user_statistics(
 @router.get("/dashboard/achievements")
 async def get_user_achievements(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get user achievements and milestones."""
     
@@ -514,7 +514,7 @@ async def export_user_data(
     include_conversations: bool = Query(True),
     format_type: str = Query("json", regex="^(json)$"),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Export user data for GDPR compliance."""
     
@@ -545,7 +545,7 @@ async def export_user_data(
 async def get_analyses_with_advanced_filtering(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
     
     # Pagination parameters
     page: int = Query(1, ge=1),
@@ -647,7 +647,7 @@ async def get_analyses_with_advanced_filtering(
 async def invalidate_cache_keys(
     keys: List[str],
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Invalidate specific cache keys (admin only)."""
     
@@ -676,7 +676,7 @@ async def invalidate_cache_keys(
 @router.get("/cache/stats")
 async def get_cache_stats(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get cache statistics."""
     

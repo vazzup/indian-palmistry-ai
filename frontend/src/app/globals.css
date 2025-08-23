@@ -1,160 +1,56 @@
 @import "tailwindcss";
 
-/* Cultural Design System Variables */
-:root {
-  /* Saffron-based color palette */
-  --saffron-50: #fffaf0;
-  --saffron-100: #fff1d6;
-  --saffron-200: #ffe0ad;
-  --saffron-300: #ffc574;
-  --saffron-400: #ffa339;
-  --saffron-500: #ff8000;  /* Primary saffron */
-  --saffron-600: #e65e00;
-  --saffron-700: #bf4600;
-  --saffron-800: #993600;
-  --saffron-900: #7a2900;
+@theme {
+  /* Custom color palette for Indian Palmistry AI */
+  --color-saffron-50: #fffaf0;
+  --color-saffron-100: #fff1d6;
+  --color-saffron-200: #ffe0ad;
+  --color-saffron-300: #ffc574;
+  --color-saffron-400: #ffa339;
+  --color-saffron-500: #ff8000;
+  --color-saffron-600: #e65e00;
+  --color-saffron-700: #bf4600;
+  --color-saffron-800: #993600;
+  --color-saffron-900: #7a2900;
   
-  /* Cultural accent colors */
-  --turmeric: #f0b429;      /* Warm gold */
-  --marigold: #ff9500;      /* Orange-yellow */
-  --vermillion: #e34234;    /* Sacred red */
-  --sandalwood: #d4a574;    /* Warm beige */
-  --lotus: #e8b4d1;         /* Soft pink */
-  
-  /* Neutral palette */
-  --background: #fffef9;     /* Warm white */
-  --foreground: #2c1810;     /* Dark brown */
-  --muted: #f5f2eb;          /* Light warm gray */
-  --muted-foreground: #6b5b47; /* Medium brown */
-  --border: #e8e0d0;         /* Warm border */
-  --accent: var(--saffron-50);
-  --accent-foreground: var(--saffron-800);
-  
-  /* Typography scale - culturally appropriate fonts */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-serif: "Times New Roman", Times, serif;
-  --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  
-  /* Spacing scale for mobile-first (44px touch targets) */
-  --touch-target: 44px;
-  --padding-xs: 8px;
-  --padding-sm: 12px;
-  --padding-md: 16px;
-  --padding-lg: 24px;
-  --padding-xl: 32px;
-  
-  /* Border radius - soft, rounded for cultural feel */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  
-  /* Shadows - subtle, warm */
-  --shadow-sm: 0 1px 2px 0 rgba(255, 128, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(255, 128, 0, 0.1), 0 2px 4px -1px rgba(255, 128, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(255, 128, 0, 0.1), 0 4px 6px -2px rgba(255, 128, 0, 0.05);
-}
-
-@theme inline {
-  /* Color system */
-  --color-saffron-50: var(--saffron-50);
-  --color-saffron-100: var(--saffron-100);
-  --color-saffron-200: var(--saffron-200);
-  --color-saffron-300: var(--saffron-300);
-  --color-saffron-400: var(--saffron-400);
-  --color-saffron-500: var(--saffron-500);
-  --color-saffron-600: var(--saffron-600);
-  --color-saffron-700: var(--saffron-700);
-  --color-saffron-800: var(--saffron-800);
-  --color-saffron-900: var(--saffron-900);
-  
-  --color-turmeric: var(--turmeric);
-  --color-marigold: var(--marigold);
-  --color-vermillion: var(--vermillion);
-  --color-sandalwood: var(--sandalwood);
-  --color-lotus: var(--lotus);
-  
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  /* Semantic colors */
+  --color-background: #fffef9;
+  --color-foreground: #2c1810;
+  --color-muted: #f5f2eb;
+  --color-muted-foreground: #6b5b47;
+  --color-border: #e8e0d0;
+  --color-card: #ffffff;
+  --color-card-foreground: #2c1810;
+  --color-ring: #ff8000;
   
   /* Typography */
-  --font-sans: var(--font-sans);
-  --font-serif: var(--font-serif);
-  --font-mono: var(--font-mono);
-  
-  /* Spacing */
-  --spacing-touch: var(--touch-target);
-  --spacing-xs: var(--padding-xs);
-  --spacing-sm: var(--padding-sm);
-  --spacing-md: var(--padding-md);
-  --spacing-lg: var(--padding-lg);
-  --spacing-xl: var(--padding-xl);
-  
-  /* Border radius */
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
-  
-  /* Shadows */
-  --shadow-sm: var(--shadow-sm);
-  --shadow-md: var(--shadow-md);
-  --shadow-lg: var(--shadow-lg);
+  --font-family-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* Base styles with cultural design principles */
+/* Global styles */
 * {
   box-sizing: border-box;
 }
 
 html {
-  /* Improved touch targets for mobile */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  background-color: theme(colors.background);
+  color: theme(colors.foreground);
+  font-family: theme(fontFamily.sans);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Cultural iconography support */
-.cultural-icon {
-  display: inline-block;
-  vertical-align: middle;
-}
-
-/* Loading animations with cultural feel */
-@keyframes cultural-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.cultural-spinner {
-  animation: cultural-spin 1s linear infinite;
-  border: 2px solid var(--saffron-200);
-  border-top: 2px solid var(--saffron-500);
-  border-radius: 50%;
-}
-
 /* Focus styles for accessibility */
 *:focus-visible {
-  outline: 2px solid var(--saffron-500);
+  outline: 2px solid theme(colors.saffron.500);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
 }
 
 /* Smooth transitions for interactive elements */

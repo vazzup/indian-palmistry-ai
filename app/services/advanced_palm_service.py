@@ -10,7 +10,7 @@ from datetime import datetime
 from app.services.openai_service import OpenAIService
 from app.services.image_service import ImageService
 from app.models.analysis import Analysis
-from app.core.database import get_db_session
+from app.core.database import get_db
 from app.core.cache import cache_service
 from app.core.logging import get_logger
 from sqlalchemy.ext.asyncio import AsyncSession

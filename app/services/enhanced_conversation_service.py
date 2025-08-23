@@ -14,7 +14,7 @@ from app.models.conversation import Conversation
 from app.models.message import Message, MessageRole
 from app.models.analysis import Analysis
 from app.services.openai_service import OpenAIService
-from app.core.database import get_db_session
+from app.core.database import get_db
 from app.core.cache import cache_service
 from app.core.logging import get_logger
 

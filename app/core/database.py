@@ -148,3 +148,17 @@ async def check_database_connection() -> bool:
         return True
     except Exception:
         return False
+
+
+def get_db_session():
+    """
+    Get database session context manager for service classes.
+    
+    Returns:
+        AsyncSessionLocal: Session context manager
+        
+    Usage:
+        async with get_db_session() as db:
+            result = await db.execute(query)
+    """
+    return AsyncSessionLocal()

@@ -7,7 +7,7 @@ import hashlib
 import asyncio
 from typing import Any, Optional, Dict, List, Callable
 from datetime import datetime, timedelta
-import aioredis
+import redis.asyncio as redis
 from app.core.config import settings
 from app.core.logging import get_logger
 
@@ -23,14 +23,13 @@ class CacheService:
     async def connect(self):
         """Initialize Redis connection with connection pooling."""
         try:
-            self._connection_pool = aioredis.ConnectionPool.from_url(
-                settings.REDIS_URL,
+            self.redis_client = redis.Redis.from_url(
+                settings.redis_url,
                 max_connections=20,
                 retry_on_timeout=True,
                 socket_keepalive=True,
-                socket_keepalive_options={}
+                decode_responses=True
             )
-            self.redis_client = aioredis.Redis(connection_pool=self._connection_pool)
             
             # Test connection
             await self.redis_client.ping()
@@ -44,8 +43,6 @@ class CacheService:
         """Close Redis connection."""
         if self.redis_client:
             await self.redis_client.close()
-        if self._connection_pool:
-            await self._connection_pool.disconnect()
     
     def _generate_key(self, prefix: str, *args, **kwargs) -> str:
         """Generate cache key from prefix and arguments."""
