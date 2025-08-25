@@ -1315,7 +1315,7 @@ export function useAnalysisJobPolling({
 - **Type Safety**: Runtime error prevention with TypeScript
 
 **Phase 3.75 Status**: ✅ **COMPLETE** - Fully operational Indian Palmistry AI application with enterprise-grade backend and cultural-authentic frontend ready for production deployment
-=======
+
 ## Phase 3.75 Frontend Completion - COMPLETED ✅
 
 ### Overview
@@ -1611,7 +1611,230 @@ npm run test:e2e
 ```
 
 **Phase 3.75 Status**: ✅ **COMPLETE** - Production-ready PWA with advanced security, performance monitoring, and offline capabilities
->>>>>>> 14cb7c5 (feat: complete Phase 3.75 Frontend Completion - Production-Ready PWA with Advanced Security)
+
+---
+
+## Deployment & Operations Tools - COMPLETED ✅
+
+### Overview
+Successfully implemented comprehensive startup and management scripts to enable one-command deployment and easy operation of the Indian Palmistry AI application stack. These tools provide production-ready operational capabilities with automated health checks, service management, and comprehensive logging.
+
+### Management Scripts Created
+
+#### 1. Startup Script (`start.sh`) ✅
+- **One-Command Startup**: Complete application stack startup with single command
+- **Prerequisite Checking**: Automated verification of Docker and Node.js availability
+- **Environment Setup**: Automatic `.env` file creation from template
+- **Service Orchestration**: Coordinated startup of backend services (API, Redis, Worker)
+- **Database Migration**: Automated database schema updates via Alembic
+- **Frontend Management**: Next.js development server with PID tracking
+- **Health Validation**: Comprehensive health checks with retry logic
+- **User Feedback**: Colored terminal output with progress indicators
+- **Error Handling**: Robust error detection and reporting
+- **Port Detection**: Dynamic frontend port detection and reporting
+
+#### 2. Stop Script (`stop.sh`) ✅
+- **Complete Shutdown**: Graceful shutdown of all application services
+- **Frontend Cleanup**: Process termination with PID file management
+- **Backend Cleanup**: Docker Compose service shutdown
+- **File Cleanup**: Removal of temporary files and logs
+- **Process Safety**: Safe process termination with fallback killing
+- **User Feedback**: Clear status reporting during shutdown
+
+#### 3. Restart Script (`restart.sh`) ✅
+- **Full System Restart**: Complete stop and start cycle
+- **Wait Period**: Configurable delay between stop and start operations
+- **Error Propagation**: Proper error handling from stop/start scripts
+- **Status Reporting**: Clear feedback during restart process
+- **Atomic Operations**: Ensures clean restart even on partial failures
+
+#### 4. Logs Script (`logs.sh`) ✅
+- **Service-Specific Logs**: Individual log viewing for API, Worker, Redis, Frontend
+- **All Logs View**: Combined view of all service logs
+- **Status Monitoring**: Real-time service status checking
+- **Health Reporting**: Service health and connectivity validation
+- **Flexible Usage**: Command-line argument support for specific services
+- **Docker Integration**: Direct container log access
+- **Frontend Log Support**: File-based frontend log viewing
+
+#### 5. Health Check Script (`health.sh`) ✅
+- **Comprehensive Health Checks**: All services and endpoints validated
+- **Docker Service Monitoring**: Container status verification
+- **Endpoint Testing**: HTTP health check validation
+- **Process Monitoring**: Frontend process PID validation
+- **Overall Status**: Aggregated health status reporting
+- **Port Detection**: Dynamic frontend port detection
+- **Exit Codes**: Proper exit codes for automation integration
+
+#### 6. Quick Start Documentation (`QUICK_START.md`) ✅
+- **Simple Instructions**: One-page getting started guide
+- **Command Reference**: Complete management command documentation
+- **Troubleshooting**: Common issue resolution steps
+- **Service Descriptions**: Clear explanation of each service
+- **Usage Flow**: Step-by-step application usage guide
+
+### Technical Implementation
+
+#### Script Features
+- **Bash Scripting**: POSIX-compliant shell scripts for broad compatibility
+- **Error Handling**: `set -e` error handling with proper exit codes
+- **Color Output**: ANSI color codes for enhanced user experience
+- **Function-Based Design**: Modular functions for maintainability
+- **Parameter Support**: Command-line argument processing
+- **Signal Handling**: Proper cleanup on script interruption
+- **Cross-Platform**: Compatible with macOS, Linux, and Windows (WSL)
+
+#### Service Integration
+- **Docker Compose**: Full integration with multi-container stack
+- **Process Management**: PID-based process tracking and management
+- **Port Management**: Dynamic port detection and validation
+- **Log Management**: Centralized logging with rotation support
+- **Health Monitoring**: Multi-level health check system
+
+#### Operational Capabilities
+- **Zero-Touch Startup**: Complete application stack in one command
+- **Development Workflow**: Hot-reload support for rapid development
+- **Production Readiness**: Proper service management for production
+- **Monitoring Integration**: Ready for external monitoring systems
+- **Automation Support**: Exit codes and status for CI/CD integration
+
+### Comprehensive Testing Suite
+
+#### Script Tests (`tests/scripts/`) ✅
+- **`test_start_script.py`**: 25+ tests for startup script functionality
+- **`test_stop_script.py`**: 20+ tests for shutdown script behavior
+- **`test_restart_script.py`**: 15+ tests for restart orchestration
+- **`test_logs_script.py`**: 25+ tests for log viewing capabilities
+- **`test_health_script.py`**: 20+ tests for health check operations
+
+#### Test Coverage
+- **Script Execution**: Command-line interface testing
+- **Error Handling**: Failure scenario validation
+- **Service Integration**: Docker and process management testing
+- **File Operations**: PID files, logs, and configuration handling
+- **User Interface**: Output formatting and error messaging
+- **Edge Cases**: Missing files, failed services, and recovery scenarios
+
+#### Testing Infrastructure
+- **Mock Environments**: Isolated test environments with temporary directories
+- **Process Simulation**: Mock process and service behavior
+- **Integration Testing**: Real script execution with controlled conditions
+- **Behavior Verification**: Output validation and side effect testing
+
+### Operational Benefits
+
+#### Developer Experience
+- **Instant Setup**: From clone to running application in under 5 minutes
+- **Clear Feedback**: Detailed status information during all operations
+- **Error Recovery**: Helpful error messages with suggested solutions
+- **Documentation**: Comprehensive usage documentation and examples
+
+#### Production Operations
+- **Service Management**: Professional-grade service lifecycle management
+- **Monitoring Ready**: Health check endpoints for external monitoring
+- **Log Aggregation**: Centralized logging for troubleshooting
+- **Automation Friendly**: Scriptable operations for deployment pipelines
+
+#### Maintenance & Support
+- **Self-Diagnosing**: Automated health checks identify issues quickly
+- **Log Accessibility**: Easy access to service logs for debugging
+- **Status Reporting**: Clear service status for operational awareness
+- **Recovery Tools**: Simple restart and recovery procedures
+
+### Usage Examples
+
+#### Basic Operations
+```bash
+# Start complete application stack
+./start.sh
+
+# Check system health
+./health.sh
+
+# View logs from all services
+./logs.sh
+
+# Restart entire system
+./restart.sh
+
+# Stop all services
+./stop.sh
+```
+
+#### Advanced Usage
+```bash
+# View specific service logs
+./logs.sh api
+./logs.sh frontend
+./logs.sh worker
+
+# Check service status
+./logs.sh status
+
+# Get help
+./logs.sh help
+```
+
+#### Integration Examples
+```bash
+# CI/CD health check
+if ./health.sh; then
+    echo "Deployment successful"
+else
+    echo "Deployment failed"
+    exit 1
+fi
+
+# Automated restart in cron
+0 2 * * * cd /app && ./restart.sh
+```
+
+### Files Created/Modified
+
+#### New Management Scripts
+- **`start.sh`**: 282 lines - Complete application startup automation
+- **`stop.sh`**: 76 lines - Graceful service shutdown
+- **`restart.sh`**: 34 lines - Full system restart orchestration  
+- **`logs.sh`**: 150 lines - Comprehensive log viewing and status monitoring
+- **`health.sh`**: 107 lines - Multi-service health checking
+- **`QUICK_START.md`**: 86 lines - One-page getting started guide
+
+#### Test Suite
+- **`tests/scripts/`**: Complete test directory structure
+- **5 test files**: 100+ comprehensive tests covering all script functionality
+- **Test documentation**: Usage and coverage documentation
+
+#### Documentation Updates
+- **Operational procedures**: Complete workflow documentation
+- **Troubleshooting guides**: Common issue resolution
+- **Usage examples**: Real-world usage scenarios
+
+### Verified Working Features
+
+#### End-to-End Startup Flow ✅
+1. **Prerequisite Validation**: Docker and Node.js availability checks
+2. **Environment Setup**: Automatic `.env` configuration
+3. **Backend Services**: API, Redis, and Worker startup with health validation
+4. **Database Migration**: Automated schema updates
+5. **Frontend Application**: Next.js dev server with port detection
+6. **Health Verification**: All services validated and ready
+7. **User Guidance**: Clear next steps and usage instructions
+
+#### Management Operations ✅
+- **Service Lifecycle**: Complete start/stop/restart cycle
+- **Log Management**: Individual and aggregate log viewing
+- **Health Monitoring**: Real-time service health validation
+- **Error Recovery**: Automated error detection and reporting
+- **Status Reporting**: Comprehensive service status information
+
+#### Integration Testing ✅
+- **Script Execution**: All scripts execute successfully
+- **Service Integration**: Proper Docker and process management
+- **Error Handling**: Graceful failure handling and recovery
+- **User Experience**: Clear feedback and guidance
+- **Cross-Platform**: Tested on macOS and Linux environments
+
+**Deployment Tools Status**: ✅ **COMPLETE** - Production-ready operational infrastructure with comprehensive management, monitoring, and automation capabilities
 
 ---
 

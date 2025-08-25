@@ -39,6 +39,14 @@ The application is now a **fully operational, production-ready** Indian Palmistr
 - ✅ **Full Workflow**: Image upload → AI analysis → Progress tracking → Results
 - ✅ **Production Ready**: Documented, tested, and optimized for deployment
 
+### Deployment & Operations
+- ✅ **One-Command Startup**: Complete application stack with `./start.sh`
+- ✅ **Management Scripts**: Start, stop, restart, logs, and health check tools
+- ✅ **Automated Setup**: Environment configuration and dependency checking
+- ✅ **Health Monitoring**: Comprehensive service health validation
+- ✅ **Log Management**: Individual and aggregate service log viewing
+- ✅ **Error Recovery**: Graceful error handling and recovery procedures
+
 ## Features
 
 ### 🔮 Advanced Palmistry Features
@@ -201,7 +209,38 @@ indian-palmistry-ai/
 └── docker-compose.yml     # Multi-service setup
 ```
 
-## Quick Start - Complete Application
+## 🚀 Quick Start - One Command Setup
+
+### **Easy Startup** (Recommended)
+
+```bash
+# Start everything with one command
+./start.sh
+```
+
+**That's it!** The script will automatically:
+- Check prerequisites (Docker, Node.js)
+- Start all backend services (API, Redis, Worker)
+- Run database migrations
+- Start frontend application
+- Open the app at http://localhost:3000
+
+### **Management Commands**
+
+```bash
+./start.sh     # Start all services
+./stop.sh      # Stop all services  
+./restart.sh   # Restart all services
+./logs.sh      # View all logs
+./logs.sh api  # View specific service logs
+./health.sh    # Check system health
+```
+
+See [QUICK_START.md](./QUICK_START.md) for detailed instructions.
+
+---
+
+## Manual Setup (Alternative)
 
 ### Prerequisites
 
