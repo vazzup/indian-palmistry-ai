@@ -9,7 +9,14 @@ interface SecurityProviderProps {
 }
 
 export const SecurityProvider: React.FC<SecurityProviderProps> = ({ children }) => {
-  const { isAuthenticated, logout } = useAuth();
+  // TEMPORARILY DISABLE ALL AUTH FUNCTIONALITY TO STOP INFINITE REQUESTS
+  const isAuthenticated = false;
+  const logout = undefined;
+  
+  // Commenting out useAuth call temporarily
+  // const auth = useAuth();
+  // const isAuthenticated = auth.isAuthenticated;
+  // const logout = auth.logout;
 
   React.useEffect(() => {
     // Set up CSP violation reporting

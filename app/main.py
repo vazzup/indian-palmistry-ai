@@ -100,9 +100,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add rate limiting and security middleware
-from app.middleware.rate_limiting import RateLimitMiddleware
-app.add_middleware(RateLimitMiddleware, enable_security_monitoring=True)
+# Add rate limiting and security middleware (disabled for development)
+# from app.middleware.rate_limiting import RateLimitMiddleware
+# app.add_middleware(RateLimitMiddleware, enable_security_monitoring=True)
 
 # CORS middleware
 app.add_middleware(

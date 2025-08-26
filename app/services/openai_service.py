@@ -151,15 +151,31 @@ Focus on traditional Indian palmistry interpretations and provide meaningful ins
             # Parse response
             analysis_text = response.choices[0].message.content
             
-            # Try to parse as JSON, fallback to text processing
+            # Try to parse as JSON, handling markdown code blocks
             try:
                 import json
-                analysis_data = json.loads(analysis_text)
+                import re
+                
+                # Remove markdown code blocks if present
+                clean_text = analysis_text.strip()
+                if clean_text.startswith('```json'):
+                    clean_text = re.sub(r'^```json\s*\n?', '', clean_text)
+                if clean_text.endswith('```'):
+                    clean_text = re.sub(r'\n?```$', '', clean_text)
+                elif clean_text.startswith('```'):
+                    # Handle cases where it might just be ``` without json
+                    clean_text = re.sub(r'^```\s*\n?', '', clean_text)
+                    if clean_text.endswith('```'):
+                        clean_text = re.sub(r'\n?```$', '', clean_text)
+                
+                clean_text = clean_text.strip()
+                analysis_data = json.loads(clean_text)
                 
                 summary = analysis_data.get("summary", "Palm analysis completed.")
-                full_report = analysis_data.get("full_report", analysis_text)
+                full_report = analysis_data.get("full_report", clean_text)
                 
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, Exception) as e:
+                logger.warning(f"Failed to parse JSON response: {e}")
                 # Fallback: split the response
                 lines = analysis_text.split('\n')
                 summary = lines[0][:200] + "..." if len(lines[0]) > 200 else lines[0]

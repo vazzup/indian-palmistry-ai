@@ -18,7 +18,7 @@ export default function AnalysisSummaryPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [showLoginGate, setShowLoginGate] = React.useState(false);
-  const [successMessage] = React.useState(() => getRandomMessage('success'));
+  const [successMessage] = React.useState(() => getRandomMessage('completion'));
 
   React.useEffect(() => {
     const fetchAnalysis = async () => {
@@ -33,8 +33,7 @@ export default function AnalysisSummaryPage() {
         const analysisData = await analysisApi.getAnalysisSummary(analysisId);
         setAnalysis(analysisData);
         
-        // Show login gate after a brief moment to let user read the summary
-        setTimeout(() => setShowLoginGate(true), 3000);
+        // Don't auto-show login gate, let user click when ready
       } catch (err: any) {
         setError(handleApiError(err));
       } finally {
@@ -75,7 +74,7 @@ export default function AnalysisSummaryPage() {
     );
   }
 
-  if (analysis.status === 'FAILED') {
+  if (analysis.status === 'failed') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <Card className="w-full max-w-md mx-auto border-red-200">
@@ -101,7 +100,7 @@ export default function AnalysisSummaryPage() {
     );
   }
 
-  if (analysis.status !== 'COMPLETED' || !analysis.summary) {
+  if (analysis.status !== 'completed' || !analysis.summary) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <Card className="w-full max-w-md mx-auto">
@@ -158,7 +157,13 @@ export default function AnalysisSummaryPage() {
             </div>
 
             {/* Teaser for full reading */}
-            <div className="bg-white/50 rounded-lg p-3 border border-saffron-200">
+            <button 
+              onClick={() => {
+                console.log('Full reading button clicked!');
+                setShowLoginGate(true);
+              }}
+              className="bg-white/50 rounded-lg p-3 border border-saffron-200 hover:bg-white/80 hover:border-saffron-300 transition-all duration-200 w-full text-left cursor-pointer active:bg-white/90"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-saffron-600" />
@@ -171,7 +176,7 @@ export default function AnalysisSummaryPage() {
               <p className="text-xs text-saffron-700 mt-1">
                 Sign in to unlock complete insights about your life, relationships, and future
               </p>
-            </div>
+            </button>
 
             {/* Analysis metadata */}
             <div className="text-center text-xs text-saffron-600 space-y-1">
@@ -202,19 +207,24 @@ export default function AnalysisSummaryPage() {
           </div>
         )}
 
-        {/* If login gate hasn't appeared yet, show a preview */}
+        {/* If login gate hasn't appeared yet, show a call-to-action */}
         {!showLoginGate && (
-          <Card className="border-dashed border-saffron-300 bg-saffron-50/50">
-            <CardContent className="p-4 text-center">
-              <Lock className="w-8 h-8 text-saffron-500 mx-auto mb-2" />
-              <p className="text-sm font-medium text-saffron-800 mb-1">
-                Want to see more?
-              </p>
-              <p className="text-xs text-saffron-600">
-                The complete reading is loading...
-              </p>
-            </CardContent>
-          </Card>
+          <button
+            onClick={() => setShowLoginGate(true)}
+            className="w-full"
+          >
+            <Card className="border-dashed border-saffron-300 bg-saffron-50/50 hover:bg-saffron-100/50 transition-colors cursor-pointer">
+              <CardContent className="p-4 text-center">
+                <Lock className="w-8 h-8 text-saffron-500 mx-auto mb-2" />
+                <p className="text-sm font-medium text-saffron-800 mb-1">
+                  Ready for the full reading?
+                </p>
+                <p className="text-xs text-saffron-600">
+                  Click here to unlock complete insights
+                </p>
+              </CardContent>
+            </Card>
+          </button>
         )}
 
         {/* Disclaimer */}

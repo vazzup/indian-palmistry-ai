@@ -15,6 +15,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
+  withCredentials: true, // Enable cookies for session management
   headers: {
     'Content-Type': 'application/json',
   },
@@ -34,12 +35,16 @@ export const analysisApi = {
   async uploadImages(files: File[]): Promise<Analysis> {
     const formData = new FormData();
     
-    files.forEach((file, index) => {
-      formData.append(`file${index}`, file);
-    });
+    // Backend expects 'left_image' and 'right_image' fields
+    if (files.length > 0) {
+      formData.append('left_image', files[0]);
+    }
+    if (files.length > 1) {
+      formData.append('right_image', files[1]);
+    }
 
     try {
-      const response = await api.post('/api/v1/analyses/upload', formData, {
+      const response = await api.post('/api/v1/analyses/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -48,7 +53,7 @@ export const analysisApi = {
       return response.data;
     } catch (error) {
       console.error('Upload failed:', error);
-      throw error;
+      throw new Error(handleApiError(error));
     }
   },
 
@@ -81,6 +86,88 @@ export const analysisApi = {
       throw error;
     }
   },
+
+  /**
+   * Get analysis summary (public endpoint - no authentication required)
+   * @param id - Analysis ID to get summary for
+   * @returns Promise resolving to analysis summary data
+   */
+  async getAnalysisSummary(id: string): Promise<any> {
+    try {
+      const response = await api.get(`/api/v1/analyses/${id}/summary`);
+      return response.data;
+    } catch (error) {
+      console.error('Get analysis summary failed:', error);
+      throw error;
+    }
+  },
+};
+
+/**
+ * Authentication API client for login, register, and user management
+ */
+export const authApi = {
+  /**
+   * User registration
+   */
+  async register(data: { email: string; password: string; name: string }): Promise<any> {
+    try {
+      const response = await api.post('/api/v1/auth/register', {
+        email: data.email,
+        password: data.password,
+        name: data.name
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * User login
+   */
+  async login(data: { email: string; password: string }): Promise<any> {
+    try {
+      const response = await api.post('/api/v1/auth/login', {
+        email: data.email,
+        password: data.password
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * User logout
+   */
+  async logout(): Promise<void> {
+    try {
+      await api.post('/api/v1/auth/logout');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Get current user info
+   */
+  async getCurrentUser(): Promise<any> {
+    try {
+      const response = await api.get('/api/v1/auth/me');
+      return response.data;
+    } catch (error: any) {
+      // Handle 401 gracefully - user is not authenticated
+      if (error.response?.status === 401) {
+        return null;
+      }
+      console.error('Get current user failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  }
 };
 
 /**

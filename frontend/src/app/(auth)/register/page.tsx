@@ -10,7 +10,12 @@ import { getRandomMessage } from '@/lib/cultural-theme';
 function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [welcomeMessage] = React.useState(() => getRandomMessage('welcome'));
+  const [welcomeMessage, setWelcomeMessage] = React.useState('Discover the ancient wisdom of your palms');
+  
+  // Set random message after mount to avoid hydration mismatch
+  React.useEffect(() => {
+    setWelcomeMessage(getRandomMessage('welcome'));
+  }, []);
   
   // Get redirect URL from query params
   const redirectTo = searchParams.get('redirect') || '/dashboard';

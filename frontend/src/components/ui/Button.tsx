@@ -53,7 +53,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     children, 
     ...props 
   }, ref) => {
-    const classes = getComponentClasses(size, variant, 'button');
+    const classes = getComponentClasses('button', variant, size);
     
     const isDisabled = disabled || loading;
     
@@ -61,15 +61,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={isDisabled}
-        className={`
-          ${classes.base}
-          ${classes.focus}
-          ${classes.transition}
-          ${classes.mobile}
-          ${isDisabled ? classes.disabled : ''}
-          rounded-md font-medium inline-flex items-center justify-center gap-2
-          ${className}
-        `}
+        className={`${classes} ${className}`}
         {...props}
       >
         {loading && <Loader2 className="w-4 h-4 animate-spin" />}

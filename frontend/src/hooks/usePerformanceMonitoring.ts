@@ -50,8 +50,11 @@ export const usePerformanceMonitoring = () => {
     };
 
     // Dynamically import web-vitals
-    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-      getCLS((metric) => {
+    import('web-vitals').then((webVitals) => {
+      // Handle both old and new web-vitals API
+      const { onCLS, onFID, onFCP, onLCP, onTTFB, getCLS, getFID, getFCP, getLCP, getTTFB } = webVitals;
+      
+      (onCLS || getCLS)?.(metric => {
         sendToAnalytics({
           name: 'CLS',
           value: metric.value,
@@ -59,7 +62,7 @@ export const usePerformanceMonitoring = () => {
         });
       });
 
-      getFID((metric) => {
+      (onFID || getFID)?.((metric) => {
         sendToAnalytics({
           name: 'FID',
           value: metric.value,
@@ -67,7 +70,7 @@ export const usePerformanceMonitoring = () => {
         });
       });
 
-      getFCP((metric) => {
+      (onFCP || getFCP)?.((metric) => {
         sendToAnalytics({
           name: 'FCP',
           value: metric.value,
@@ -75,7 +78,7 @@ export const usePerformanceMonitoring = () => {
         });
       });
 
-      getLCP((metric) => {
+      (onLCP || getLCP)?.((metric) => {
         sendToAnalytics({
           name: 'LCP',
           value: metric.value,
@@ -83,7 +86,7 @@ export const usePerformanceMonitoring = () => {
         });
       });
 
-      getTTFB((metric) => {
+      (onTTFB || getTTFB)?.((metric) => {
         sendToAnalytics({
           name: 'TTFB',
           value: metric.value,

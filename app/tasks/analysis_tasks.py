@@ -252,8 +252,7 @@ def generate_thumbnails(self, analysis_id: int) -> Dict[str, Any]:
     try:
         logger.info(
             "Starting thumbnail generation",
-            analysis_id=analysis_id,
-            task_id=task_id
+            extra={"analysis_id": analysis_id, "task_id": task_id}
         )
         
         # Load analysis record
@@ -310,9 +309,11 @@ def generate_thumbnails(self, analysis_id: int) -> Dict[str, Any]:
         
         logger.info(
             "Thumbnail generation completed",
-            analysis_id=analysis_id,
-            task_id=task_id,
-            thumbnail_count=len(thumbnail_paths)
+            extra={
+                "analysis_id": analysis_id,
+                "task_id": task_id,
+                "thumbnail_count": len(thumbnail_paths)
+            }
         )
         
         return {
@@ -326,10 +327,12 @@ def generate_thumbnails(self, analysis_id: int) -> Dict[str, Any]:
     except Exception as exc:
         logger.error(
             "Thumbnail generation failed",
-            analysis_id=analysis_id,
-            task_id=task_id,
-            error=str(exc),
-            retry_count=self.request.retries,
+            extra={
+                "analysis_id": analysis_id,
+                "task_id": task_id,
+                "error": str(exc),
+                "retry_count": self.request.retries
+            },
             exc_info=True
         )
         

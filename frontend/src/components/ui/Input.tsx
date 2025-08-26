@@ -8,6 +8,7 @@ interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, '
   error?: string;
   label?: string;
   hint?: string;
+  helpText?: string; // Added helpText as alias for hint
   icon?: React.ReactNode;
   showPasswordToggle?: boolean;
 }
@@ -18,6 +19,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     error, 
     label, 
     hint, 
+    helpText,
     icon, 
     showPasswordToggle = false,
     type = 'text',
@@ -89,8 +91,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         
-        {hint && !error && (
-          <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+        {(helpText || hint) && !error && (
+          <p className="mt-1 text-xs text-muted-foreground">{helpText || hint}</p>
         )}
         
         {error && (

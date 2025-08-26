@@ -143,6 +143,34 @@ class TestOpenAIService:
             # Verify result
             assert result["tokens_used"] == 200
     
+    async def test_analyze_palm_images_markdown_json_response(self, openai_service):
+        """Test analysis with JSON wrapped in markdown code blocks (session fix)."""
+        with patch.object(openai_service, '_encode_image') as mock_encode, \
+             patch.object(openai_service.client.chat.completions, 'create') as mock_create:
+            
+            # Mock image encoding
+            mock_encode.return_value = "encoded_image_data"
+            
+            # Mock OpenAI response with markdown-wrapped JSON (the actual issue found)
+            mock_response = MagicMock()
+            mock_response.choices[0].message.content = '''```json
+{
+    "summary": "Your life line indicates strong vitality and longevity",
+    "full_report": "Based on traditional Indian palmistry (Hast Rekha Shastra), your palm reveals strength"
+}
+```'''
+            mock_response.usage.total_tokens = 100
+            mock_create.return_value = mock_response
+            
+            result = await openai_service.analyze_palm_images(
+                left_image_path="test_left.jpg"
+            )
+            
+            # Should properly parse the JSON from markdown
+            assert result["summary"] == "Your life line indicates strong vitality and longevity"
+            assert result["full_report"] == "Based on traditional Indian palmistry (Hast Rekha Shastra), your palm reveals strength"
+            assert result["tokens_used"] == 100
+    
     async def test_analyze_palm_images_invalid_json_response(self, openai_service):
         """Test analysis with invalid JSON response from OpenAI."""
         with patch.object(openai_service, '_encode_image') as mock_encode, \

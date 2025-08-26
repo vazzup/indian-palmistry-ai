@@ -63,9 +63,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   
   React.useEffect(() => {
     clearError();
-  }, [clearError]);
+  }, []); // Remove clearError from dependency array to prevent infinite calls
   
   const onSubmit = async (data: RegisterFormData) => {
+    console.log('Form submitted with data:', data);
     try {
       clearError();
       
@@ -75,7 +76,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         password: data.password,
       };
       
+      console.log('Calling registerUser...');
       await registerUser(registerData);
+      console.log('Registration successful');
       
       if (onSuccess) {
         onSuccess();

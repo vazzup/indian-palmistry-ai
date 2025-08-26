@@ -41,6 +41,7 @@ vi.doMock('@/lib/api', async () => {
       uploadImages: vi.fn(),
       getAnalysis: vi.fn(),
       getAnalysisStatus: vi.fn(),
+      getAnalysisSummary: vi.fn(),
     },
     handleApiError,
   };
@@ -129,6 +130,49 @@ describe('analysisApi', () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/analyses/1/status');
       expect(result).toEqual(mockStatus);
+    });
+  });
+
+  describe('getAnalysisSummary', () => {
+    it('should fetch analysis summary by ID (session fix)', async () => {
+      const mockSummary = {
+        id: '1',
+        status: 'completed',
+        summary: 'Your palm shows strong life lines indicating vitality...',
+        created_at: '2023-01-01T00:00:00Z'
+      };
+
+      const mockResponse = { data: mockSummary };
+      mockedAxios.get.mockResolvedValue(mockResponse);
+
+      const result = await analysisApi.getAnalysisSummary('1');
+
+      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/analyses/1/summary');
+      expect(result).toEqual(mockSummary);
+    });
+
+    it('should handle summary fetch errors', async () => {
+      const errorMessage = 'Analysis not found';
+      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
+      
+      await expect(analysisApi.getAnalysisSummary('nonexistent')).rejects.toThrow(errorMessage);
+    });
+
+    it('should handle incomplete analysis (no summary yet)', async () => {
+      const mockIncomplete = {
+        id: '2',
+        status: 'processing',
+        summary: null,
+        created_at: '2023-01-01T00:00:00Z'
+      };
+
+      const mockResponse = { data: mockIncomplete };
+      mockedAxios.get.mockResolvedValue(mockResponse);
+
+      const result = await analysisApi.getAnalysisSummary('2');
+
+      expect(result.status).toBe('processing');
+      expect(result.summary).toBe(null);
     });
   });
 });

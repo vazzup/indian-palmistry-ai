@@ -19,19 +19,27 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
   onComplete,
   onError,
 }) => {
-  const { status, error, isPolling, startPolling } = useAnalysisJobPolling();
-  const [messages] = React.useState({
-    queued: getRandomMessage('loading'),
-    processing: getRandomMessage('loading'),
-    completed: getRandomMessage('success'),
-    failed: getRandomMessage('error'),
+  const { status, isPolling, stopPolling } = useAnalysisJobPolling({
+    analysisId,
+    onComplete,
+    onError,
+  });
+  const [messages, setMessages] = React.useState({
+    queued: 'Queuing your analysis...',
+    processing: 'Analyzing your palm...',
+    completed: 'Analysis complete!',
+    failed: 'Analysis failed',
   });
   
-  // Start polling when component mounts
+  // Set random messages on client side to avoid hydration mismatch
   React.useEffect(() => {
-    const cleanup = startPolling(analysisId);
-    return cleanup;
-  }, [analysisId, startPolling]);
+    setMessages({
+      queued: getRandomMessage('loading'),
+      processing: getRandomMessage('loading'),
+      completed: getRandomMessage('completion'),
+      failed: 'Analysis failed', // No error messages in cultural-theme
+    });
+  }, []);
   
   // Handle completion and errors
   React.useEffect(() => {
@@ -39,17 +47,17 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
       onComplete(status.result);
     }
     
-    if ((status?.status === 'failed' || error) && onError) {
-      onError(status?.error || error || 'Analysis failed');
+    if (status?.status === 'failed' && onError) {
+      onError(status?.error || 'Analysis failed');
     }
-  }, [status, error, onComplete, onError]);
+  }, [status, onComplete, onError]);
   
   const getStatusIcon = () => {
     if (!status) return <Clock className="w-6 h-6 text-gray-400" />;
     
     switch (status.status) {
       case 'queued':
-        return <Clock className="w-6 h-6 text-saffron-500" />;
+        return <Clock className="w-6 h-6 text-orange-500" />;
       case 'processing':
         return <Spinner size="md" type="minimal" />;
       case 'completed':
@@ -84,7 +92,7 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
   };
   
   const isComplete = status?.status === 'completed';
-  const isFailed = status?.status === 'failed' || !!error;
+  const isFailed = status?.status === 'failed';
   const isActive = isPolling && !isComplete && !isFailed;
   
   return (
@@ -115,7 +123,7 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
                   className={`h-2 rounded-full transition-all duration-500 ${
-                    isComplete ? 'bg-green-500' : 'bg-saffron-500'
+                    isComplete ? 'bg-green-500' : 'bg-orange-500'
                   }`}
                   style={{ width: `${getProgressPercentage()}%` }}
                 />
@@ -133,27 +141,27 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
               <div>Status: {status.status.toUpperCase()}</div>
               {isActive && (
                 <div className="flex items-center justify-center gap-1">
-                  <div className="w-1 h-1 bg-saffron-400 rounded-full animate-bounce" />
-                  <div className="w-1 h-1 bg-saffron-400 rounded-full animate-bounce delay-75" />
-                  <div className="w-1 h-1 bg-saffron-400 rounded-full animate-bounce delay-150" />
+                  <div className="w-1 h-1 bg-orange-400 rounded-full animate-bounce" />
+                  <div className="w-1 h-1 bg-orange-400 rounded-full animate-bounce delay-75" />
+                  <div className="w-1 h-1 bg-orange-400 rounded-full animate-bounce delay-150" />
                 </div>
               )}
             </div>
           )}
           
           {/* Error details */}
-          {(status?.error || error) && (
+          {status?.error && (
             <div className="bg-red-50 border border-red-200 rounded-md p-3">
               <p className="text-sm text-red-600">
-                {status?.error || error}
+                {status.error}
               </p>
             </div>
           )}
           
           {/* Cultural encouragement */}
           {isActive && (
-            <div className="bg-saffron-50 border border-saffron-200 rounded-md p-3">
-              <p className="text-xs text-saffron-700">
+            <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
+              <p className="text-xs text-orange-700">
                 ✨ Ancient wisdom meets modern technology
               </p>
             </div>

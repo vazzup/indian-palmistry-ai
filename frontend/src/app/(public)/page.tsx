@@ -16,7 +16,11 @@ export default function HomePage() {
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
-  const [welcomeMessage] = React.useState(() => getRandomMessage('welcome'));
+  const [welcomeMessage, setWelcomeMessage] = React.useState('Discover the ancient wisdom of your palms');
+  
+  React.useEffect(() => {
+    setWelcomeMessage(getRandomMessage('welcome'));
+  }, []);
 
   const handleUpload = async (files: File[]) => {
     try {
