@@ -14,115 +14,66 @@ import {
   ArrowRight,
   Clock,
   CheckCircle,
-  XCircle 
+  XCircle,
+  Loader2,
+  AlertCircle 
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-
-interface Analysis {
-  id: number;
-  createdAt: string;
-  status: 'completed' | 'processing' | 'failed';
-  summary: string;
-  conversationCount: number;
-  leftImagePath?: string;
-  rightImagePath?: string;
-  cost?: number;
-}
+import { useAnalysesList, formatAnalysisDate, getStatusColorClass } from '@/hooks/useDashboard';
 
 export default function AnalysesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<string>('all');
   const [sortBy, setSortBy] = React.useState<'newest' | 'oldest'>('newest');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [localSearchQuery, setLocalSearchQuery] = React.useState('');
   
-  // TODO: Replace with actual API calls
-  const [analyses] = React.useState<Analysis[]>([
-    {
-      id: 5,
-      createdAt: '2024-01-15T10:30:00Z',
-      status: 'completed',
-      summary: 'Your life line shows strong vitality and a long, healthy life ahead. The depth and clarity indicate excellent physical constitution and natural resilience.',
-      conversationCount: 3,
-      leftImagePath: '/path/to/left.jpg',
-      cost: 0.12,
-    },
-    {
-      id: 4,
-      createdAt: '2024-01-12T14:20:00Z',
-      status: 'completed',
-      summary: 'The heart line reveals a passionate nature with deep emotional connections. You value meaningful relationships and have strong intuitive abilities.',
-      conversationCount: 2,
-      rightImagePath: '/path/to/right.jpg',
-      cost: 0.08,
-    },
-    {
-      id: 3,
-      createdAt: '2024-01-08T09:15:00Z',
-      status: 'completed',
-      summary: 'Your head line indicates analytical thinking and creative problem-solving abilities. You approach challenges with both logic and innovation.',
-      conversationCount: 1,
-      leftImagePath: '/path/to/left.jpg',
-      rightImagePath: '/path/to/right.jpg',
-      cost: 0.15,
-    },
-    {
-      id: 2,
-      createdAt: '2024-01-05T16:45:00Z',
-      status: 'processing',
-      summary: '',
-      conversationCount: 0,
-      leftImagePath: '/path/to/left.jpg',
-    },
-    {
-      id: 1,
-      createdAt: '2024-01-02T11:20:00Z',
-      status: 'failed',
-      summary: '',
-      conversationCount: 0,
-      leftImagePath: '/path/to/left.jpg',
-    },
-  ]);
-
-  const [filteredAnalyses, setFilteredAnalyses] = React.useState<Analysis[]>(analyses);
-
+  // Debounce search query
   React.useEffect(() => {
-    let filtered = analyses;
+    const timer = setTimeout(() => {
+      setSearchQuery(localSearchQuery);
+      setCurrentPage(1); // Reset to first page when searching
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [localSearchQuery]);
 
-    // Filter by search query
-    if (searchQuery) {
-      filtered = filtered.filter(analysis =>
-        analysis.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        analysis.id.toString().includes(searchQuery)
-      );
-    }
+  // Fetch analyses from API with current filters
+  const apiParams = React.useMemo(() => ({
+    page: currentPage,
+    limit: 10,
+    status: filterStatus === 'all' ? undefined : filterStatus,
+    sort: sortBy === 'newest' ? '-created_at' : 'created_at',
+  }), [currentPage, filterStatus, sortBy]);
 
-    // Filter by status
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(analysis => analysis.status === filterStatus);
-    }
+  const { data: analysesData, loading, error, refetch } = useAnalysesList(apiParams);
 
-    // Sort
-    filtered = filtered.sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
-      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
-    });
+  // Filter analyses by search query (client-side for now)
+  const filteredAnalyses = React.useMemo(() => {
+    if (!analysesData?.analyses) return [];
+    
+    if (!searchQuery.trim()) return analysesData.analyses;
+    
+    const query = searchQuery.toLowerCase();
+    return analysesData.analyses.filter(analysis =>
+      analysis.id.toLowerCase().includes(query) ||
+      (analysis.summary && analysis.summary.toLowerCase().includes(query))
+    );
+  }, [analysesData?.analyses, searchQuery]);
 
-    setFilteredAnalyses(filtered);
-  }, [analyses, searchQuery, filterStatus, sortBy]);
+  // Handle filter changes
+  const handleFilterChange = (newFilter: string) => {
+    setFilterStatus(newFilter);
+    setCurrentPage(1); // Reset to first page when filtering
+  };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const handleSortChange = (newSort: 'newest' | 'oldest') => {
+    setSortBy(newSort);
+    setCurrentPage(1); // Reset to first page when sorting
   };
 
   const getStatusIcon = (status: string) => {
@@ -138,28 +89,55 @@ export default function AnalysesPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'processing':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const handleDeleteAnalysis = (analysisId: number, event: React.MouseEvent) => {
+  const handleDeleteAnalysis = (analysisId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     // TODO: Implement delete confirmation and API call
     console.log('Delete analysis:', analysisId);
   };
 
-  const handleViewAnalysis = (analysisId: number) => {
-    router.push(`/analyses/${analysisId}`);
+  const handleViewAnalysis = (analysisId: string) => {
+    router.push(`/analysis/${analysisId}/summary`);
   };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <DashboardLayout
+        title="My Readings"
+        description="View and manage all your palm analyses"
+      >
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-saffron-600" />
+          <span className="ml-3 text-gray-600">Loading your analyses...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <DashboardLayout
+        title="My Readings"
+        description="View and manage all your palm analyses"
+      >
+        <Card>
+          <CardContent className="py-12 text-center">
+            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Unable to Load Analyses
+            </h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={refetch}>Try Again</Button>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout
@@ -176,8 +154,8 @@ export default function AnalysesPage() {
               <Input
                 type="text"
                 placeholder="Search readings..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={localSearchQuery}
+                onChange={(e) => setLocalSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -186,7 +164,7 @@ export default function AnalysesPage() {
             <div className="flex gap-2">
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={(e) => handleFilterChange(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-saffron-500 focus:border-saffron-500"
               >
                 <option value="all">All Status</option>
@@ -197,7 +175,7 @@ export default function AnalysesPage() {
 
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
+                onChange={(e) => handleSortChange(e.target.value as 'newest' | 'oldest')}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-saffron-500 focus:border-saffron-500"
               >
                 <option value="newest">Newest First</option>
@@ -218,7 +196,8 @@ export default function AnalysesPage() {
 
         {/* Results Count */}
         <div className="text-sm text-muted-foreground">
-          Showing {filteredAnalyses.length} of {analyses.length} reading{analyses.length !== 1 ? 's' : ''}
+          Showing {filteredAnalyses.length} of {analysesData?.total || 0} reading{(analysesData?.total || 0) !== 1 ? 's' : ''}
+          {searchQuery && ` (filtered)`}
         </div>
 
         {/* Analyses List */}
@@ -265,14 +244,14 @@ export default function AnalysesPage() {
                               Reading #{analysis.id}
                             </h3>
                             <span
-                              className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getStatusColor(analysis.status)}`}
+                              className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getStatusColorClass(analysis.status)}`}
                             >
                               {getStatusIcon(analysis.status)}
                               <span className="ml-1 capitalize">{analysis.status}</span>
                             </span>
                           </div>
                           <div className="text-sm text-gray-500">
-                            {formatDate(analysis.createdAt)}
+                            {formatAnalysisDate(analysis.created_at, true)}
                           </div>
                         </div>
 
@@ -287,13 +266,13 @@ export default function AnalysesPage() {
                         <div className="flex items-center space-x-4 text-xs text-gray-500">
                           <span className="flex items-center">
                             <Calendar className="w-3 h-3 mr-1" />
-                            {new Date(analysis.createdAt).toLocaleDateString()}
+                            {new Date(analysis.created_at).toLocaleDateString()}
                           </span>
                           
-                          {analysis.conversationCount > 0 && (
+                          {analysis.conversation_count > 0 && (
                             <span className="flex items-center">
                               <MessageCircle className="w-3 h-3 mr-1" />
-                              {analysis.conversationCount} conversation{analysis.conversationCount !== 1 ? 's' : ''}
+                              {analysis.conversation_count} conversation{analysis.conversation_count !== 1 ? 's' : ''}
                             </span>
                           )}
                           
@@ -304,11 +283,13 @@ export default function AnalysesPage() {
                           )}
                           
                           <span>
-                            {analysis.leftImagePath && analysis.rightImagePath 
+                            {analysis.left_image_url && analysis.right_image_url 
                               ? 'Both palms' 
-                              : analysis.leftImagePath 
+                              : analysis.left_image_url 
                                 ? 'Left palm' 
-                                : 'Right palm'
+                                : analysis.right_image_url 
+                                  ? 'Right palm'
+                                  : 'No images'
                             }
                           </span>
                         </div>
@@ -344,14 +325,26 @@ export default function AnalysesPage() {
           </div>
         )}
 
-        {/* Pagination (TODO: Implement when needed) */}
-        {filteredAnalyses.length > 10 && (
+        {/* Pagination */}
+        {analysesData && analysesData.total_pages > 1 && (
           <div className="flex items-center justify-center space-x-2 py-4">
-            <Button variant="outline" size="sm" disabled>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
               Previous
             </Button>
-            <span className="text-sm text-gray-600">Page 1 of 1</span>
-            <Button variant="outline" size="sm" disabled>
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {analysesData.total_pages}
+            </span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === analysesData.total_pages}
+            >
               Next
             </Button>
           </div>

@@ -4,7 +4,7 @@ import React from 'react';
 import { useCSRF } from '@/hooks/useCSRF';
 import { sanitizeObject, rateLimiter } from '@/lib/security';
 
-interface SecureFormProps extends React.FormHTMLAttributes<HTMLFormElement> {
+interface SecureFormProps extends Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit'> {
   onSubmit: (data: FormData, sanitizedData: Record<string, any>) => void | Promise<void>;
   rateLimitKey?: string;
   maxAttempts?: number;

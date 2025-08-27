@@ -10,15 +10,14 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ size = 'md', hover = false, className = '', children, ...props }, ref) => {
-    const classes = getComponentClasses(size, 'default', 'card');
+    const classes = getComponentClasses('card', 'default', size);
     
     return (
       <div
         ref={ref}
         className={`
-          ${classes.base}
-          ${classes.padding}
-          ${hover ? classes.hover : ''}
+          ${classes}
+          ${hover ? 'hover:shadow-md cursor-pointer' : ''}
           ${className}
         `}
         {...props}

@@ -8,7 +8,9 @@ import {
   Clock, 
   TrendingUp,
   Plus,
-  ArrowRight 
+  ArrowRight,
+  Loader2,
+  AlertCircle 
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -16,52 +18,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth';
 import { getRandomMessage } from '@/lib/cultural-theme';
+import { useDashboard, formatAnalysisDate, calculateSuccessRate } from '@/hooks/useDashboard';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [welcomeMessage] = React.useState(() => getRandomMessage('welcome'));
   
-  // TODO: Replace with actual API calls
-  const [stats] = React.useState({
-    totalAnalyses: 3,
-    totalConversations: 7,
-    thisMonth: 2,
-    avgResponseTime: '1.2s',
-  });
-  
-  const [recentAnalyses] = React.useState([
-    {
-      id: 1,
-      createdAt: '2024-01-15T10:30:00Z',
-      status: 'completed',
-      summary: 'Your life line shows strong vitality and a long, healthy life ahead...',
-      conversationCount: 3,
-    },
-    {
-      id: 2,
-      createdAt: '2024-01-12T14:20:00Z',
-      status: 'completed',
-      summary: 'The heart line reveals a passionate nature with deep emotional connections...',
-      conversationCount: 2,
-    },
-    {
-      id: 3,
-      createdAt: '2024-01-08T09:15:00Z',
-      status: 'completed',
-      summary: 'Your head line indicates analytical thinking and creative problem-solving...',
-      conversationCount: 1,
-    },
-  ]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
+  // Fetch dashboard data from API
+  const { data: dashboardData, loading, error, refetch } = useDashboard();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -69,6 +34,85 @@ export default function DashboardPage() {
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
   };
+
+  // Calculate derived stats from dashboard data
+  const stats = React.useMemo(() => {
+    if (!dashboardData?.overview) {
+      return {
+        totalAnalyses: 0,
+        totalConversations: 0,
+        thisMonth: 0,
+        avgResponseTime: '--',
+        successRate: 0,
+      };
+    }
+
+    const { overview, analytics } = dashboardData;
+    const currentMonth = new Date().getMonth();
+    const thisMonthData = analytics?.analyses_by_month?.find(
+      (item: any) => new Date(item.month).getMonth() === currentMonth
+    );
+
+    return {
+      totalAnalyses: overview.total_analyses,
+      totalConversations: overview.total_conversations,
+      thisMonth: thisMonthData?.count || 0,
+      avgResponseTime: analytics?.avg_response_time || '--',
+      successRate: overview.success_rate,
+    };
+  }, [dashboardData]);
+
+  const recentAnalyses = React.useMemo(() => {
+    if (!dashboardData?.recent_activity) return [];
+    
+    // Filter and transform recent activity to analysis format
+    return dashboardData.recent_activity
+      .filter((activity: any) => activity.type === 'analysis_completed' && activity.analysis_id)
+      .slice(0, 3)
+      .map((activity: any) => ({
+        id: activity.analysis_id,
+        createdAt: activity.timestamp,
+        status: 'completed',
+        summary: activity.message || 'Analysis completed successfully',
+        conversationCount: 0, // Will be populated from backend if available
+      }));
+  }, [dashboardData]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <DashboardLayout
+        title={`${getGreeting()}, ${user?.name?.split(' ')[0] || 'there'}!`}
+        description={welcomeMessage}
+      >
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-saffron-600" />
+          <span className="ml-3 text-gray-600">Loading your dashboard...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <DashboardLayout
+        title={`${getGreeting()}, ${user?.name?.split(' ')[0] || 'there'}!`}
+        description={welcomeMessage}
+      >
+        <Card>
+          <CardContent className="py-12 text-center">
+            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Unable to Load Dashboard
+            </h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={refetch}>Try Again</Button>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout
@@ -104,14 +148,17 @@ export default function DashboardPage() {
             value={stats.totalAnalyses}
             description="All time palm analyses"
             icon={Hand}
-            trend={{ value: 15, isPositive: true }}
+            trend={stats.totalAnalyses > 0 ? { value: Math.min(stats.successRate, 100), isPositive: true } : undefined}
           />
           <StatsCard
             title="Conversations"
             value={stats.totalConversations}
             description="AI chat sessions"
             icon={MessageCircle}
-            trend={{ value: 8, isPositive: true }}
+            trend={stats.totalConversations > stats.totalAnalyses ? 
+              { value: Math.round(((stats.totalConversations - stats.totalAnalyses) / Math.max(stats.totalAnalyses, 1)) * 100), isPositive: true } : 
+              undefined
+            }
           />
           <StatsCard
             title="This Month"
@@ -120,10 +167,11 @@ export default function DashboardPage() {
             icon={TrendingUp}
           />
           <StatsCard
-            title="Avg Response"
-            value={stats.avgResponseTime}
-            description="AI response time"
+            title="Success Rate"
+            value={`${Math.round(stats.successRate)}%`}
+            description="Analysis completion rate"
             icon={Clock}
+            trend={stats.successRate >= 80 ? { value: Math.round(stats.successRate), isPositive: true } : undefined}
           />
         </div>
 
@@ -178,7 +226,7 @@ export default function DashboardPage() {
                           Reading #{analysis.id}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {formatDate(analysis.createdAt)}
+                          {formatAnalysisDate(analysis.createdAt)}
                         </p>
                       </div>
                       <p className="text-sm text-gray-600 mt-1 line-clamp-2">

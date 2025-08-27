@@ -32,10 +32,19 @@ const completionMessages = [
   "Your palm's secrets are unveiled",
 ];
 
+const healingMessages = [
+  "Healing energy flows through your palms",
+  "The sacred lines guide your healing journey",
+  "Ancient wisdom brings restoration to your path",
+  "Your palms reveal the path to inner healing",
+  "Divine energy channels through your hands",
+];
+
 const messageCategories = {
   welcome: welcomeMessages,
   loading: loadingMessages,
   completion: completionMessages,
+  healing: healingMessages,
 };
 
 /**
@@ -111,8 +120,8 @@ export function getComponentClasses(componentType: string, variant?: string, siz
   
   if (size && component[size as keyof typeof component]) {
     classes += ' ' + component[size as keyof typeof component];
-  } else if (component.md) {
-    classes += ' ' + component.md;
+  } else if ('md' in component) {
+    classes += ' ' + (component as any).md;
   }
 
   return classes.trim();

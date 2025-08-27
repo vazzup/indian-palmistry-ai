@@ -208,7 +208,7 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
   const hasFiles = Object.values(previews).some(Boolean);
   
   return (
-    <div className="w-full max-w-md mx-auto space-y-4">
+    <div className="w-full max-w-md lg:max-w-none mx-auto lg:mx-0 space-y-4">
       {/* Upload area */}
       <Card className={`
         border-2 border-dashed transition-all duration-200 cursor-pointer

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   Home, 
   History, 
@@ -35,6 +35,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   description 
 }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, logout, isLoading } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
@@ -43,25 +44,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       label: 'Dashboard',
       href: '/dashboard',
       icon: <Home className="w-5 h-5" />,
-      current: router.asPath === '/dashboard',
+      current: pathname === '/dashboard',
     },
     {
       label: 'My Analyses',
       href: '/analyses',
       icon: <History className="w-5 h-5" />,
-      current: router.asPath === '/analyses',
+      current: pathname === '/analyses',
     },
     {
       label: 'Conversations',
       href: '/conversations',
       icon: <MessageCircle className="w-5 h-5" />,
-      current: router.asPath === '/conversations',
+      current: pathname === '/conversations',
     },
     {
       label: 'Profile',
       href: '/profile',
       icon: <User className="w-5 h-5" />,
-      current: router.asPath === '/profile',
+      current: pathname === '/profile',
     },
   ];
 

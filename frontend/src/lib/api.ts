@@ -167,7 +167,91 @@ export const authApi = {
       console.error('Get current user failed:', error);
       throw new Error(handleApiError(error));
     }
+  },
+
+  /**
+   * Get CSRF token for security
+   */
+  async getCSRFToken(): Promise<string> {
+    try {
+      const response = await api.get('/api/v1/auth/csrf-token');
+      return response.data.csrf_token;
+    } catch (error) {
+      console.error('Get CSRF token failed:', error);
+      // Return empty string if CSRF is not available
+      return '';
+    }
   }
+};
+
+/**
+ * Dashboard API client for analytics and statistics
+ */
+export const dashboardApi = {
+  /**
+   * Get user dashboard overview with stats and recent activity
+   */
+  async getDashboard(): Promise<{
+    overview: {
+      total_analyses: number;
+      completed_analyses: number;
+      total_conversations: number;
+      success_rate: number;
+    };
+    recent_activity: any[];
+    analytics: any;
+  }> {
+    try {
+      const response = await api.get('/api/v1/enhanced/dashboard');
+      return response.data;
+    } catch (error) {
+      console.error('Get dashboard failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Get paginated list of user analyses
+   */
+  async getAnalyses(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    sort?: string;
+  }): Promise<{
+    analyses: any[];
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  }> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.status) queryParams.append('status', params.status);
+      if (params?.sort) queryParams.append('sort', params.sort);
+
+      const response = await api.get(`/api/v1/analyses/?${queryParams.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get analyses failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Get detailed dashboard statistics
+   */
+  async getDashboardStatistics(): Promise<any> {
+    try {
+      const response = await api.get('/api/v1/enhanced/dashboard/statistics');
+      return response.data;
+    } catch (error) {
+      console.error('Get dashboard statistics failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
 };
 
 /**

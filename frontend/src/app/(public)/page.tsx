@@ -54,8 +54,8 @@ export default function HomePage() {
 
   if (analysis && !uploadError) {
     return (
-      <div className="min-h-screen bg-background py-8 px-4">
-        <div className="max-w-md mx-auto space-y-6">
+      <div className="min-h-screen bg-background py-8 px-4 md:px-6 lg:px-8">
+        <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto space-y-6">
           {/* Header */}
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-bold text-foreground">
@@ -93,10 +93,13 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="py-12 px-4">
-        <div className="max-w-md mx-auto text-center space-y-6">
+      <div className="py-12 px-4 md:px-6 lg:px-8">
+        <div className="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Content Column */}
+            <div className="text-center lg:text-left space-y-6">
           {/* Logo/Icon */}
-          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-saffron-400 to-saffron-600 rounded-full flex items-center justify-center">
+          <div className="mx-auto lg:mx-0 w-20 h-20 bg-gradient-to-br from-saffron-400 to-saffron-600 rounded-full flex items-center justify-center">
             <Hand className="w-10 h-10 text-white" />
           </div>
 
@@ -111,34 +114,62 @@ export default function HomePage() {
           </div>
 
           {/* Features */}
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-3 gap-4 text-center lg:justify-start">
             <div className="space-y-2">
-              <div className="mx-auto w-12 h-12 bg-saffron-100 rounded-full flex items-center justify-center">
+              <div className="mx-auto lg:mx-0 w-12 h-12 bg-saffron-100 rounded-full flex items-center justify-center">
                 <Brain className="w-6 h-6 text-saffron-600" />
               </div>
               <p className="text-xs font-medium">AI Powered</p>
             </div>
             
             <div className="space-y-2">
-              <div className="mx-auto w-12 h-12 bg-saffron-100 rounded-full flex items-center justify-center">
+              <div className="mx-auto lg:mx-0 w-12 h-12 bg-saffron-100 rounded-full flex items-center justify-center">
                 <Sparkles className="w-6 h-6 text-saffron-600" />
               </div>
               <p className="text-xs font-medium">Traditional</p>
             </div>
             
             <div className="space-y-2">
-              <div className="mx-auto w-12 h-12 bg-saffron-100 rounded-full flex items-center justify-center">
+              <div className="mx-auto lg:mx-0 w-12 h-12 bg-saffron-100 rounded-full flex items-center justify-center">
                 <Heart className="w-6 h-6 text-saffron-600" />
               </div>
               <p className="text-xs font-medium">Personal</p>
+            </div>
+          </div>
+            </div>
+            
+            {/* Visual Column - Desktop Only */}
+            <div className="hidden lg:flex items-center justify-center">
+              <div className="relative">
+                {/* Decorative palm illustration placeholder */}
+                <div className="w-80 h-80 bg-gradient-to-br from-saffron-100 to-orange-100 rounded-full flex items-center justify-center border-4 border-saffron-200">
+                  <div className="text-center space-y-4">
+                    <Hand className="w-24 h-24 text-saffron-500 mx-auto" />
+                    <div className="text-saffron-700">
+                      <p className="text-lg font-semibold">Ancient Wisdom</p>
+                      <p className="text-sm">Modern Technology</p>
+                    </div>
+                  </div>
+                </div>
+                {/* Floating elements */}
+                <div className="absolute -top-4 -right-4 w-12 h-12 bg-saffron-200 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-saffron-600" />
+                </div>
+                <div className="absolute -bottom-4 -left-4 w-12 h-12 bg-orange-200 rounded-full flex items-center justify-center">
+                  <Brain className="w-6 h-6 text-orange-600" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Upload Section */}
-      <div className="px-4 pb-8">
-        <div className="max-w-md mx-auto space-y-6">
+      <div className="px-4 md:px-6 lg:px-8 pb-8">
+        <div className="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+            {/* Instructions Column */}
+            <div className="space-y-6">
           {/* Instructions */}
           <Card>
             <CardHeader>
@@ -165,72 +196,78 @@ export default function HomePage() {
             </CardContent>
           </Card>
 
-          {/* Upload Component */}
-          <MobileImageUpload 
-            onUpload={handleUpload}
-            isUploading={isUploading}
-          />
+            </div>
+            
+            {/* Upload Column */}
+            <div className="space-y-6">
+              {/* Upload Component */}
+              <MobileImageUpload 
+                onUpload={handleUpload}
+                isUploading={isUploading}
+              />
 
-          {/* Error Display */}
-          {uploadError && (
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-4">
-                <div className="text-red-600 text-sm">
-                  <p className="font-medium">Upload Failed</p>
-                  <p>{uploadError}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+              {/* Error Display */}
+              {uploadError && (
+                <Card className="border-red-200 bg-red-50">
+                  <CardContent className="p-4">
+                    <div className="text-red-600 text-sm">
+                      <p className="font-medium">Upload Failed</p>
+                      <p>{uploadError}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-          {/* Privacy Note */}
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">
-              🔒 Your images are processed securely and not stored permanently
-            </p>
+              {/* Privacy Note */}
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">
+                  🔒 Your images are processed securely and not stored permanently
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="bg-muted/30 py-8 px-4">
-        <div className="max-w-md mx-auto">
-          <h2 className="text-xl font-semibold text-center mb-6">
+      <div className="bg-muted/30 py-8 px-4 md:px-6 lg:px-8">
+        <div className="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto">
+          <h2 className="text-xl md:text-2xl font-semibold text-center mb-6 md:mb-8">
             What You'll Discover
           </h2>
           
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-saffron-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-4 h-4 text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <div className="flex md:flex-col md:text-center items-start md:items-center gap-3 md:gap-4">
+              <div className="w-8 h-8 md:w-12 md:h-12 bg-saffron-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-4 h-4 md:w-6 md:h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-medium">Life Insights</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-medium md:text-lg">Life Insights</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
                   Learn about your personality, strengths, and life path
                 </p>
               </div>
             </div>
             
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-saffron-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <Heart className="w-4 h-4 text-white" />
+            <div className="flex md:flex-col md:text-center items-start md:items-center gap-3 md:gap-4">
+              <div className="w-8 h-8 md:w-12 md:h-12 bg-saffron-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <Heart className="w-4 h-4 md:w-6 md:h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-medium">Relationships</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-medium md:text-lg">Relationships</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
                   Understand your approach to love and relationships
                 </p>
               </div>
             </div>
             
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-saffron-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <Brain className="w-4 h-4 text-white" />
+            <div className="flex md:flex-col md:text-center items-start md:items-center gap-3 md:gap-4">
+              <div className="w-8 h-8 md:w-12 md:h-12 bg-saffron-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <Brain className="w-4 h-4 md:w-6 md:h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-medium">Career & Health</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-medium md:text-lg">Career & Health</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
                   Discover insights about your career path and wellbeing
                 </p>
               </div>

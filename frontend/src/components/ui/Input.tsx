@@ -30,7 +30,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const [showPassword, setShowPassword] = React.useState(false);
     const [inputType, setInputType] = React.useState(type);
     
-    const classes = getComponentClasses(size, 'default', 'input');
+    const classes = getComponentClasses('input', 'default', size);
     
     React.useEffect(() => {
       if (showPasswordToggle && type === 'password') {
@@ -64,10 +64,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={inputType}
             disabled={disabled}
             className={`
-              ${classes.base}
-              ${classes.focus}
-              ${classes.disabled}
-              ${error ? classes.error : ''}
+              ${classes}
+              ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
               ${icon ? 'pl-10' : ''}
               ${showPasswordToggle ? 'pr-10' : ''}
               w-full

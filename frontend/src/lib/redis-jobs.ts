@@ -53,7 +53,11 @@ export function useAnalysisJobPolling({
     const pollStatus = async () => {
       try {
         const response = await analysisApi.getAnalysisStatus(analysisId.toString());
-        setStatus(response);
+        setStatus({
+          status: response.status as 'queued' | 'processing' | 'completed' | 'failed',
+          result: response.result,
+          error: response.error
+        });
 
         if (response.status === 'completed') {
           setIsPolling(false);

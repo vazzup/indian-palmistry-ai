@@ -33,11 +33,14 @@ export const createLazyComponent = <T extends React.ComponentType<any>>(
 ): React.ComponentType<React.ComponentProps<T>> => {
   const LazyComponent = lazy(importFn);
   
-  return (props: React.ComponentProps<T>) => (
+  const WrappedComponent = (props: React.ComponentProps<T>) => (
     <LazyLoad>
       <LazyComponent {...props} />
     </LazyLoad>
   );
+  
+  WrappedComponent.displayName = 'LazyWrappedComponent';
+  return WrappedComponent;
 };
 
 // Pre-defined lazy components for common heavy components
@@ -50,5 +53,5 @@ export const LazyAnalysisDetail = createLazyComponent(
 );
 
 export const LazyConversationInterface = createLazyComponent(
-  () => import('@/components/conversation/AnalysisConversations')
+  () => import('@/components/conversation/AnalysisConversations').then(module => ({ default: module.AnalysisConversations }))
 );

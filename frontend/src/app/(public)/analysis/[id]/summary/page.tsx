@@ -12,7 +12,7 @@ import type { Analysis } from '@/types';
 
 export default function AnalysisSummaryPage() {
   const params = useParams();
-  const analysisId = parseInt(params.id as string);
+  const analysisId = params.id as string;
   
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -22,7 +22,7 @@ export default function AnalysisSummaryPage() {
 
   React.useEffect(() => {
     const fetchAnalysis = async () => {
-      if (!analysisId || isNaN(analysisId)) {
+      if (!analysisId) {
         setError('Invalid analysis ID');
         setLoading(false);
         return;
@@ -50,8 +50,8 @@ export default function AnalysisSummaryPage() {
 
   if (error || !analysis) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <Card className="w-full max-w-md mx-auto border-red-200">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 md:px-6 lg:px-8">
+        <Card className="w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto border-red-200">
           <CardContent className="p-6 text-center">
             <div className="text-red-600 mb-4">
               <Eye className="w-12 h-12 mx-auto" />
@@ -74,10 +74,10 @@ export default function AnalysisSummaryPage() {
     );
   }
 
-  if (analysis.status === 'failed') {
+  if (analysis.status?.toLowerCase() === 'failed') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <Card className="w-full max-w-md mx-auto border-red-200">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 md:px-6 lg:px-8">
+        <Card className="w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto border-red-200">
           <CardContent className="p-6 text-center">
             <div className="text-red-600 mb-4">
               <Eye className="w-12 h-12 mx-auto" />
@@ -100,10 +100,10 @@ export default function AnalysisSummaryPage() {
     );
   }
 
-  if (analysis.status !== 'completed' || !analysis.summary) {
+  if (analysis.status?.toLowerCase() !== 'completed' || !analysis.summary) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <Card className="w-full max-w-md mx-auto">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 md:px-6 lg:px-8">
+        <Card className="w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto">
           <CardContent className="p-6 text-center">
             <div className="text-saffron-600 mb-4">
               <Sparkles className="w-12 h-12 mx-auto" />
@@ -121,8 +121,8 @@ export default function AnalysisSummaryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-background py-8 px-4 md:px-6 lg:px-8">
+      <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-saffron-400 to-saffron-600 rounded-full flex items-center justify-center">
@@ -201,7 +201,7 @@ export default function AnalysisSummaryPage() {
             </div>
             
             <LoginGate 
-              analysisId={analysisId}
+              analysisId={parseInt(analysisId)}
               showFullFeatures={true}
             />
           </div>

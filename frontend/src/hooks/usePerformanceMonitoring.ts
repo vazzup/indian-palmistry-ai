@@ -52,9 +52,10 @@ export const usePerformanceMonitoring = () => {
     // Dynamically import web-vitals
     import('web-vitals').then((webVitals) => {
       // Handle both old and new web-vitals API
-      const { onCLS, onFID, onFCP, onLCP, onTTFB, getCLS, getFID, getFCP, getLCP, getTTFB } = webVitals;
+      const { onCLS, onFCP, onLCP, onTTFB } = webVitals;
+      // onFID has been replaced with onINP in newer versions of web-vitals
       
-      (onCLS || getCLS)?.(metric => {
+      onCLS?.(metric => {
         sendToAnalytics({
           name: 'CLS',
           value: metric.value,
@@ -62,15 +63,9 @@ export const usePerformanceMonitoring = () => {
         });
       });
 
-      (onFID || getFID)?.((metric) => {
-        sendToAnalytics({
-          name: 'FID',
-          value: metric.value,
-          rating: getRating('FID', metric.value),
-        });
-      });
+      // FID is deprecated in favor of INP, skip for now
 
-      (onFCP || getFCP)?.((metric) => {
+      onFCP?.(metric => {
         sendToAnalytics({
           name: 'FCP',
           value: metric.value,
@@ -78,7 +73,7 @@ export const usePerformanceMonitoring = () => {
         });
       });
 
-      (onLCP || getLCP)?.((metric) => {
+      onLCP?.(metric => {
         sendToAnalytics({
           name: 'LCP',
           value: metric.value,
@@ -86,7 +81,7 @@ export const usePerformanceMonitoring = () => {
         });
       });
 
-      (onTTFB || getTTFB)?.((metric) => {
+      onTTFB?.(metric => {
         sendToAnalytics({
           name: 'TTFB',
           value: metric.value,
