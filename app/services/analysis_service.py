@@ -10,12 +10,13 @@ from fastapi import UploadFile
 from app.models.analysis import Analysis, AnalysisStatus
 from app.services.image_service import ImageService
 from app.core.database import AsyncSessionLocal
+from app.core.cache import cache_service, CacheKeys
 
 logger = logging.getLogger(__name__)
 
 
 class AnalysisService:
-    """Service for managing palm reading analyses."""
+    """Service for managing palm reading analyses with cache management."""
     
     def __init__(self, db: Optional[AsyncSession] = None):
         """Initialize analysis service."""
@@ -90,6 +91,12 @@ class AnalysisService:
                 await db.refresh(analysis)
                 
                 logger.info(f"Queued analysis job {job.id} for analysis {analysis.id}")
+                
+                # Invalidate user cache to ensure dashboard shows new analysis immediately
+                if user_id:
+                    await self._invalidate_user_cache(user_id)
+                    logger.debug(f"Invalidated cache for user {user_id} after creating analysis {analysis.id}")
+                
                 return analysis
                 
         except Exception as e:
@@ -227,6 +234,11 @@ class AnalysisService:
                 # Delete associated images
                 self.image_service.delete_analysis_images(analysis.user_id, analysis.id)
                 
+                # Invalidate user cache before deletion
+                if analysis.user_id:
+                    await self._invalidate_user_cache(analysis.user_id)
+                    logger.debug(f"Invalidated cache for user {analysis.user_id} before deleting analysis {analysis_id}")
+                
                 # Delete analysis record (conversations and messages will cascade)
                 await db.delete(analysis)
                 await db.commit()
@@ -236,4 +248,70 @@ class AnalysisService:
                 
         except Exception as e:
             logger.error(f"Error deleting analysis {analysis_id}: {e}")
+            return False
+    
+    async def _invalidate_user_cache(self, user_id: int) -> None:
+        """Invalidate all cache entries related to a user."""
+        try:
+            # Invalidate dashboard cache
+            await cache_service.invalidate_user_dashboard(user_id)
+            
+            # Invalidate analytics cache
+            await cache_service.invalidate_user_analytics(user_id)
+            
+            # Invalidate user stats cache (pattern-based)
+            pattern = f"user_stats:{user_id}:*"
+            await cache_service.delete_pattern(pattern)
+            
+            # Invalidate user preferences cache
+            key = CacheKeys.user_preferences(user_id)
+            await cache_service.delete(key)
+            
+            logger.debug(f"Successfully invalidated cache for user {user_id}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to invalidate cache for user {user_id}: {e}")
+    
+    async def invalidate_analysis_cache(self, analysis_id: int, user_id: Optional[int] = None) -> bool:
+        """Invalidate cache related to a specific analysis."""
+        try:
+            # Invalidate analysis result cache
+            analysis_key = CacheKeys.analysis_result(analysis_id)
+            await cache_service.delete(analysis_key)
+            
+            # If user_id provided, invalidate user-related cache
+            if user_id:
+                await self._invalidate_user_cache(user_id)
+            
+            logger.debug(f"Successfully invalidated analysis cache for analysis {analysis_id}")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Failed to invalidate analysis cache for analysis {analysis_id}: {e}")
+            return False
+    
+    async def update_analysis_status(self, analysis_id: int, status: AnalysisStatus, user_id: Optional[int] = None) -> bool:
+        """Update analysis status and invalidate related cache."""
+        try:
+            async with await self.get_session() as db:
+                stmt = select(Analysis).where(Analysis.id == analysis_id)
+                result = await db.execute(stmt)
+                analysis = result.scalar_one_or_none()
+                
+                if not analysis:
+                    return False
+                
+                analysis.status = status
+                await db.commit()
+                
+                # Invalidate cache when analysis status changes
+                analysis_user_id = user_id or analysis.user_id
+                if analysis_user_id:
+                    await self._invalidate_user_cache(analysis_user_id)
+                    logger.debug(f"Invalidated cache for user {analysis_user_id} after status change for analysis {analysis_id}")
+                
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error updating analysis status for analysis {analysis_id}: {e}")
             return False

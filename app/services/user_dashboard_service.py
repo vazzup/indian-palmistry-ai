@@ -15,7 +15,7 @@ from app.models.analysis import Analysis, AnalysisStatus
 from app.models.conversation import Conversation
 from app.models.message import Message, MessageRole
 from app.core.database import get_db_session
-from app.core.cache import cache_service
+from app.core.cache import cache_service, CacheKeys
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -45,9 +45,10 @@ class UserDashboardService:
     async def get_user_dashboard(self, user_id: int) -> Dict[str, Any]:
         """Get comprehensive user dashboard data."""
         
-        cache_key = f"user_dashboard:{user_id}"
-        cached_result = await cache_service.get_user_analytics(user_id)
+        # Check dashboard cache first
+        cached_result = await cache_service.get_user_dashboard(user_id)
         if cached_result:
+            logger.debug(f"Dashboard cache hit for user {user_id}")
             return cached_result
         
         try:
@@ -74,7 +75,7 @@ class UserDashboardService:
                         "email": user.email,
                         "picture": user.picture,
                         "member_since": user.created_at.isoformat(),
-                        "last_active": user.updated_at.isoformat()
+                        "last_active": user.updated_at.isoformat() if user.updated_at else user.created_at.isoformat()
                     },
                     "overview": overview,
                     "recent_activity": recent_activity,
@@ -84,8 +85,9 @@ class UserDashboardService:
                     "generated_at": datetime.utcnow().isoformat()
                 }
                 
-                # Cache for 30 minutes
-                await cache_service.cache_user_analytics(user_id, dashboard, expire=1800)
+                # Cache dashboard for 30 minutes
+                await cache_service.cache_user_dashboard(user_id, dashboard, expire=1800)
+                logger.debug(f"Cached dashboard for user {user_id}")
                 
                 return dashboard
                 
@@ -96,9 +98,10 @@ class UserDashboardService:
     async def get_user_preferences(self, user_id: int) -> Dict[str, Any]:
         """Get user preferences and settings."""
         
-        cache_key = f"user_preferences:{user_id}"
+        cache_key = CacheKeys.user_preferences(user_id)
         cached_prefs = await cache_service.get(cache_key)
         if cached_prefs:
+            logger.debug(f"Preferences cache hit for user {user_id}")
             return cached_prefs
         
         try:
@@ -182,9 +185,10 @@ class UserDashboardService:
     ) -> Dict[str, Any]:
         """Get detailed user statistics."""
         
-        cache_key = f"user_stats:{user_id}:{period_days}"
+        cache_key = CacheKeys.user_stats(user_id, period_days)
         cached_stats = await cache_service.get(cache_key)
         if cached_stats:
+            logger.debug(f"Statistics cache hit for user {user_id}, period {period_days} days")
             return cached_stats
         
         try:
@@ -247,10 +251,11 @@ class UserDashboardService:
                 analysis_count_result = await db.execute(analysis_count_stmt)
                 analysis_count = analysis_count_result.scalar() or 0
                 
-                # Get user's conversation count
+                # Get user's conversation count (via analysis relationship)
                 conversation_count_stmt = (
                     select(func.count(Conversation.id))
-                    .where(Conversation.user_id == user_id)
+                    .join(Analysis)
+                    .where(Analysis.user_id == user_id)
                 )
                 
                 conversation_count_result = await db.execute(conversation_count_stmt)
@@ -392,7 +397,7 @@ class UserDashboardService:
                         "picture": user.picture,
                         "is_active": user.is_active,
                         "created_at": user.created_at.isoformat(),
-                        "updated_at": user.updated_at.isoformat()
+                        "updated_at": user.updated_at.isoformat() if user.updated_at else user.created_at.isoformat()
                     }
                 }
                 
@@ -427,7 +432,8 @@ class UserDashboardService:
                     conversations_stmt = (
                         select(Conversation)
                         .options(selectinload(Conversation.messages))
-                        .where(Conversation.user_id == user_id)
+                        .join(Analysis)
+                        .where(Analysis.user_id == user_id)
                         .order_by(desc(Conversation.created_at))
                     )
                     
@@ -442,7 +448,7 @@ class UserDashboardService:
                             "analysis_id": conversation.analysis_id,
                             "title": conversation.title,
                             "created_at": conversation.created_at.isoformat(),
-                            "updated_at": conversation.updated_at.isoformat(),
+                            "updated_at": conversation.updated_at.isoformat() if conversation.updated_at else conversation.created_at.isoformat(),
                             "messages": [
                                 {
                                     "id": msg.id,
@@ -507,7 +513,8 @@ class UserDashboardService:
         # Total conversations
         total_conversations_stmt = (
             select(func.count(Conversation.id))
-            .where(Conversation.user_id == user_id)
+            .join(Analysis)
+            .where(Analysis.user_id == user_id)
         )
         total_conversations_result = await db.execute(total_conversations_stmt)
         total_conversations = total_conversations_result.scalar() or 0
@@ -528,7 +535,8 @@ class UserDashboardService:
             select(func.sum(Message.cost))
             .select_from(Message)
             .join(Conversation)
-            .where(Conversation.user_id == user_id)
+            .join(Analysis, Conversation.analysis_id == Analysis.id)
+            .where(Analysis.user_id == user_id)
         )
         message_cost_result = await db.execute(message_cost_stmt)
         message_cost = message_cost_result.scalar() or 0
@@ -573,7 +581,8 @@ class UserDashboardService:
         # Recent conversations
         recent_conversations_stmt = (
             select(Conversation)
-            .where(Conversation.user_id == user_id)
+            .join(Analysis)
+            .where(Analysis.user_id == user_id)
             .order_by(desc(Conversation.updated_at))
             .limit(5)
         )
@@ -587,7 +596,7 @@ class UserDashboardService:
                 "id": conversation.id,
                 "title": conversation.title,
                 "status": "active",
-                "timestamp": conversation.updated_at.isoformat(),
+                "timestamp": conversation.updated_at.isoformat() if conversation.updated_at else conversation.created_at.isoformat(),
                 "description": f"Conversation about Analysis #{conversation.analysis_id}"
             })
         
@@ -702,7 +711,8 @@ class UserDashboardService:
         # Check if user has conversations
         conversation_count_stmt = (
             select(func.count(Conversation.id))
-            .where(Conversation.user_id == user_id)
+            .join(Analysis)
+            .where(Analysis.user_id == user_id)
         )
         
         conversation_count_result = await db.execute(conversation_count_stmt)
@@ -803,8 +813,9 @@ class UserDashboardService:
         # Conversation counts
         conv_count_stmt = (
             select(func.count(Conversation.id))
+            .join(Analysis)
             .where(
-                Conversation.user_id == user_id,
+                Analysis.user_id == user_id,
                 Conversation.created_at >= start_date
             )
         )
@@ -823,8 +834,9 @@ class UserDashboardService:
             )
             .select_from(Message)
             .join(Conversation)
+            .join(Analysis, Conversation.analysis_id == Analysis.id)
             .where(
-                Conversation.user_id == user_id,
+                Analysis.user_id == user_id,
                 Message.created_at >= start_date
             )
         )
@@ -889,8 +901,9 @@ class UserDashboardService:
             select(func.sum(Message.cost))
             .select_from(Message)
             .join(Conversation)
+            .join(Analysis, Conversation.analysis_id == Analysis.id)
             .where(
-                Conversation.user_id == user_id,
+                Analysis.user_id == user_id,
                 Message.created_at >= start_date
             )
         )

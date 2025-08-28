@@ -1,18 +1,22 @@
 'use client';
 
 import React from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Eye, Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { LoginGate } from '@/components/auth/LoginGate';
 import { LoadingPage } from '@/components/ui/Spinner';
 import { analysisApi, handleApiError } from '@/lib/api';
 import { getRandomMessage } from '@/lib/cultural-theme';
+import { useAuth } from '@/lib/auth';
 import type { Analysis } from '@/types';
 
 export default function AnalysisSummaryPage() {
   const params = useParams();
+  const router = useRouter();
   const analysisId = params.id as string;
+  const { isAuthenticated, user } = useAuth();
   
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -160,21 +164,34 @@ export default function AnalysisSummaryPage() {
             <button 
               onClick={() => {
                 console.log('Full reading button clicked!');
-                setShowLoginGate(true);
+                if (isAuthenticated) {
+                  // User is authenticated, redirect to full analysis
+                  router.push(`/analyses/${analysisId}`);
+                } else {
+                  // User is not authenticated, show login gate
+                  setShowLoginGate(true);
+                }
               }}
               className="bg-white/50 rounded-lg p-3 border border-saffron-200 hover:bg-white/80 hover:border-saffron-300 transition-all duration-200 w-full text-left cursor-pointer active:bg-white/90"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-saffron-600" />
+                  {isAuthenticated ? (
+                    <Eye className="w-4 h-4 text-saffron-600" />
+                  ) : (
+                    <Lock className="w-4 h-4 text-saffron-600" />
+                  )}
                   <span className="text-sm font-medium text-saffron-800">
-                    Full detailed reading available
+                    {isAuthenticated ? 'View full detailed reading' : 'Full detailed reading available'}
                   </span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-saffron-600" />
               </div>
               <p className="text-xs text-saffron-700 mt-1">
-                Sign in to unlock complete insights about your life, relationships, and future
+                {isAuthenticated 
+                  ? 'Click to view your complete analysis with insights about your life, relationships, and future'
+                  : 'Sign in to unlock complete insights about your life, relationships, and future'
+                }
               </p>
             </button>
 
@@ -210,17 +227,27 @@ export default function AnalysisSummaryPage() {
         {/* If login gate hasn't appeared yet, show a call-to-action */}
         {!showLoginGate && (
           <button
-            onClick={() => setShowLoginGate(true)}
+            onClick={() => {
+              if (isAuthenticated) {
+                router.push(`/analyses/${analysisId}`);
+              } else {
+                setShowLoginGate(true);
+              }
+            }}
             className="w-full"
           >
             <Card className="border-dashed border-saffron-300 bg-saffron-50/50 hover:bg-saffron-100/50 transition-colors cursor-pointer">
               <CardContent className="p-4 text-center">
-                <Lock className="w-8 h-8 text-saffron-500 mx-auto mb-2" />
+                {isAuthenticated ? (
+                  <Eye className="w-8 h-8 text-saffron-500 mx-auto mb-2" />
+                ) : (
+                  <Lock className="w-8 h-8 text-saffron-500 mx-auto mb-2" />
+                )}
                 <p className="text-sm font-medium text-saffron-800 mb-1">
-                  Ready for the full reading?
+                  {isAuthenticated ? 'Ready to view your full reading?' : 'Ready for the full reading?'}
                 </p>
                 <p className="text-xs text-saffron-600">
-                  Click here to unlock complete insights
+                  {isAuthenticated ? 'Click here to view complete insights' : 'Click here to unlock complete insights'}
                 </p>
               </CardContent>
             </Card>

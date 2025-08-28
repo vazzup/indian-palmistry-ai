@@ -28,10 +28,11 @@ from app.utils.pagination import (
 
 from app.core.cache import cache_service
 from app.core.logging import get_logger
+from app.utils.cache_utils import debug_user_cache, force_cache_refresh, validate_cache_consistency
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/api/v1/enhanced", tags=["enhanced"])
+router = APIRouter(prefix="/enhanced", tags=["enhanced"])
 
 # Advanced Analysis Endpoints
 
@@ -702,3 +703,74 @@ async def get_cache_stats(
     except Exception as e:
         logger.error(f"Cache stats failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve cache statistics")
+
+# Cache Debugging Endpoints
+
+@router.get("/cache/debug")
+async def debug_user_cache_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Debug cache entries for current user."""
+    
+    try:
+        cache_debug = await debug_user_cache(current_user.id)
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "data": cache_debug,
+                "message": f"Cache debug completed for user {current_user.id}"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Cache debug failed: {e}")
+        raise HTTPException(status_code=500, detail="Cache debug failed")
+
+@router.post("/cache/refresh")
+async def force_cache_refresh_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Force refresh cache for current user."""
+    
+    try:
+        refresh_result = await force_cache_refresh(current_user.id)
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "data": refresh_result,
+                "message": f"Cache refresh completed for user {current_user.id}"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Cache refresh failed: {e}")
+        raise HTTPException(status_code=500, detail="Cache refresh failed")
+
+@router.get("/cache/validate-consistency")
+async def validate_cache_consistency_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Validate cache consistency for current user."""
+    
+    try:
+        consistency_result = await validate_cache_consistency(current_user.id)
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "data": consistency_result,
+                "message": f"Cache consistency validation completed for user {current_user.id}"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Cache consistency validation failed: {e}")
+        raise HTTPException(status_code=500, detail="Cache consistency validation failed")

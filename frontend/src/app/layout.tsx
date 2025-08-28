@@ -5,6 +5,7 @@ import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import { InstallPrompt } from "@/components/ui/InstallPrompt";
 import { PerformanceProvider } from "@/components/providers/PerformanceProvider";
 import { SecurityProvider } from "@/components/providers/SecurityProvider";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -104,13 +105,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SecurityProvider>
-          <PerformanceProvider>
-            {children}
-            <OfflineIndicator />
-            <InstallPrompt />
-          </PerformanceProvider>
-        </SecurityProvider>
+        <AuthProvider>
+          <SecurityProvider>
+            <PerformanceProvider>
+              {children}
+              <OfflineIndicator />
+              <InstallPrompt />
+            </PerformanceProvider>
+          </SecurityProvider>
+        </AuthProvider>
       </body>
     </html>
   );

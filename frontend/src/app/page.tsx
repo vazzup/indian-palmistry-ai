@@ -13,6 +13,10 @@ import { MobileImageUpload } from '@/components/analysis/MobileImageUpload';
 import { BackgroundJobProgress } from '@/components/analysis/BackgroundJobProgress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { HeaderAuth } from '@/components/auth/HeaderAuth';
+import { ValuePropCard } from '@/components/auth/ValuePropCard';
+import { ExperienceChoice } from '@/components/auth/ExperienceChoice';
+import { useAuth } from '@/lib/auth';
 import { analysisApi, handleApiError } from '@/lib/api';
 import { getRandomMessage } from '@/lib/cultural-theme';
 import type { Analysis } from '@/types';
@@ -34,10 +38,12 @@ import type { Analysis } from '@/types';
  */
 export default function HomePage() {
   const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [welcomeMessage, setWelcomeMessage] = React.useState('Experience the timeless wisdom of Indian palm reading');
+  const [showExperienceChoice, setShowExperienceChoice] = React.useState(false);
 
   // Set random message on client side to avoid hydration mismatch
   React.useEffect(() => {
@@ -60,6 +66,25 @@ export default function HomePage() {
     } finally {
       setIsUploading(false);
     }
+  };
+  
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      // Skip experience choice for authenticated users
+      setShowExperienceChoice(false);
+    } else {
+      // Show experience choice for guests
+      setShowExperienceChoice(true);
+    }
+  };
+  
+  const handleGuestChoice = () => {
+    setShowExperienceChoice(false);
+    // Continue with existing guest upload flow
+  };
+  
+  const handleAuthChoice = () => {
+    router.push('/register');
   };
 
   const handleAnalysisComplete = (result: any) => {
@@ -114,8 +139,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-amber-50">
+      {/* Header Authentication */}
+      <HeaderAuth className="bg-white/80 backdrop-blur-sm border-b border-amber-200/50" />
+      
       {/* Hero Section */}
-      <div className="py-12 px-4">
+      <div className="py-8 px-4">
         <div className="max-w-md mx-auto text-center space-y-6">
           {/* Logo/Icon */}
           <div className="mx-auto w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
@@ -158,59 +186,113 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Upload Section */}
+      {/* Main Action Section */}
       <div className="px-4 pb-8">
         <div className="max-w-md mx-auto space-y-6">
-          {/* Instructions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Get Your Reading</CardTitle>
-              <CardDescription>
-                Upload clear photos of your palm(s) for an AI-powered reading based on ancient Indian palmistry
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 text-sm text-gray-600">
-                <div className="flex items-start gap-2">
-                  <span className="text-orange-500 font-bold">1.</span>
-                  <span>Take clear photos of your palm in good lighting</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-orange-500 font-bold">2.</span>
-                  <span>Upload up to 2 images (left and right palms)</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-orange-500 font-bold">3.</span>
-                  <span>Get an instant summary, full reading requires sign-up</span>
-                </div>
+          {!showExperienceChoice ? (
+            <>
+              {/* Value Proposition for Non-Authenticated Users */}
+              {!isAuthenticated && (
+                <ValuePropCard className="mb-6" onSignUp={handleAuthChoice} />
+              )}
+              
+              {/* Instructions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    {isAuthenticated ? 'Upload Your Palm Images' : 'Get Your Reading'}
+                  </CardTitle>
+                  <CardDescription>
+                    {isAuthenticated 
+                      ? 'Upload clear photos for a complete personalized reading'
+                      : 'Upload clear photos of your palm(s) for an AI-powered reading based on ancient Indian palmistry'
+                    }
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm text-gray-600">
+                    <div className="flex items-start gap-2">
+                      <span className="text-orange-500 font-bold">1.</span>
+                      <span>Take clear photos of your palm in good lighting</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-orange-500 font-bold">2.</span>
+                      <span>Upload up to 2 images (left and right palms)</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-orange-500 font-bold">3.</span>
+                      <span>
+                        {isAuthenticated 
+                          ? 'Get your complete personalized reading and analysis'
+                          : 'Get an instant summary, full reading requires sign-up'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Experience Choice Button for Guests */}
+                  {!isAuthenticated && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <Button 
+                        onClick={handleGetStarted}
+                        size="lg"
+                        className="w-full bg-saffron-500 hover:bg-saffron-600"
+                      >
+                        Choose Your Experience
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Upload Component - Show for authenticated users or when guest has chosen */}
+              {(isAuthenticated || (!isAuthenticated && !showExperienceChoice)) && (
+                <MobileImageUpload 
+                  onUpload={handleUpload}
+                  isUploading={isUploading}
+                />
+              )}
+
+              {/* Error Display */}
+              {uploadError && (
+                <Card className="border-red-200 bg-red-50">
+                  <CardContent className="p-4">
+                    <div className="text-red-600 text-sm">
+                      <p className="font-medium">Upload Failed</p>
+                      <p>{uploadError}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Privacy Note */}
+              <div className="text-center">
+                <p className="text-xs text-gray-600">
+                  🔒 Your images are processed securely and not stored permanently
+                </p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Upload Component */}
-          <MobileImageUpload 
-            onUpload={handleUpload}
-            isUploading={isUploading}
-          />
-
-          {/* Error Display */}
-          {uploadError && (
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-4">
-                <div className="text-red-600 text-sm">
-                  <p className="font-medium">Upload Failed</p>
-                  <p>{uploadError}</p>
-                </div>
-              </CardContent>
-            </Card>
+            </>
+          ) : (
+            /* Experience Choice Component */
+            <>
+              <ExperienceChoice 
+                onGuestChoice={handleGuestChoice}
+                onAuthChoice={handleAuthChoice}
+              />
+              
+              {/* Back Button */}
+              <div className="text-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowExperienceChoice(false)}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  ← Back to Reading
+                </Button>
+              </div>
+            </>
           )}
-
-          {/* Privacy Note */}
-          <div className="text-center">
-            <p className="text-xs text-gray-600">
-              🔒 Your images are processed securely and not stored permanently
-            </p>
-          </div>
         </div>
       </div>
 

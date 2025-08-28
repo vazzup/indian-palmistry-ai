@@ -21,6 +21,32 @@ const api = axios.create({
   },
 });
 
+// Response interceptor to handle authentication errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle 401 Unauthorized errors by clearing local auth state
+    if (error.response?.status === 401) {
+      // Only clear auth state if we're in the browser (not SSR)
+      if (typeof window !== 'undefined') {
+        // Import auth store dynamically to avoid SSR issues
+        import('@/lib/auth').then(({ useAuthStore }) => {
+          const { logout } = useAuthStore.getState();
+          // Clear local auth state without calling server logout
+          // since server already rejected the session
+          useAuthStore.setState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null
+          });
+        }).catch(console.error);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 /**
  * Analysis API client with typed endpoints
  * Handles palm image upload and analysis retrieval
@@ -203,9 +229,16 @@ export const dashboardApi = {
   }> {
     try {
       const response = await api.get('/api/v1/enhanced/dashboard');
-      return response.data;
-    } catch (error) {
+      // Extract data from the success wrapper
+      return response.data.data || response.data;
+    } catch (error: any) {
       console.error('Get dashboard failed:', error);
+      
+      // Handle authentication errors gracefully
+      if (error.response?.status === 401) {
+        throw new Error('Please log in to view your dashboard');
+      }
+      
       throw new Error(handleApiError(error));
     }
   },
@@ -233,6 +266,7 @@ export const dashboardApi = {
       if (params?.sort) queryParams.append('sort', params.sort);
 
       const response = await api.get(`/api/v1/analyses/?${queryParams.toString()}`);
+      // The basic analyses endpoint returns data directly, not wrapped
       return response.data;
     } catch (error) {
       console.error('Get analyses failed:', error);
@@ -246,9 +280,210 @@ export const dashboardApi = {
   async getDashboardStatistics(): Promise<any> {
     try {
       const response = await api.get('/api/v1/enhanced/dashboard/statistics');
+      // Extract data from the success wrapper
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error('Get dashboard statistics failed:', error);
+      
+      // Handle authentication errors gracefully
+      if (error.response?.status === 401) {
+        throw new Error('Please log in to view statistics');
+      }
+      
+      throw new Error(handleApiError(error));
+    }
+  },
+};
+
+/**
+ * Conversations API client for chat management and message history
+ */
+export const conversationsApi = {
+  /**
+   * Get all conversations for the current user
+   */
+  async getUserConversations(params?: {
+    page?: number;
+    limit?: number;
+    analysis_id?: string;
+    sort?: string;
+  }): Promise<{
+    conversations: any[];
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  }> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.analysis_id) queryParams.append('analysis_id', params.analysis_id);
+      if (params?.sort) queryParams.append('sort', params.sort);
+
+      const response = await api.get(`/api/v1/conversations/?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
-      console.error('Get dashboard statistics failed:', error);
+      console.error('Get conversations failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Get messages for a specific conversation
+   */
+  async getConversationMessages(conversationId: string, params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    messages: any[];
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  }> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+      const response = await api.get(`/api/v1/conversations/${conversationId}/messages?${queryParams.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get conversation messages failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Create a new conversation
+   */
+  async createConversation(data: {
+    analysis_id: number;
+    title: string;
+  }): Promise<any> {
+    try {
+      const response = await api.post('/api/v1/conversations/', data);
+      return response.data;
+    } catch (error) {
+      console.error('Create conversation failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Send a message in a conversation
+   */
+  async sendMessage(conversationId: string, content: string): Promise<any> {
+    try {
+      const response = await api.post(`/api/v1/conversations/${conversationId}/messages`, {
+        content
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Send message failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Delete a conversation
+   */
+  async deleteConversation(conversationId: string): Promise<void> {
+    try {
+      await api.delete(`/api/v1/conversations/${conversationId}`);
+    } catch (error) {
+      console.error('Delete conversation failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+};
+
+/**
+ * Cache management API client for debugging and maintenance
+ */
+export const cacheApi = {
+  /**
+   * Get cache debug information
+   * Shows current cache state and statistics
+   */
+  async getCacheDebug(): Promise<{
+    total_keys: number;
+    user_keys: Record<string, number>;
+    pattern_breakdown: Record<string, number>;
+    memory_usage?: string;
+    cache_stats: {
+      hits: number;
+      misses: number;
+      hit_ratio: number;
+    };
+  }> {
+    try {
+      const response = await api.get('/api/v1/cache/debug');
+      return response.data;
+    } catch (error) {
+      console.error('Get cache debug failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Refresh cache for current user
+   * Invalidates all user-specific cached data
+   */
+  async refreshCache(): Promise<{
+    success: boolean;
+    invalidated_keys: number;
+    message: string;
+  }> {
+    try {
+      const response = await api.post('/api/v1/cache/refresh');
+      return response.data;
+    } catch (error) {
+      console.error('Cache refresh failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Validate cache consistency
+   * Checks for data inconsistencies between cache and database
+   */
+  async validateCacheConsistency(): Promise<{
+    consistent: boolean;
+    inconsistencies: Array<{
+      key: string;
+      issue: string;
+      cached_value?: any;
+      db_value?: any;
+    }>;
+    total_checked: number;
+    recommendations: string[];
+  }> {
+    try {
+      const response = await api.get('/api/v1/cache/validate-consistency');
+      return response.data;
+    } catch (error) {
+      console.error('Cache consistency validation failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Force refresh specific cache pattern
+   * @param pattern - Cache key pattern to refresh (e.g., 'dashboard:*', 'analyses:*')
+   */
+  async refreshCachePattern(pattern: string): Promise<{
+    success: boolean;
+    invalidated_keys: number;
+    pattern: string;
+    message: string;
+  }> {
+    try {
+      const response = await api.post('/api/v1/cache/refresh', { pattern });
+      return response.data;
+    } catch (error) {
+      console.error('Pattern cache refresh failed:', error);
       throw new Error(handleApiError(error));
     }
   },

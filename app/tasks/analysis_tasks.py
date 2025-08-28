@@ -31,6 +31,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.analysis import Analysis, AnalysisStatus
 from app.services.openai_service import OpenAIService
 from app.services.image_service import ImageService
+from app.services.analysis_service import AnalysisService
 
 logger = get_logger(__name__)
 
@@ -115,7 +116,7 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
                 expire_seconds=3600
             ))
             
-            # Save results to database
+            # Save results to database and invalidate cache
             async def _save_results():
                 async with AsyncSessionLocal() as db:
                     stmt = select(Analysis).where(Analysis.id == analysis_id)
@@ -130,6 +131,17 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
                         analysis_record.tokens_used = result.get("tokens_used", 0)
                         analysis_record.cost = result.get("cost", 0.0)
                         await db.commit()
+                        
+                        # Invalidate user cache when analysis is completed
+                        if analysis_record.user_id:
+                            analysis_service = AnalysisService()
+                            await analysis_service.invalidate_analysis_cache(
+                                analysis_id, analysis_record.user_id
+                            )
+                            logger.info(
+                                f"Invalidated cache for user {analysis_record.user_id} "
+                                f"after completing analysis {analysis_id}"
+                            )
             
             asyncio.run(_save_results())
             
@@ -178,7 +190,7 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
             exc_info=True
         )
         
-        # Update analysis status in database
+        # Update analysis status in database and invalidate cache
         async def _update_failed_analysis():
             try:
                 async with AsyncSessionLocal() as db:
@@ -190,6 +202,17 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
                         analysis.status = AnalysisStatus.FAILED
                         analysis.error_message = str(exc)
                         await db.commit()
+                        
+                        # Invalidate user cache when analysis fails
+                        if analysis.user_id:
+                            analysis_service = AnalysisService()
+                            await analysis_service.invalidate_analysis_cache(
+                                analysis_id, analysis.user_id
+                            )
+                            logger.info(
+                                f"Invalidated cache for user {analysis.user_id} "
+                                f"after analysis {analysis_id} failed"
+                            )
             except Exception as db_error:
                 logger.error(f"Failed to update analysis status in database: {db_error}")
         

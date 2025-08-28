@@ -10,7 +10,7 @@ import {
   Plus,
   ArrowRight,
   Loader2,
-  AlertCircle 
+  AlertCircle
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -18,7 +18,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth';
 import { getRandomMessage } from '@/lib/cultural-theme';
-import { useDashboard, formatAnalysisDate, calculateSuccessRate } from '@/hooks/useDashboard';
+import { 
+  useDashboard, 
+  formatAnalysisDate, 
+  calculateSuccessRate
+} from '@/hooks/useDashboard';
+import { DataInconsistencyErrorBoundary } from '@/components/errors/DataInconsistencyErrorBoundary';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -26,7 +31,12 @@ export default function DashboardPage() {
   const [welcomeMessage] = React.useState(() => getRandomMessage('welcome'));
   
   // Fetch dashboard data from API
-  const { data: dashboardData, loading, error, refetch } = useDashboard();
+  const { 
+    data: dashboardData, 
+    loading, 
+    error, 
+    refetch
+  } = useDashboard();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -62,18 +72,19 @@ export default function DashboardPage() {
     };
   }, [dashboardData]);
 
+
   const recentAnalyses = React.useMemo(() => {
     if (!dashboardData?.recent_activity) return [];
     
     // Filter and transform recent activity to analysis format
     return dashboardData.recent_activity
-      .filter((activity: any) => activity.type === 'analysis_completed' && activity.analysis_id)
+      .filter((activity: any) => activity.type === 'analysis' && activity.id)
       .slice(0, 3)
       .map((activity: any) => ({
-        id: activity.analysis_id,
+        id: activity.id,
         createdAt: activity.timestamp,
-        status: 'completed',
-        summary: activity.message || 'Analysis completed successfully',
+        status: activity.status || 'completed',
+        summary: activity.description || 'Analysis completed successfully',
         conversationCount: 0, // Will be populated from backend if available
       }));
   }, [dashboardData]);
@@ -107,7 +118,9 @@ export default function DashboardPage() {
               Unable to Load Dashboard
             </h3>
             <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={refetch}>Try Again</Button>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => refetch()}>Try Again</Button>
+            </div>
           </CardContent>
         </Card>
       </DashboardLayout>
@@ -119,7 +132,9 @@ export default function DashboardPage() {
       title={`${getGreeting()}, ${user?.name?.split(' ')[0] || 'there'}!`}
       description={welcomeMessage}
     >
+      <DataInconsistencyErrorBoundary>
       <div className="space-y-6">
+        
         {/* Quick Actions */}
         <div className="bg-gradient-to-r from-saffron-50 to-turmeric-50 rounded-lg p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
@@ -252,6 +267,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+
         {/* Quick Tips */}
         <Card>
           <CardHeader>
@@ -293,6 +309,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      </DataInconsistencyErrorBoundary>
     </DashboardLayout>
   );
 }

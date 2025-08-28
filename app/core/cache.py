@@ -100,6 +100,31 @@ class CacheService:
             logger.warning(f"Cache delete failed for key {key}: {e}")
             return False
     
+    async def delete_pattern(self, pattern: str) -> int:
+        """Delete all keys matching a pattern."""
+        try:
+            if not self.redis_client:
+                await self.connect()
+            
+            # Find all keys matching the pattern
+            keys = await self.redis_client.keys(pattern)
+            if not keys:
+                return 0
+            
+            # Delete all matching keys
+            result = await self.redis_client.delete(*keys)
+            logger.info(f"Deleted {result} cache keys matching pattern: {pattern}")
+            return result
+            
+        except Exception as e:
+            logger.warning(f"Cache pattern delete failed for pattern {pattern}: {e}")
+            return 0
+    
+    async def invalidate_user_cache(self, user_id: int) -> int:
+        """Invalidate all cache entries for a specific user."""
+        pattern = f"user*:{user_id}:*"
+        return await self.delete_pattern(pattern)
+    
     async def get_or_set(self, key: str, callback: Callable, expire: int = 3600) -> Any:
         """Get from cache or execute callback and cache result."""
         # Try to get from cache first
@@ -215,6 +240,27 @@ class CacheService:
         key = f"user_analytics:{user_id}"
         return await self.get(key)
     
+    async def invalidate_user_analytics(self, user_id: int) -> bool:
+        """Invalidate user analytics cache."""
+        key = f"user_analytics:{user_id}"
+        return await self.delete(key)
+    
+    # Dashboard Caching
+    async def cache_user_dashboard(self, user_id: int, dashboard: Dict[str, Any], expire: int = 1800) -> bool:
+        """Cache user dashboard data."""
+        key = f"user_dashboard:{user_id}"
+        return await self.set(key, dashboard, expire)
+    
+    async def get_user_dashboard(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get cached user dashboard."""
+        key = f"user_dashboard:{user_id}"
+        return await self.get(key)
+    
+    async def invalidate_user_dashboard(self, user_id: int) -> bool:
+        """Invalidate user dashboard cache."""
+        key = f"user_dashboard:{user_id}"
+        return await self.delete(key)
+    
     # Conversation Caching
     async def cache_conversation_context(self, conversation_id: int, context: List[Dict], expire: int = 1800) -> bool:
         """Cache conversation context for AI responses."""
@@ -303,6 +349,43 @@ class CacheService:
 # Global cache service instance
 cache_service = CacheService()
 
+# Cache Key Constants
+class CacheKeys:
+    """Centralized cache key patterns."""
+    USER_ANALYTICS = "user_analytics:{user_id}"
+    USER_DASHBOARD = "user_dashboard:{user_id}"
+    USER_PREFERENCES = "user_preferences:{user_id}"
+    USER_STATS = "user_stats:{user_id}:{period_days}"
+    ANALYSIS_RESULT = "analysis_result:{analysis_id}"
+    CONVERSATION_CONTEXT = "conversation_context:{conversation_id}"
+    JOB_STATUS = "job_status:{job_id}"
+    RATE_LIMIT = "rate_limit:{identifier}"
+    
+    @staticmethod
+    def user_analytics(user_id: int) -> str:
+        return f"user_analytics:{user_id}"
+    
+    @staticmethod
+    def user_dashboard(user_id: int) -> str:
+        return f"user_dashboard:{user_id}"
+    
+    @staticmethod
+    def user_preferences(user_id: int) -> str:
+        return f"user_preferences:{user_id}"
+    
+    @staticmethod
+    def user_stats(user_id: int, period_days: int) -> str:
+        return f"user_stats:{user_id}:{period_days}"
+    
+    @staticmethod
+    def analysis_result(analysis_id: int) -> str:
+        return f"analysis_result:{analysis_id}"
+    
+    @staticmethod
+    def user_pattern(user_id: int) -> str:
+        """Pattern to match all user-related cache keys."""
+        return f"user*:{user_id}:*"
+
 # Convenience functions for common operations
 async def get_cached(key: str) -> Optional[Any]:
     """Get value from cache."""
@@ -315,6 +398,14 @@ async def set_cached(key: str, value: Any, expire: int = 3600) -> bool:
 async def delete_cached(key: str) -> bool:
     """Delete value from cache."""
     return await cache_service.delete(key)
+
+async def delete_cached_pattern(pattern: str) -> int:
+    """Delete all keys matching pattern."""
+    return await cache_service.delete_pattern(pattern)
+
+async def invalidate_user_cache(user_id: int) -> int:
+    """Invalidate all cache for a user."""
+    return await cache_service.invalidate_user_cache(user_id)
 
 async def get_or_cache(key: str, callback: Callable, expire: int = 3600) -> Any:
     """Get from cache or execute callback and cache result."""
