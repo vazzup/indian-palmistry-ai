@@ -221,6 +221,7 @@ async def root():
 # API v1 routers
 from fastapi import APIRouter
 from app.api.v1.auth import router as auth_router
+from app.api.v1.readings import router as readings_router
 from app.api.v1.analyses import router as analyses_router
 from app.api.v1.conversations import router as conversations_router
 from app.api.v1.enhanced_endpoints import router as enhanced_router
@@ -238,7 +239,8 @@ async def api_health():
 
 # Include sub-routers
 api_v1_router.include_router(auth_router)
-api_v1_router.include_router(analyses_router)
+api_v1_router.include_router(readings_router)
+api_v1_router.include_router(analyses_router)  # Keep for backward compatibility
 api_v1_router.include_router(conversations_router)
 api_v1_router.include_router(enhanced_router)
 

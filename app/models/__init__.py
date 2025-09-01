@@ -1,19 +1,27 @@
 """
-SQLAlchemy database models for users, analyses, and conversations.
+SQLAlchemy database models for users, readings, and conversations.
 """
 
 from .base import Base
 from .user import User
+from .reading import Reading, ReadingStatus
+from .conversation import Conversation, ConversationType
+from .message import Message, MessageType, MessageRole
+
+# Keep Analysis imports for backward compatibility during migration
 from .analysis import Analysis, AnalysisStatus
-from .conversation import Conversation
-from .message import Message, MessageRole
 
 __all__ = [
     "Base",
     "User", 
-    "Analysis",
-    "AnalysisStatus",
+    "Reading",
+    "ReadingStatus",
     "Conversation",
+    "ConversationType",
     "Message",
-    "MessageRole"
+    "MessageType",
+    "MessageRole",
+    # Legacy aliases for backward compatibility
+    "Analysis",
+    "AnalysisStatus"
 ]

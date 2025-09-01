@@ -33,14 +33,16 @@ class AnalysisService:
         self, 
         user_id: Optional[int] = None,
         left_image: Optional[UploadFile] = None,
-        right_image: Optional[UploadFile] = None
+        right_image: Optional[UploadFile] = None,
+        start_analysis: bool = True
     ) -> Analysis:
-        """Create a new palm analysis.
+        """Create a new palm analysis with optional processing start.
         
         Args:
             user_id: User ID (None for anonymous)
             left_image: Left palm image file
             right_image: Right palm image file
+            start_analysis: Whether to start background processing immediately
             
         Returns:
             Created Analysis instance
@@ -83,14 +85,17 @@ class AnalysisService:
                 
                 logger.info(f"Saved images for analysis {analysis.id}")
                 
-                # Queue background processing job
-                from app.tasks.analysis_tasks import process_palm_analysis
-                job = process_palm_analysis.delay(analysis.id)
-                analysis.job_id = job.id
-                await db.commit()
-                await db.refresh(analysis)
-                
-                logger.info(f"Queued analysis job {job.id} for analysis {analysis.id}")
+                # Conditionally queue background processing job
+                if start_analysis:
+                    from app.tasks.analysis_tasks import process_palm_analysis
+                    job = process_palm_analysis.delay(analysis.id)
+                    analysis.job_id = job.id
+                    await db.commit()
+                    await db.refresh(analysis)
+                    
+                    logger.info(f"Queued analysis job {job.id} for analysis {analysis.id}")
+                else:
+                    logger.info(f"Analysis {analysis.id} created without starting background processing")
                 
                 # Invalidate user cache to ensure dashboard shows new analysis immediately
                 if user_id:
@@ -166,6 +171,82 @@ class AnalysisService:
         except Exception as e:
             logger.error(f"Error updating job ID for analysis {analysis_id}: {e}")
             return False
+    
+    async def start_analysis(
+        self, 
+        analysis_id: int, 
+        user_id: Optional[int] = None
+    ) -> Optional[Analysis]:
+        """Start processing for an existing analysis.
+        
+        Validates that the analysis exists, belongs to the user (if provided),
+        and hasn't already been started. Then queues the background job.
+        
+        Args:
+            analysis_id: Analysis ID to start
+            user_id: User ID for authorization (None for anonymous)
+            
+        Returns:
+            Updated Analysis instance with job_id, or None if not found/authorized
+            
+        Raises:
+            ValueError: If analysis has already been started or is invalid for starting
+        """
+        try:
+            async with await self.get_session() as db:
+                # Find the analysis
+                stmt = select(Analysis).where(Analysis.id == analysis_id)
+                if user_id is not None:
+                    # For authenticated users, ensure they own the analysis
+                    stmt = stmt.where(Analysis.user_id == user_id)
+                else:
+                    # For anonymous users, ensure analysis is anonymous
+                    stmt = stmt.where(Analysis.user_id.is_(None))
+                
+                result = await db.execute(stmt)
+                analysis = result.scalar_one_or_none()
+                
+                if not analysis:
+                    logger.warning(f"Analysis {analysis_id} not found or not authorized for user {user_id}")
+                    return None
+                
+                # Check if analysis has already been started
+                if analysis.job_id is not None:
+                    raise ValueError("Analysis has already been started")
+                
+                # Check if analysis has required images
+                if not analysis.left_image_path and not analysis.right_image_path:
+                    raise ValueError("Analysis has no images to process")
+                
+                # Check if analysis is in a valid state for starting
+                if analysis.status not in [AnalysisStatus.QUEUED]:
+                    raise ValueError(f"Analysis cannot be started from status: {analysis.status.value}")
+                
+                # Start the background processing job
+                from app.tasks.analysis_tasks import process_palm_analysis
+                job = process_palm_analysis.delay(analysis.id)
+                
+                # Update analysis with job information
+                analysis.job_id = job.id
+                analysis.status = AnalysisStatus.QUEUED  # Ensure status is queued
+                await db.commit()
+                await db.refresh(analysis)
+                
+                logger.info(f"Started analysis job {job.id} for analysis {analysis.id}")
+                
+                # Invalidate user cache
+                if analysis.user_id:
+                    await self._invalidate_user_cache(analysis.user_id)
+                    logger.debug(f"Invalidated cache for user {analysis.user_id} after starting analysis {analysis.id}")
+                
+                return analysis
+                
+        except ValueError:
+            # Re-raise business logic errors
+            raise
+        except Exception as e:
+            logger.error(f"Error starting analysis {analysis_id}: {e}")
+            raise
     
     async def get_user_analyses(
         self, 

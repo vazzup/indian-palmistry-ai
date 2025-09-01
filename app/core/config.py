@@ -104,6 +104,30 @@ class Settings(BaseSettings):
         description="SameSite cookie setting"
     )
     
+    # OpenAI Files API settings
+    openai_files_max_size: int = Field(
+        default=20 * 1024 * 1024,  # 20MB
+        description="Maximum file size for OpenAI uploads"
+    )
+    openai_files_cleanup_days: int = Field(
+        default=30,
+        description="Clean up files older than this many days"
+    )
+    
+    # Follow-up conversation settings
+    followup_max_questions_per_analysis: int = Field(
+        default=5,
+        description="Maximum questions allowed per analysis"
+    )
+    followup_question_min_length: int = Field(
+        default=10,
+        description="Minimum question length"
+    )
+    followup_question_max_length: int = Field(
+        default=500,
+        description="Maximum question length"
+    )
+    
     @property
     def allowed_origins(self) -> List[str]:
         """Parse comma-separated origins string into list."""

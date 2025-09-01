@@ -3,7 +3,7 @@ Analysis model for palm reading analyses.
 """
 
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Float, Boolean, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.models.base import Base
@@ -49,13 +49,20 @@ class Analysis(Base):
     tokens_used = Column(Integer, default=0)  # OpenAI token usage
     cost = Column(Float, default=0.0)  # Cost tracking
     
+    # NEW FIELDS for OpenAI Files API
+    openai_file_ids = Column(JSON, nullable=True, comment="OpenAI file IDs for reuse")
+    has_followup_conversation = Column(Boolean, default=False, nullable=False, index=True, comment="Quick check for follow-up availability")
+    followup_questions_count = Column(Integer, default=0, nullable=False, comment="Total follow-up questions asked")
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    user = relationship("User", back_populates="analyses")
-    conversations = relationship("Conversation", back_populates="analysis", cascade="all, delete-orphan")
+    # Relationship disabled - User model now uses 'readings' relationship
+    # user = relationship("User", back_populates="analyses")
+    # Conversation relationship disabled - Conversations now use reading_id
+    # conversations = relationship("Conversation", back_populates="analysis", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Analysis(id={self.id}, user_id={self.user_id}, status={self.status.value})>"

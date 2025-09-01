@@ -178,6 +178,27 @@ class ImageService:
         except Exception as e:
             logger.error(f"Error deleting analysis images: {e}")
     
+    def delete_reading_images(self, user_id: Optional[int], reading_id: int) -> None:
+        """Delete all images for a reading.
+        
+        Args:
+            user_id: User ID (None for anonymous)
+            reading_id: Reading ID
+        """
+        try:
+            user_folder = f"user_{user_id}" if user_id else "anonymous"
+            reading_folder = f"analysis_{reading_id}"  # Keep using analysis_ folder structure for backward compatibility
+            reading_dir = self.storage_root / user_folder / reading_folder
+            
+            if reading_dir.exists():
+                # Remove all files in the reading directory
+                import shutil
+                shutil.rmtree(reading_dir)
+                logger.info(f"Deleted images for reading {reading_id}")
+                
+        except Exception as e:
+            logger.error(f"Error deleting reading images: {e}")
+    
     def get_image_url(self, relative_path: str) -> str:
         """Get URL for accessing an image.
         

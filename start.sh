@@ -12,6 +12,16 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+DO_BUILD=0
+
+# Parse flags
+for arg in "$@"; do
+  case "$arg" in
+    -b|--build) DO_BUILD=1 ;;
+    --no-build) DO_BUILD=0 ;;
+  esac
+done
+
 # Function to print colored output
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -85,7 +95,7 @@ start_backend() {
     
     # Stop any existing containers
     docker compose down > /dev/null 2>&1 || true
-    
+
     # Start backend services
     if docker compose up -d --no-deps redis api worker; then
         print_success "Backend services started"
