@@ -91,17 +91,25 @@ class Settings(BaseSettings):
         default=604800,  # 1 week
         description="Session expiration time in seconds"
     )
-    session_cookie_name: str = Field(
-        default="palmistry_session",
-        description="Session cookie name"
+    session_absolute_max_age: int = Field(
+        default=2592000,  # 30 days absolute maximum
+        description="Absolute maximum session age in seconds"
     )
-    session_cookie_secure: bool = Field(
-        default=False,
-        description="Secure session cookies (HTTPS only)"
+    session_rolling_window: int = Field(
+        default=3600,  # 1 hour
+        description="Rolling window for session refresh in seconds"
+    )
+    session_cookie_name: str = Field(
+        default="__Host-session_id",
+        description="Session cookie name (using __Host- prefix for security)"
     )
     session_cookie_samesite: str = Field(
         default="Lax",
-        description="SameSite cookie setting"
+        description="SameSite cookie setting (Lax or Strict)"
+    )
+    max_concurrent_sessions: int = Field(
+        default=5,
+        description="Maximum concurrent sessions per user (0 = unlimited)"
     )
     
     # OpenAI Files API settings

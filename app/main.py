@@ -100,17 +100,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add rate limiting and security middleware (disabled for development)
-# from app.middleware.rate_limiting import RateLimitMiddleware
-# app.add_middleware(RateLimitMiddleware, enable_security_monitoring=True)
+# Add security headers middleware (always enabled)
+from app.middleware.security import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
 
-# CORS middleware
+# Add authentication logging middleware
+from app.middleware.rate_limiting import AuthenticationLogMiddleware
+app.add_middleware(AuthenticationLogMiddleware)
+
+# Add rate limiting middleware for production security
+from app.middleware.rate_limiting import RateLimitingMiddleware
+app.add_middleware(RateLimitingMiddleware)
+
+# Enhanced CORS middleware with strict security
+from app.middleware.security import CORSSecurityMiddleware
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    CORSSecurityMiddleware,
+    allowed_origins=settings.allowed_origins
 )
 
 

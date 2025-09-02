@@ -23,6 +23,7 @@ from app.dependencies.auth import (
     generate_csrf_token,
     verify_csrf_token
 )
+from app.services.session_service import session_service
 from app.models.user import User
 from app.core.config import settings
 
@@ -57,34 +58,36 @@ async def register_user(
                 detail="User with this email already exists"
             )
         
-        # Create session for the new user
-        session_id = generate_session_id()
-        csrf_token = generate_csrf_token()
-        
-        session_data = {
-            "user_id": user.id,
-            "email": user.email,
-            "name": user.name,
-            "csrf_token": csrf_token,
-            "login_time": datetime.utcnow().isoformat()
+        # Create session for the new user with enhanced security
+        client_info = {
+            "ip_address": request.client.host if request.client else "unknown",
+            "user_agent": request.headers.get("User-Agent", "unknown"),
+            "registration": True
         }
         
-        success = await session_manager.create_session(session_id, session_data)
-        if not success:
-            logger.error(f"Failed to create session for user {user.id}")
+        try:
+            session_id, csrf_token = await session_service.create_session(
+                user_id=user.id,
+                user_email=user.email,
+                user_name=user.name,
+                client_info=client_info
+            )
+        except Exception as e:
+            logger.error(f"Failed to create session for user {user.id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create user session"
             )
         
-        # Set secure session cookie
+        # Set secure session cookie with hardened settings
         response.set_cookie(
-            key="session_id",
+            key=settings.session_cookie_name,
             value=session_id,
             max_age=settings.session_expire_seconds,
+            path="/",
             httponly=True,
-            secure=settings.is_production,
-            samesite="lax"
+            secure=True,  # Always require HTTPS for security
+            samesite=settings.session_cookie_samesite.lower()
         )
         
         logger.info(f"User registered and logged in: {user.id} ({user.email})")
@@ -109,6 +112,7 @@ async def register_user(
 @router.post("/login", response_model=LoginResponse)
 async def login_user(
     user_data: UserLoginRequest,
+    request: Request,
     response: Response
 ) -> LoginResponse:
     """Login user with email and password.
@@ -130,35 +134,38 @@ async def login_user(
                 detail="Invalid email or password"
             )
         
-        # Create new session
-        session_id = generate_session_id()
-        csrf_token = generate_csrf_token()
-        login_time = datetime.utcnow()
-        
-        session_data = {
-            "user_id": user.id,
-            "email": user.email,
-            "name": user.name,
-            "csrf_token": csrf_token,
-            "login_time": login_time.isoformat()
+        # Create new session with enhanced security
+        client_info = {
+            "ip_address": request.client.host if request.client else "unknown",
+            "user_agent": request.headers.get("User-Agent", "unknown"),
+            "login": True
         }
         
-        success = await session_manager.create_session(session_id, session_data)
-        if not success:
-            logger.error(f"Failed to create session for user {user.id}")
+        try:
+            session_id, csrf_token = await session_service.create_session(
+                user_id=user.id,
+                user_email=user.email,
+                user_name=user.name,
+                client_info=client_info
+            )
+        except Exception as e:
+            logger.error(f"Failed to create session for user {user.id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create user session"
             )
         
-        # Set secure session cookie
+        login_time = datetime.utcnow()
+        
+        # Set secure session cookie with hardened settings
         response.set_cookie(
-            key="session_id",
+            key=settings.session_cookie_name,
             value=session_id,
             max_age=settings.session_expire_seconds,
+            path="/",
             httponly=True,
-            secure=settings.is_production,
-            samesite="lax"
+            secure=True,  # Always require HTTPS for security
+            samesite=settings.session_cookie_samesite.lower()
         )
         
         session_expires = login_time + timedelta(seconds=settings.session_expire_seconds)
@@ -194,7 +201,7 @@ async def logout_user(
     """
     try:
         # Get session ID from cookie
-        session_id = request.cookies.get("session_id")
+        session_id = request.cookies.get(settings.session_cookie_name)
         
         if session_id:
             # Delete session from Redis
@@ -203,10 +210,11 @@ async def logout_user(
         
         # Clear session cookie
         response.delete_cookie(
-            key="session_id",
+            key=settings.session_cookie_name,
+            path="/",
             httponly=True,
-            secure=settings.is_production,
-            samesite="lax"
+            secure=True,
+            samesite=settings.session_cookie_samesite.lower()
         )
         
         return LogoutResponse(
@@ -290,7 +298,7 @@ async def get_csrf_token(
     Returns a fresh CSRF token that can be used for state-changing requests.
     """
     try:
-        session_id = request.cookies.get("session_id")
+        session_id = request.cookies.get(settings.session_cookie_name)
         if not session_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -317,6 +325,114 @@ async def get_csrf_token(
         raise
     except Exception as e:
         logger.error(f"Error getting CSRF token: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
+
+@router.get("/sessions")
+async def list_user_sessions(
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    """List all active sessions for the current user.
+    
+    Returns information about all active sessions including creation time,
+    last activity, and client information for security monitoring.
+    """
+    try:
+        sessions = await session_service.list_user_sessions(current_user.id)
+        
+        return {
+            "sessions": sessions,
+            "total": len(sessions)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error listing sessions for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
+
+@router.post("/sessions/invalidate-all", dependencies=[Depends(verify_csrf_token)])
+async def invalidate_all_sessions(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    """Invalidate all sessions except the current one.
+    
+    This is useful when a user wants to log out from all other devices
+    while keeping their current session active.
+    """
+    try:
+        current_session_id = request.cookies.get(settings.session_cookie_name)
+        
+        invalidated_count = await session_service.invalidate_user_sessions(
+            user_id=current_user.id,
+            except_session=current_session_id
+        )
+        
+        return {
+            "success": True,
+            "message": f"Invalidated {invalidated_count} sessions",
+            "sessions_invalidated": invalidated_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error invalidating sessions for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
+
+@router.post("/sessions/rotate", dependencies=[Depends(verify_csrf_token)])
+async def rotate_current_session(
+    request: Request,
+    response: Response,
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    """Rotate the current session ID for enhanced security.
+    
+    This generates a new session ID while preserving session data.
+    Should be called periodically or after sensitive operations.
+    """
+    try:
+        current_session_id = request.cookies.get(settings.session_cookie_name)
+        if not current_session_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="No active session"
+            )
+        
+        new_session_id, new_csrf_token = await session_service.rotate_session(current_session_id)
+        
+        # Set new session cookie
+        response.set_cookie(
+            key=settings.session_cookie_name,
+            value=new_session_id,
+            max_age=settings.session_expire_seconds,
+            path="/",
+            httponly=True,
+            secure=True,
+            samesite=settings.session_cookie_samesite.lower()
+        )
+        
+        return {
+            "success": True,
+            "message": "Session rotated successfully",
+            "csrf_token": new_csrf_token
+        }
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error rotating session for user {current_user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error"
