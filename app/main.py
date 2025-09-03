@@ -100,23 +100,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add security headers middleware (always enabled)
-from app.middleware.security import SecurityHeadersMiddleware
-app.add_middleware(SecurityHeadersMiddleware)
+# Add rate limiting and security middleware (disabled for development)
+# from app.middleware.rate_limiting import RateLimitMiddleware
+# app.add_middleware(RateLimitMiddleware, enable_security_monitoring=True)
 
-# Add authentication logging middleware
-from app.middleware.rate_limiting import AuthenticationLogMiddleware
-app.add_middleware(AuthenticationLogMiddleware)
-
-# Add rate limiting middleware for production security
-from app.middleware.rate_limiting import RateLimitingMiddleware
-app.add_middleware(RateLimitingMiddleware)
-
-# Enhanced CORS middleware with strict security
-from app.middleware.security import CORSSecurityMiddleware
+# CORS middleware
 app.add_middleware(
-    CORSSecurityMiddleware,
-    allowed_origins=settings.allowed_origins
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 
@@ -227,7 +221,6 @@ async def root():
 # API v1 routers
 from fastapi import APIRouter
 from app.api.v1.auth import router as auth_router
-from app.api.v1.readings import router as readings_router
 from app.api.v1.analyses import router as analyses_router
 from app.api.v1.conversations import router as conversations_router
 from app.api.v1.enhanced_endpoints import router as enhanced_router
@@ -245,8 +238,7 @@ async def api_health():
 
 # Include sub-routers
 api_v1_router.include_router(auth_router)
-api_v1_router.include_router(readings_router)
-api_v1_router.include_router(analyses_router)  # Keep for backward compatibility
+api_v1_router.include_router(analyses_router)
 api_v1_router.include_router(conversations_router)
 api_v1_router.include_router(enhanced_router)
 

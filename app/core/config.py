@@ -91,49 +91,17 @@ class Settings(BaseSettings):
         default=604800,  # 1 week
         description="Session expiration time in seconds"
     )
-    session_absolute_max_age: int = Field(
-        default=2592000,  # 30 days absolute maximum
-        description="Absolute maximum session age in seconds"
-    )
-    session_rolling_window: int = Field(
-        default=3600,  # 1 hour
-        description="Rolling window for session refresh in seconds"
-    )
     session_cookie_name: str = Field(
-        default="__Host-session_id",
-        description="Session cookie name (using __Host- prefix for security)"
+        default="palmistry_session",
+        description="Session cookie name"
+    )
+    session_cookie_secure: bool = Field(
+        default=False,
+        description="Secure session cookies (HTTPS only)"
     )
     session_cookie_samesite: str = Field(
         default="Lax",
-        description="SameSite cookie setting (Lax or Strict)"
-    )
-    max_concurrent_sessions: int = Field(
-        default=5,
-        description="Maximum concurrent sessions per user (0 = unlimited)"
-    )
-    
-    # OpenAI Files API settings
-    openai_files_max_size: int = Field(
-        default=20 * 1024 * 1024,  # 20MB
-        description="Maximum file size for OpenAI uploads"
-    )
-    openai_files_cleanup_days: int = Field(
-        default=30,
-        description="Clean up files older than this many days"
-    )
-    
-    # Follow-up conversation settings
-    followup_max_questions_per_analysis: int = Field(
-        default=5,
-        description="Maximum questions allowed per analysis"
-    )
-    followup_question_min_length: int = Field(
-        default=10,
-        description="Minimum question length"
-    )
-    followup_question_max_length: int = Field(
-        default=500,
-        description="Maximum question length"
+        description="SameSite cookie setting"
     )
     
     @property

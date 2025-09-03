@@ -382,10 +382,6 @@ class CacheKeys:
         return f"analysis_result:{analysis_id}"
     
     @staticmethod
-    def reading_result(reading_id: int) -> str:
-        return f"reading_result:{reading_id}"
-    
-    @staticmethod
     def user_pattern(user_id: int) -> str:
         """Pattern to match all user-related cache keys."""
         return f"user*:{user_id}:*"

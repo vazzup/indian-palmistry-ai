@@ -11,7 +11,7 @@ from sqlalchemy import select, func, desc, and_, or_, text
 from sqlalchemy.orm import selectinload
 
 from app.models.user import User
-from app.models.reading import Reading, ReadingStatus
+from app.models.analysis import Analysis, AnalysisStatus
 from app.models.conversation import Conversation
 from app.models.message import Message, MessageRole
 from app.core.database import get_db_session
@@ -195,7 +195,7 @@ class UserDashboardService:
             start_date = datetime.utcnow() - timedelta(days=period_days)
             
             async with get_db_session() as db:
-                # Reading statistics
+                # Analysis statistics
                 analysis_stats = await self._get_analysis_statistics(user_id, start_date, db)
                 
                 # Conversation statistics
@@ -239,23 +239,23 @@ class UserDashboardService:
         
         try:
             async with get_db_session() as db:
-                # Get user's readings count
-                reading_count_stmt = (
-                    select(func.count(Reading.id))
+                # Get user's analyses count
+                analysis_count_stmt = (
+                    select(func.count(Analysis.id))
                     .where(
-                        Reading.user_id == user_id,
-                        Reading.status == ReadingStatus.COMPLETED
+                        Analysis.user_id == user_id,
+                        Analysis.status == AnalysisStatus.COMPLETED
                     )
                 )
                 
-                reading_count_result = await db.execute(reading_count_stmt)
-                reading_count = reading_count_result.scalar() or 0
+                analysis_count_result = await db.execute(analysis_count_stmt)
+                analysis_count = analysis_count_result.scalar() or 0
                 
                 # Get user's conversation count (via analysis relationship)
                 conversation_count_stmt = (
                     select(func.count(Conversation.id))
-                    .join(Reading)
-                    .where(Reading.user_id == user_id)
+                    .join(Analysis)
+                    .where(Analysis.user_id == user_id)
                 )
                 
                 conversation_count_result = await db.execute(conversation_count_stmt)
@@ -270,8 +270,8 @@ class UserDashboardService:
                 # Calculate achievements
                 achievements = []
                 
-                # Reading achievements
-                if reading_count >= 1:
+                # Analysis achievements
+                if analysis_count >= 1:
                     achievements.append({
                         "id": "first_analysis",
                         "title": "First Palm Reading",
@@ -281,7 +281,7 @@ class UserDashboardService:
                         "category": "analysis"
                     })
                 
-                if reading_count >= 10:
+                if analysis_count >= 10:
                     achievements.append({
                         "id": "analysis_explorer",
                         "title": "Palm Reading Explorer",
@@ -291,7 +291,7 @@ class UserDashboardService:
                         "category": "analysis"
                     })
                 
-                if reading_count >= 50:
+                if analysis_count >= 50:
                     achievements.append({
                         "id": "analysis_master",
                         "title": "Palm Reading Master",
@@ -326,21 +326,21 @@ class UserDashboardService:
                 # Calculate next milestones
                 next_milestones = []
                 
-                if reading_count < 10:
+                if analysis_count < 10:
                     next_milestones.append({
                         "title": "Palm Reading Explorer",
                         "description": "Complete 10 palm analyses",
-                        "progress": reading_count,
+                        "progress": analysis_count,
                         "target": 10,
-                        "percentage": round((reading_count / 10) * 100, 1)
+                        "percentage": round((analysis_count / 10) * 100, 1)
                     })
-                elif reading_count < 50:
+                elif analysis_count < 50:
                     next_milestones.append({
                         "title": "Palm Reading Master",
                         "description": "Complete 50 palm analyses",
-                        "progress": reading_count,
+                        "progress": analysis_count,
                         "target": 50,
-                        "percentage": round((reading_count / 50) * 100, 1)
+                        "percentage": round((analysis_count / 50) * 100, 1)
                     })
                 
                 return {
@@ -349,7 +349,7 @@ class UserDashboardService:
                     "next_milestones": next_milestones,
                     "total_achievements": len(achievements),
                     "stats": {
-                        "analyses_completed": reading_count,
+                        "analyses_completed": analysis_count,
                         "conversations_started": conversation_count,
                         "member_for_days": membership_days
                     },
@@ -404,9 +404,9 @@ class UserDashboardService:
                 # Include analyses if requested
                 if include_analyses:
                     analyses_stmt = (
-                        select(Reading)
-                        .where(Reading.user_id == user_id)
-                        .order_by(desc(Reading.created_at))
+                        select(Analysis)
+                        .where(Analysis.user_id == user_id)
+                        .order_by(desc(Analysis.created_at))
                     )
                     
                     analyses_result = await db.execute(analyses_stmt)
@@ -432,8 +432,8 @@ class UserDashboardService:
                     conversations_stmt = (
                         select(Conversation)
                         .options(selectinload(Conversation.messages))
-                        .join(Reading)
-                        .where(Reading.user_id == user_id)
+                        .join(Analysis)
+                        .where(Analysis.user_id == user_id)
                         .order_by(desc(Conversation.created_at))
                     )
                     
@@ -445,7 +445,7 @@ class UserDashboardService:
                     for conversation in conversations:
                         conversation_data = {
                             "id": conversation.id,
-                            "reading_id": conversation.reading_id,
+                            "analysis_id": conversation.analysis_id,
                             "title": conversation.title,
                             "created_at": conversation.created_at.isoformat(),
                             "updated_at": conversation.updated_at.isoformat() if conversation.updated_at else conversation.created_at.isoformat(),
@@ -493,18 +493,18 @@ class UserDashboardService:
         
         # Total analyses
         total_analyses_stmt = (
-            select(func.count(Reading.id))
-            .where(Reading.user_id == user_id)
+            select(func.count(Analysis.id))
+            .where(Analysis.user_id == user_id)
         )
         total_analyses_result = await db.execute(total_analyses_stmt)
         total_analyses = total_analyses_result.scalar() or 0
         
         # Completed analyses
         completed_analyses_stmt = (
-            select(func.count(Reading.id))
+            select(func.count(Analysis.id))
             .where(
-                Reading.user_id == user_id,
-                Reading.status == ReadingStatus.COMPLETED
+                Analysis.user_id == user_id,
+                Analysis.status == AnalysisStatus.COMPLETED
             )
         )
         completed_analyses_result = await db.execute(completed_analyses_stmt)
@@ -513,18 +513,18 @@ class UserDashboardService:
         # Total conversations
         total_conversations_stmt = (
             select(func.count(Conversation.id))
-            .join(Reading)
-            .where(Reading.user_id == user_id)
+            .join(Analysis)
+            .where(Analysis.user_id == user_id)
         )
         total_conversations_result = await db.execute(total_conversations_stmt)
         total_conversations = total_conversations_result.scalar() or 0
         
         # Total cost
         total_cost_stmt = (
-            select(func.sum(Reading.cost))
+            select(func.sum(Analysis.cost))
             .where(
-                Reading.user_id == user_id,
-                Reading.status == ReadingStatus.COMPLETED
+                Analysis.user_id == user_id,
+                Analysis.status == AnalysisStatus.COMPLETED
             )
         )
         total_cost_result = await db.execute(total_cost_stmt)
@@ -535,8 +535,8 @@ class UserDashboardService:
             select(func.sum(Message.cost))
             .select_from(Message)
             .join(Conversation)
-            .join(Reading, Conversation.reading_id == Reading.id)
-            .where(Reading.user_id == user_id)
+            .join(Analysis, Conversation.analysis_id == Analysis.id)
+            .where(Analysis.user_id == user_id)
         )
         message_cost_result = await db.execute(message_cost_stmt)
         message_cost = message_cost_result.scalar() or 0
@@ -559,9 +559,9 @@ class UserDashboardService:
         
         # Recent analyses
         recent_analyses_stmt = (
-            select(Reading)
-            .where(Reading.user_id == user_id)
-            .order_by(desc(Reading.created_at))
+            select(Analysis)
+            .where(Analysis.user_id == user_id)
+            .order_by(desc(Analysis.created_at))
             .limit(5)
         )
         
@@ -572,7 +572,7 @@ class UserDashboardService:
             activities.append({
                 "type": "analysis",
                 "id": analysis.id,
-                "title": f"Palm Reading #{analysis.id}",
+                "title": f"Palm Analysis #{analysis.id}",
                 "status": analysis.status.value,
                 "timestamp": analysis.created_at.isoformat(),
                 "description": analysis.summary[:100] + "..." if analysis.summary and len(analysis.summary) > 100 else analysis.summary
@@ -581,8 +581,8 @@ class UserDashboardService:
         # Recent conversations
         recent_conversations_stmt = (
             select(Conversation)
-            .join(Reading)
-            .where(Reading.user_id == user_id)
+            .join(Analysis)
+            .where(Analysis.user_id == user_id)
             .order_by(desc(Conversation.updated_at))
             .limit(5)
         )
@@ -597,7 +597,7 @@ class UserDashboardService:
                 "title": conversation.title,
                 "status": "active",
                 "timestamp": conversation.updated_at.isoformat() if conversation.updated_at else conversation.created_at.isoformat(),
-                "description": f"Conversation about Reading #{conversation.reading_id}"
+                "description": f"Conversation about Analysis #{conversation.analysis_id}"
             })
         
         # Sort by timestamp and limit
@@ -620,11 +620,11 @@ class UserDashboardService:
             day_end = day_start + timedelta(days=1)
             
             daily_analyses_stmt = (
-                select(func.count(Reading.id))
+                select(func.count(Analysis.id))
                 .where(
-                    Reading.user_id == user_id,
-                    Reading.created_at >= day_start,
-                    Reading.created_at < day_end
+                    Analysis.user_id == user_id,
+                    Analysis.created_at >= day_start,
+                    Analysis.created_at < day_end
                 )
             )
             
@@ -667,7 +667,7 @@ class UserDashboardService:
         elif overview["success_rate"] < 80:
             insights.append({
                 "type": "improvement",
-                "title": "Reading Success",
+                "title": "Analysis Success",
                 "description": "Consider uploading clearer palm images for better analysis results.",
                 "icon": "💡",
                 "priority": "medium"
@@ -711,8 +711,8 @@ class UserDashboardService:
         # Check if user has conversations
         conversation_count_stmt = (
             select(func.count(Conversation.id))
-            .join(Reading)
-            .where(Reading.user_id == user_id)
+            .join(Analysis)
+            .where(Analysis.user_id == user_id)
         )
         
         conversation_count_result = await db.execute(conversation_count_stmt)
@@ -730,10 +730,10 @@ class UserDashboardService:
         
         # Check recent analysis activity
         recent_analysis_stmt = (
-            select(func.count(Reading.id))
+            select(func.count(Analysis.id))
             .where(
-                Reading.user_id == user_id,
-                Reading.created_at >= datetime.utcnow() - timedelta(days=30)
+                Analysis.user_id == user_id,
+                Analysis.created_at >= datetime.utcnow() - timedelta(days=30)
             )
         )
         
@@ -753,7 +753,7 @@ class UserDashboardService:
         # Feature recommendations
         recommendations.append({
             "type": "feature",
-            "title": "Explore Advanced Reading",
+            "title": "Explore Advanced Analysis",
             "description": "Try specialized line analysis for deeper insights into specific aspects of your life.",
             "action": "advanced_analysis",
             "priority": "low",
@@ -767,17 +767,17 @@ class UserDashboardService:
         
         stmt = (
             select(
-                Reading.status,
-                func.count(Reading.id).label('count'),
-                func.avg(func.extract('epoch', Reading.processing_completed_at - Reading.processing_started_at)).label('avg_processing_time'),
-                func.sum(Reading.cost).label('total_cost'),
-                func.sum(Reading.tokens_used).label('total_tokens')
+                Analysis.status,
+                func.count(Analysis.id).label('count'),
+                func.avg(func.extract('epoch', Analysis.processing_completed_at - Analysis.processing_started_at)).label('avg_processing_time'),
+                func.sum(Analysis.cost).label('total_cost'),
+                func.sum(Analysis.tokens_used).label('total_tokens')
             )
             .where(
-                Reading.user_id == user_id,
-                Reading.created_at >= start_date
+                Analysis.user_id == user_id,
+                Analysis.created_at >= start_date
             )
-            .group_by(Reading.status)
+            .group_by(Analysis.status)
         )
         
         result = await db.execute(stmt)
@@ -813,9 +813,9 @@ class UserDashboardService:
         # Conversation counts
         conv_count_stmt = (
             select(func.count(Conversation.id))
-            .join(Reading)
+            .join(Analysis)
             .where(
-                Reading.user_id == user_id,
+                Analysis.user_id == user_id,
                 Conversation.created_at >= start_date
             )
         )
@@ -834,9 +834,9 @@ class UserDashboardService:
             )
             .select_from(Message)
             .join(Conversation)
-            .join(Reading, Conversation.reading_id == Reading.id)
+            .join(Analysis, Conversation.analysis_id == Analysis.id)
             .where(
-                Reading.user_id == user_id,
+                Analysis.user_id == user_id,
                 Message.created_at >= start_date
             )
         )
@@ -883,13 +883,13 @@ class UserDashboardService:
     async def _get_cost_analysis(self, user_id: int, start_date: datetime, db: AsyncSession) -> Dict[str, Any]:
         """Get cost analysis for user."""
         
-        # Reading costs
+        # Analysis costs
         analysis_cost_stmt = (
-            select(func.sum(Reading.cost))
+            select(func.sum(Analysis.cost))
             .where(
-                Reading.user_id == user_id,
-                Reading.created_at >= start_date,
-                Reading.status == ReadingStatus.COMPLETED
+                Analysis.user_id == user_id,
+                Analysis.created_at >= start_date,
+                Analysis.status == AnalysisStatus.COMPLETED
             )
         )
         
@@ -901,9 +901,9 @@ class UserDashboardService:
             select(func.sum(Message.cost))
             .select_from(Message)
             .join(Conversation)
-            .join(Reading, Conversation.reading_id == Reading.id)
+            .join(Analysis, Conversation.analysis_id == Analysis.id)
             .where(
-                Reading.user_id == user_id,
+                Analysis.user_id == user_id,
                 Message.created_at >= start_date
             )
         )
@@ -928,10 +928,10 @@ class UserDashboardService:
         
         # Days with activity
         active_days_stmt = (
-            select(func.count(func.distinct(func.date(Reading.created_at))))
+            select(func.count(func.distinct(func.date(Analysis.created_at))))
             .where(
-                Reading.user_id == user_id,
-                Reading.created_at >= start_date
+                Analysis.user_id == user_id,
+                Analysis.created_at >= start_date
             )
         )
         

@@ -9,14 +9,11 @@ from sqlalchemy.orm import relationship
 from app.models.base import Base
 
 
-class MessageType(enum.Enum):
-    """Type enum for message sender."""
+class MessageRole(enum.Enum):
+    """Role enum for message sender."""
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
-
-# Alias for backward compatibility
-MessageRole = MessageType
 
 
 class Message(Base):
@@ -31,7 +28,7 @@ class Message(Base):
     conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Message content
-    message_type = Column(Enum(MessageType), nullable=False, index=True)
+    role = Column(Enum(MessageRole), nullable=False, index=True)
     content = Column(Text, nullable=False)
     
     # Processing metadata
@@ -50,4 +47,4 @@ class Message(Base):
     conversation = relationship("Conversation", back_populates="messages")
     
     def __repr__(self):
-        return f"<Message(id={self.id}, conversation_id={self.conversation_id}, message_type={self.message_type.value})>"
+        return f"<Message(id={self.id}, conversation_id={self.conversation_id}, role={self.role.value})>"

@@ -21,82 +21,6 @@ const api = axios.create({
   },
 });
 
-// CSRF token cache to avoid infinite requests
-let csrfTokenCache: string | null = null;
-let csrfTokenPromise: Promise<string> | null = null;
-
-async function getCachedCSRFToken(): Promise<string | null> {
-  // If we already have a cached token, use it
-  if (csrfTokenCache) {
-    return csrfTokenCache;
-  }
-
-  // If a request is already in flight, wait for it
-  if (csrfTokenPromise) {
-    try {
-      return await csrfTokenPromise;
-    } catch (error) {
-      // Reset promise on error
-      csrfTokenPromise = null;
-      return null;
-    }
-  }
-
-  // Make a new request for CSRF token
-  csrfTokenPromise = (async () => {
-    try {
-      // Use a fresh axios instance to avoid interceptor loops
-      const response = await axios.get('/api/v1/auth/csrf-token', {
-        baseURL: API_BASE_URL,
-        withCredentials: true,
-      });
-      csrfTokenCache = response.data.csrf_token;
-      csrfTokenPromise = null; // Clear promise
-      return csrfTokenCache;
-    } catch (error) {
-      csrfTokenPromise = null; // Clear promise on error
-      throw error;
-    }
-  })();
-
-  return await csrfTokenPromise;
-}
-
-// Function to clear CSRF token cache (called on logout, auth errors, etc.)
-export function clearCSRFTokenCache() {
-  csrfTokenCache = null;
-  csrfTokenPromise = null;
-}
-
-// Request interceptor to add CSRF token to requests
-api.interceptors.request.use(
-  async (config) => {
-    // Skip CSRF token for the CSRF endpoint itself
-    if (config.url?.includes('/auth/csrf-token')) {
-      return config;
-    }
-
-    // Add CSRF token to state-changing requests
-    if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
-      try {
-        const csrfToken = await getCachedCSRFToken();
-        if (csrfToken) {
-          config.headers['X-CSRF-Token'] = csrfToken;
-        }
-      } catch (error) {
-        // If we can't get CSRF token, the request might fail
-        // but we'll let it proceed and let the server handle it
-        console.warn('Failed to get CSRF token:', error);
-      }
-    }
-    
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
 // Response interceptor to handle authentication errors
 api.interceptors.response.use(
   (response) => response,
@@ -282,45 +206,6 @@ export const authApi = {
       console.error('Get CSRF token failed:', error);
       // Return empty string if CSRF is not available
       return '';
-    }
-  },
-
-  /**
-   * List all active sessions for the current user
-   */
-  async getSessions(): Promise<any> {
-    try {
-      const response = await api.get('/api/v1/auth/sessions');
-      return response.data;
-    } catch (error) {
-      console.error('Get sessions failed:', error);
-      throw new Error(handleApiError(error));
-    }
-  },
-
-  /**
-   * Invalidate all sessions except the current one
-   */
-  async invalidateAllSessions(): Promise<any> {
-    try {
-      const response = await api.post('/api/v1/auth/sessions/invalidate-all');
-      return response.data;
-    } catch (error) {
-      console.error('Invalidate sessions failed:', error);
-      throw new Error(handleApiError(error));
-    }
-  },
-
-  /**
-   * Rotate the current session for enhanced security
-   */
-  async rotateSession(): Promise<any> {
-    try {
-      const response = await api.post('/api/v1/auth/sessions/rotate');
-      return response.data;
-    } catch (error) {
-      console.error('Rotate session failed:', error);
-      throw new Error(handleApiError(error));
     }
   }
 };
