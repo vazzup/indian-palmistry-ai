@@ -56,7 +56,7 @@ export const HeaderAuth: React.FC<HeaderAuthProps> = ({
             <User className="w-4 h-4 text-saffron-600" />
           </div>
           <span className="text-sm font-medium text-gray-700">
-            Welcome, {user.name?.split(' ')[0] || user.email.split('@')[0]}
+            Welcome, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Guest'}
           </span>
         </div>
         
