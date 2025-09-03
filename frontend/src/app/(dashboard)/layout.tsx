@@ -21,9 +21,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [isAuthenticated, isLoading, checkAuth]);
 
   React.useEffect(() => {
-    // Redirect to login if not authenticated after loading
+    // Redirect to homepage if not authenticated after loading
     if (!isLoading && !isAuthenticated) {
-      router.push('/login?redirect=/dashboard');
+      router.push('/');
     }
   }, [isLoading, isAuthenticated, router]);
 

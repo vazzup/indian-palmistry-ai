@@ -21,7 +21,7 @@ import type { Analysis } from '@/types';
 export default function AnalysisDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const analysisId = params.id as string;
   
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
@@ -30,21 +30,34 @@ export default function AnalysisDetailPage() {
   
   React.useEffect(() => {
     const fetchAnalysis = async () => {
+      // Don't fetch if not authenticated
+      if (!isAuthenticated) {
+        return;
+      }
+
       try {
         setLoading(true);
+        setError(null);
         const analysisData = await analysisApi.getAnalysis(analysisId);
         setAnalysis(analysisData);
       } catch (err: any) {
+        // Handle 401 errors gracefully - redirect to homepage
+        if (err.response?.status === 401) {
+          setError('Please log in to view this analysis');
+          router.push('/');
+          return;
+        }
         setError(handleApiError(err));
       } finally {
         setLoading(false);
       }
     };
     
-    if (analysisId) {
+    // Wait for authentication to be checked before fetching
+    if (analysisId && !authLoading) {
       fetchAnalysis();
     }
-  }, [analysisId]);
+  }, [analysisId, isAuthenticated, authLoading, router]);
   
   const formatDate = (dateString: string) => {
     try {
@@ -60,8 +73,8 @@ export default function AnalysisDetailPage() {
     }
   };
   
-  if (loading) {
-    return <LoadingPage message="Loading your full palm reading..." />;
+  if (loading || authLoading) {
+    return <LoadingPage message={authLoading ? "Checking authentication..." : "Loading your full palm reading..."} />;
   }
   
   if (error || !analysis) {
