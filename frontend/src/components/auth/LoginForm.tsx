@@ -53,7 +53,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const onSubmit = async (data: LoginFormData) => {
     try {
       clearError();
-      await login(data);
+      await login(data.email, data.password);
       
       if (onSuccess) {
         onSuccess();

@@ -77,7 +77,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       };
       
       console.log('Calling registerUser...');
-      await registerUser(registerData);
+      await registerUser(data.email, data.password, data.name);
       console.log('Registration successful');
       
       if (onSuccess) {

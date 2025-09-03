@@ -110,8 +110,8 @@ export default function AnalysisDetailPage() {
             <span className="text-sm text-gray-500">
               Status: 
               <span className={`ml-1 font-medium ${
-                analysis.status === 'completed' ? 'text-green-600' :
-                analysis.status === 'processing' ? 'text-yellow-600' : 
+                analysis.status === 'COMPLETED' ? 'text-green-600' :
+                analysis.status === 'PROCESSING' ? 'text-yellow-600' : 
                 'text-red-600'
               }`}>
                 {analysis.status}
