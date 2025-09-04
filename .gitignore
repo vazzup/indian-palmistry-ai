@@ -119,3 +119,6 @@ dump.rdb
 # Celery
 celerybeat-schedule
 celerybeat.pid
+test_in.py
+create_assistant.py
+test_*.py
