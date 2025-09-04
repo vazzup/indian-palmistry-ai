@@ -127,6 +127,24 @@ export const analysisApi = {
       throw error;
     }
   },
+
+  /**
+   * Delete an analysis and all associated data
+   * @param id - Analysis ID to delete
+   * @returns Promise resolving to success message
+   * @throws Error if user doesn't have permission or analysis not found
+   */
+  async deleteAnalysis(id: string): Promise<{ message: string }> {
+    try {
+      console.log(`Making DELETE request to /api/v1/analyses/${id}`);
+      const response = await api.delete(`/api/v1/analyses/${id}`);
+      console.log('Delete API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Delete analysis failed:', error);
+      throw error;
+    }
+  },
 };
 
 /**
@@ -300,7 +318,25 @@ export const dashboardApi = {
  */
 export const conversationsApi = {
   /**
-   * Get all conversations for the current user
+   * Get the single conversation for a specific analysis
+   */
+  async getAnalysisConversation(analysisId: string): Promise<any | null> {
+    try {
+      const response = await api.get(`/api/v1/analyses/${analysisId}/conversations/`);
+      return response.data;
+    } catch (error: any) {
+      // Handle 404 gracefully - analysis has no conversation yet
+      if (error.response?.status === 404) {
+        return null;
+      }
+      console.error('Get analysis conversation failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Get all conversations for the current user (legacy method - now returns conversations across all analyses)
+   * @deprecated Use getAnalysisConversation for specific analysis conversations
    */
   async getUserConversations(params?: {
     page?: number;
@@ -332,22 +368,26 @@ export const conversationsApi = {
   /**
    * Get messages for a specific conversation
    */
-  async getConversationMessages(conversationId: string, params?: {
+  async getConversationMessages(analysisId: string, conversationId: string, params?: {
     page?: number;
-    limit?: number;
+    per_page?: number;
   }): Promise<{
     messages: any[];
     total: number;
     page: number;
-    limit: number;
-    total_pages: number;
+    per_page: number;
+    has_more: boolean;
+    conversation_id: number;
   }> {
     try {
       const queryParams = new URLSearchParams();
       if (params?.page) queryParams.append('page', params.page.toString());
-      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.per_page) queryParams.append('per_page', params.per_page.toString());
+      
+      const queryString = queryParams.toString();
+      const url = `/api/v1/analyses/${analysisId}/conversations/${conversationId}/messages${queryString ? `?${queryString}` : ''}`;
 
-      const response = await api.get(`/api/v1/conversations/${conversationId}/messages?${queryParams.toString()}`);
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error('Get conversation messages failed:', error);
@@ -356,14 +396,16 @@ export const conversationsApi = {
   },
 
   /**
-   * Create a new conversation
+   * Create a new conversation for an analysis (or get existing one if it already exists)
    */
   async createConversation(data: {
     analysis_id: number;
     title: string;
   }): Promise<any> {
     try {
-      const response = await api.post('/api/v1/conversations/', data);
+      const response = await api.post(`/api/v1/analyses/${data.analysis_id}/conversations/`, {
+        title: data.title
+      });
       return response.data;
     } catch (error) {
       console.error('Create conversation failed:', error);
@@ -372,12 +414,19 @@ export const conversationsApi = {
   },
 
   /**
-   * Send a message in a conversation
+   * Send a message in a conversation and get AI response
    */
-  async sendMessage(conversationId: string, content: string): Promise<any> {
+  async sendMessage(analysisId: string, conversationId: string, content: string): Promise<any> {
     try {
-      const response = await api.post(`/api/v1/conversations/${conversationId}/messages`, {
-        content
+      // Get CSRF token for security
+      const csrfToken = await authApi.getCSRFToken();
+      
+      const response = await api.post(`/api/v1/analyses/${analysisId}/conversations/${conversationId}/talk`, {
+        message: content
+      }, {
+        headers: {
+          'X-CSRF-Token': csrfToken
+        }
       });
       return response.data;
     } catch (error) {
@@ -389,9 +438,9 @@ export const conversationsApi = {
   /**
    * Delete a conversation
    */
-  async deleteConversation(conversationId: string): Promise<void> {
+  async deleteConversation(analysisId: string, conversationId: string): Promise<void> {
     try {
-      await api.delete(`/api/v1/conversations/${conversationId}`);
+      await api.delete(`/api/v1/analyses/${analysisId}/conversations/${conversationId}`);
     } catch (error) {
       console.error('Delete conversation failed:', error);
       throw new Error(handleApiError(error));

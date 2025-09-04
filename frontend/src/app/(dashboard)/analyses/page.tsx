@@ -18,7 +18,8 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
-  Shield 
+  Shield,
+  AlertTriangle
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -26,6 +27,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAnalysesList, formatAnalysisDate, getStatusColorClass } from '@/hooks/useDashboard';
 import { DataInconsistencyErrorBoundary } from '@/components/errors/DataInconsistencyErrorBoundary';
+import { analysisApi } from '@/lib/api';
 
 export default function AnalysesPage() {
   const router = useRouter();
@@ -34,6 +36,11 @@ export default function AnalysesPage() {
   const [sortBy, setSortBy] = React.useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [localSearchQuery, setLocalSearchQuery] = React.useState('');
+  
+  // Delete state
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [analysisToDelete, setAnalysisToDelete] = React.useState<string | null>(null);
   
   // Debounce search query
   React.useEffect(() => {
@@ -63,14 +70,19 @@ export default function AnalysesPage() {
     lastRefresh
   } = useAnalysesList(apiParams);
 
-  // Filter analyses by search query (client-side for now)
+  // Filter analyses by search query and only show successful ones (client-side for now)
   const filteredAnalyses = React.useMemo(() => {
     if (!analysesData?.analyses) return [];
     
-    if (!searchQuery.trim()) return analysesData.analyses;
+    // First filter to only show completed analyses (hide failed ones)
+    const completedAnalyses = analysesData.analyses.filter(analysis => 
+      analysis.status === 'completed'
+    );
+    
+    if (!searchQuery.trim()) return completedAnalyses;
     
     const query = searchQuery.toLowerCase();
-    return analysesData.analyses.filter(analysis =>
+    return completedAnalyses.filter(analysis =>
       analysis.id.toLowerCase().includes(query) ||
       (analysis.summary && analysis.summary.toLowerCase().includes(query))
     );
@@ -102,12 +114,37 @@ export default function AnalysesPage() {
 
   const handleDeleteAnalysis = (analysisId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    // TODO: Implement delete confirmation and API call
-    console.log('Delete analysis:', analysisId);
+    console.log('Delete button clicked for analysis:', analysisId);
+    setAnalysisToDelete(analysisId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteAnalysis = async () => {
+    if (!analysisToDelete || isDeleting) return;
+
+    console.log('Confirming delete for analysis:', analysisToDelete);
+    setIsDeleting(true);
+
+    try {
+      await analysisApi.deleteAnalysis(analysisToDelete);
+      console.log('Delete successful, refreshing list');
+      
+      // Refresh the analyses list
+      refetch();
+      
+      // Close modal
+      setShowDeleteConfirm(false);
+      setAnalysisToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete analysis:', error);
+      // Keep modal open, show error (you could add error state if needed)
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleViewAnalysis = (analysisId: string) => {
-    router.push(`/analysis/${analysisId}/summary`);
+    router.push(`/analyses/${analysisId}`);
   };
 
   const handlePageChange = (page: number) => {
@@ -164,7 +201,7 @@ export default function AnalysesPage() {
       <DataInconsistencyErrorBoundary>
       <div className="space-y-6">
         {/* Data Status Bar */}
-        <div className="bg-white border border-gray-200 rounded-lg p-3">
+        {/*<div className="bg-white border border-gray-200 rounded-lg p-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
@@ -198,13 +235,13 @@ export default function AnalysesPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </div> */}
         
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
+        {/*<div className="flex flex-col sm:flex-row gap-4 flex-1">*/}
             {/* Search */}
-            <div className="relative flex-1 max-w-md">
+            {/*<div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 type="text"
@@ -213,10 +250,10 @@ export default function AnalysesPage() {
                 onChange={(e) => setLocalSearchQuery(e.target.value)}
                 className="pl-10"
               />
-            </div>
+            </div>*/}
 
             {/* Filters */}
-            <div className="flex gap-2">
+            {/*<div className="flex gap-2">
               <select
                 value={filterStatus}
                 onChange={(e) => handleFilterChange(e.target.value)}
@@ -236,8 +273,8 @@ export default function AnalysesPage() {
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
               </select>
-            </div>
-          </div>
+            </div>*/}
+            {/*</div>*/}
 
           {/* New Reading Button */}
           <Button
@@ -251,7 +288,7 @@ export default function AnalysesPage() {
 
         {/* Results Count */}
         <div className="text-sm text-muted-foreground">
-          Showing {filteredAnalyses.length} of {analysesData?.total || 0} reading{(analysesData?.total || 0) !== 1 ? 's' : ''}
+          Showing {filteredAnalyses.length} successful reading{filteredAnalyses.length !== 1 ? 's' : ''}
           {searchQuery && ` (filtered)`}
         </div>
 
@@ -331,11 +368,11 @@ export default function AnalysesPage() {
                             </span>
                           )}
                           
-                          {analysis.cost && (
+                          {/*{analysis.cost && (
                             <span>
                               Cost: ${analysis.cost.toFixed(2)}
                             </span>
-                          )}
+                          )}*/}
                           
                           <span>
                             {analysis.left_image_url && analysis.right_image_url 
@@ -402,6 +439,53 @@ export default function AnalysesPage() {
             >
               Next
             </Button>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && analysisToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Palm Reading
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Reading #{analysisToDelete}
+                  </p>
+                </div>
+              </div>
+              
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this palm reading? This action cannot be undone. 
+                All associated conversations and data will be permanently removed.
+              </p>
+              
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setAnalysisToDelete(null);
+                  }}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmDeleteAnalysis}
+                  disabled={isDeleting}
+                  loading={isDeleting}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Reading'}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

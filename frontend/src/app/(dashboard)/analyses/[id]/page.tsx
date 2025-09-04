@@ -9,7 +9,9 @@ import {
   Calendar,
   Clock,
   DollarSign,
-  MessageCircle
+  MessageCircle,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -37,6 +39,10 @@ export default function AnalysisDetailPage() {
   const [question, setQuestion] = React.useState('');
   const [isAsking, setIsAsking] = React.useState(false);
   const [conversationError, setConversationError] = React.useState<string | null>(null);
+  
+  // Delete state
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   
   React.useEffect(() => {
     const fetchAnalysis = async () => {
@@ -138,6 +144,35 @@ export default function AnalysisDetailPage() {
       setIsAsking(false);
     }
   };
+
+  const handleDeleteAnalysis = async () => {
+    console.log('Delete button clicked, analysis:', analysis?.id, 'isDeleting:', isDeleting);
+    
+    if (!analysis || isDeleting) {
+      console.log('Returning early - no analysis or already deleting');
+      return;
+    }
+
+    console.log('Starting delete process for analysis:', analysisId);
+    setIsDeleting(true);
+    
+    try {
+      console.log('Calling deleteAnalysis API...');
+      const result = await analysisApi.deleteAnalysis(analysisId);
+      console.log('Delete successful:', result);
+      
+      // Redirect to analyses list after successful deletion
+      console.log('Redirecting to /analyses');
+      router.push('/analyses');
+    } catch (error) {
+      console.error('Failed to delete analysis:', error);
+      setError('Failed to delete analysis. Please try again.');
+    } finally {
+      console.log('Cleaning up delete state');
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
   
   const formatDate = (dateString: string) => {
     try {
@@ -199,7 +234,7 @@ export default function AnalysisDetailPage() {
             Back to Readings
           </Button>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-500">
               Status: 
               <span className={`ml-1 font-medium ${
@@ -210,6 +245,20 @@ export default function AnalysisDetailPage() {
                 {analysis.status}
               </span>
             </span>
+            
+            {/* Delete Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                console.log('Delete button clicked - showing confirmation modal');
+                setShowDeleteConfirm(true);
+              }}
+              className="text-red-600 hover:text-red-700 hover:border-red-300 border-red-200"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Reading
+            </Button>
           </div>
         </div>
 
@@ -525,6 +574,53 @@ export default function AnalysisDetailPage() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Palm Reading
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Reading #{analysis.id}
+                  </p>
+                </div>
+              </div>
+              
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this palm reading? This action cannot be undone. 
+                All associated conversations and data will be permanently removed.
+              </p>
+              
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    console.log('Confirmation delete button clicked');
+                    handleDeleteAnalysis();
+                  }}
+                  disabled={isDeleting}
+                  loading={isDeleting}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Reading'}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>
