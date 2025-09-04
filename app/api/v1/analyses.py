@@ -98,12 +98,22 @@ async def get_analysis_status(analysis_id: int) -> AnalysisStatusResponse:
         }
         message = message_map.get(analysis.status, "Unknown status")
         
+        # Include analysis result when completed for frontend redirection
+        result = None
+        if analysis.status == AnalysisStatus.COMPLETED and analysis.summary:
+            result = {
+                "analysis_id": analysis.id,
+                "summary": analysis.summary,
+                "status": analysis.status.value
+            }
+        
         return AnalysisStatusResponse(
             analysis_id=analysis.id,
             status=analysis.status.value,
             progress=progress,
             error_message=analysis.error_message,
-            message=message
+            message=message,
+            result=result
         )
         
     except HTTPException:

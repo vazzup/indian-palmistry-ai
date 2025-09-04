@@ -2,9 +2,10 @@
 Analysis schemas for request/response validation.
 """
 
+import json
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, field_serializer, field_validator
 from app.models.analysis import AnalysisStatus
 
 
@@ -25,6 +26,9 @@ class AnalysisResponse(BaseModel):
     right_thumbnail_path: Optional[str] = Field(None, description="Path to right palm thumbnail")
     summary: Optional[str] = Field(None, description="Analysis summary (available pre-login)")
     full_report: Optional[str] = Field(None, description="Full analysis report (requires login)")
+    key_features: Optional[list[str]] = Field(None, description="Key features observed in palm")
+    strengths: Optional[list[str]] = Field(None, description="Personal strengths identified")
+    guidance: Optional[list[str]] = Field(None, description="Life guidance and recommendations")
     status: AnalysisStatus = Field(..., description="Analysis processing status")
     job_id: Optional[str] = Field(None, description="Background job ID")
     error_message: Optional[str] = Field(None, description="Error message if analysis failed")
@@ -45,6 +49,19 @@ class AnalysisResponse(BaseModel):
         """Serialize status enum to string."""
         return status.value
     
+    @field_validator('key_features', 'strengths', 'guidance', mode='before')
+    @classmethod
+    def parse_json_array(cls, v):
+        """Parse JSON string arrays from database into Python lists."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return []
+        return v
+    
     class Config:
         from_attributes = True
 
@@ -57,6 +74,7 @@ class AnalysisStatusResponse(BaseModel):
     progress: int = Field(..., description="Progress percentage (0-100)")
     error_message: Optional[str] = Field(None, description="Error message if failed")
     message: str = Field(..., description="Human-readable status message")
+    result: Optional[dict] = Field(None, description="Analysis result when completed")
 
 
 class AnalysisListResponse(BaseModel):

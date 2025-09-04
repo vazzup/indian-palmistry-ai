@@ -19,6 +19,10 @@ export interface Analysis {
   right_thumbnail_path?: string;
   summary?: string;
   full_report?: string;
+  // Additional analysis fields returned from OpenAI Responses API
+  key_features?: string[];
+  strengths?: string[];
+  guidance?: string[];
   status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
   job_id?: string;
   error_message?: string;
@@ -47,6 +51,14 @@ export interface Message {
   tokens_used?: number;
   cost?: number;
   created_at: string;
+}
+
+// API Response types for conversation endpoints
+export interface TalkResponse {
+  user_message: Message;
+  assistant_message: Message;
+  tokens_used: number;
+  cost: number;
 }
 
 export interface JobStatus {
