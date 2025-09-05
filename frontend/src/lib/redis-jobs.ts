@@ -53,20 +53,24 @@ export function useAnalysisJobPolling({
     const pollStatus = async () => {
       try {
         const response = await analysisApi.getAnalysisStatus(analysisId.toString());
+        console.log('Polling status for analysis', analysisId, ':', response);
+        
         setStatus({
           status: response.status as 'queued' | 'processing' | 'completed' | 'failed',
           result: response.result,
           // Fix: Use correct field name from backend API response
-          error: response.error
+          error: response.error_message
         });
 
         if (response.status === 'completed') {
+          console.log('Analysis completed! Calling onComplete with:', response.result);
           setIsPolling(false);
           onComplete?.(response.result);
         } else if (response.status === 'failed') {
+          console.log('Analysis failed! Calling onError with:', response.error_message);
           setIsPolling(false);
           // Fix: Use correct field name from backend API response
-          onError?.(response.error || 'Analysis failed');
+          onError?.(response.error_message || 'Analysis failed');
         }
       } catch (error) {
         console.error('Error polling job status:', error);

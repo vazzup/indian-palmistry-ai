@@ -18,6 +18,13 @@ export default function AnalysisSummaryPage() {
   const analysisId = params.id as string;
   const { isAuthenticated, user } = useAuth();
   
+  // Debug auth state
+  console.log('AnalysisSummaryPage - Auth State:', { 
+    isAuthenticated, 
+    user: user ? { id: user.id, email: user.email } : null,
+    localStorage: localStorage.getItem('auth-storage') 
+  });
+  
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -163,12 +170,14 @@ export default function AnalysisSummaryPage() {
             {/* Teaser for full reading */}
             <button 
               onClick={() => {
-                console.log('Full reading button clicked!');
+                console.log('Full reading button clicked!', { isAuthenticated, user });
                 if (isAuthenticated) {
                   // User is authenticated, redirect to full analysis
+                  console.log('User is authenticated, redirecting to analyses page');
                   router.push(`/analyses/${analysisId}`);
                 } else {
                   // User is not authenticated, show login gate
+                  console.log('User not authenticated, showing login gate');
                   setShowLoginGate(true);
                 }
               }}
@@ -228,9 +237,12 @@ export default function AnalysisSummaryPage() {
         {!showLoginGate && (
           <button
             onClick={() => {
+              console.log('CTA button clicked!', { isAuthenticated, user });
               if (isAuthenticated) {
+                console.log('User is authenticated, redirecting to analyses page');
                 router.push(`/analyses/${analysisId}`);
               } else {
+                console.log('User not authenticated, showing login gate');
                 setShowLoginGate(true);
               }
             }}

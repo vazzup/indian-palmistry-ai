@@ -87,12 +87,21 @@ export default function HomePage() {
     router.push('/register');
   };
 
-  const handleAnalysisComplete = (result: any) => {
+  const handleAnalysisComplete = React.useCallback((result: any) => {
+    console.log('handleAnalysisComplete called with:', result, 'analysis:', analysis);
     if (analysis) {
       // Navigate to the summary page
+      console.log('Navigating to summary page:', `/analysis/${analysis.id}/summary`);
       router.push(`/analysis/${analysis.id}/summary`);
+    } else {
+      console.error('No analysis object found when trying to redirect');
+      // Fallback: try to get analysis ID from the result
+      if (result?.analysis_id) {
+        console.log('Using analysis ID from result:', result.analysis_id);
+        router.push(`/analysis/${result.analysis_id}/summary`);
+      }
     }
-  };
+  }, [analysis, router]);
 
   const handleAnalysisError = (error: string) => {
     setUploadError(`Analysis failed: ${error}`);

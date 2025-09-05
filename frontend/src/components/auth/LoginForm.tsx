@@ -35,7 +35,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onSuccess 
 }) => {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError, associateAnalysisIfNeeded } = useAuth();
   
   const {
     register,
@@ -55,10 +55,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       clearError();
       await login(data.email, data.password);
       
+      // Try to associate any pending anonymous analysis
+      const associatedAnalysisId = await associateAnalysisIfNeeded();
+      
       if (onSuccess) {
         onSuccess();
       } else {
-        router.push(redirectTo);
+        // If we associated an analysis, redirect to it instead of default redirect
+        if (associatedAnalysisId) {
+          console.log(`Login successful - redirecting to associated analysis ${associatedAnalysisId}`);
+          router.push(`/analyses/${associatedAnalysisId}`);
+        } else {
+          console.log('Login successful - using default redirect:', redirectTo);
+          router.push(redirectTo);
+        }
       }
     } catch (error: any) {
       // Error is handled by the auth store

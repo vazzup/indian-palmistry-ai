@@ -24,7 +24,8 @@ export const LoginGate: React.FC<LoginGateProps> = ({
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('returnToAnalysis', analysisId.toString());
     }
-    router.push('/login');
+    // Also pass via URL parameter for the login page
+    router.push(`/login?analysis=${analysisId}`);
   };
   
   const handleRegister = () => {
@@ -32,7 +33,8 @@ export const LoginGate: React.FC<LoginGateProps> = ({
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('returnToAnalysis', analysisId.toString());
     }
-    router.push('/register');
+    // Also pass via URL parameter for the register page
+    router.push(`/register?analysis=${analysisId}`);
   };
   
   return (

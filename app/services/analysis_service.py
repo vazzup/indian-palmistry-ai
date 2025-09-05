@@ -321,3 +321,48 @@ class AnalysisService:
         except Exception as e:
             logger.error(f"Error updating analysis status for analysis {analysis_id}: {e}")
             return False
+    
+    async def associate_analysis(self, analysis_id: int, user_id: int) -> bool:
+        """Associate an anonymous analysis with a user.
+        
+        This method allows authenticated users to claim ownership of an anonymous analysis
+        that was created before they logged in. The analysis must have user_id = null to be
+        associable.
+        
+        Args:
+            analysis_id: Analysis ID to associate
+            user_id: User ID to associate the analysis with
+            
+        Returns:
+            True if association was successful, False otherwise
+        """
+        try:
+            async with await self.get_session() as db:
+                # Get the analysis
+                stmt = select(Analysis).where(Analysis.id == analysis_id)
+                result = await db.execute(stmt)
+                analysis = result.scalar_one_or_none()
+                
+                if not analysis:
+                    logger.warning(f"Analysis {analysis_id} not found for association")
+                    return False
+                
+                # Check if analysis is anonymous (user_id is null)
+                if analysis.user_id is not None:
+                    logger.warning(f"Analysis {analysis_id} is already associated with user {analysis.user_id}")
+                    return False
+                
+                # Associate the analysis with the user
+                analysis.user_id = user_id
+                await db.commit()
+                
+                # Invalidate user cache to ensure dashboard shows new analysis immediately
+                await self._invalidate_user_cache(user_id)
+                logger.debug(f"Invalidated cache for user {user_id} after associating analysis {analysis_id}")
+                
+                logger.info(f"Successfully associated analysis {analysis_id} with user {user_id}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error associating analysis {analysis_id} with user {user_id}: {e}")
+            return False

@@ -103,7 +103,7 @@ export const analysisApi = {
    * @param id - Analysis ID to check status for
    * @returns Promise with job status, result, and error information
    */
-  async getAnalysisStatus(id: string): Promise<{ status: string; result?: any; error?: string }> {
+  async getAnalysisStatus(id: string): Promise<{ status: string; result?: any; error_message?: string }> {
     try {
       const response = await api.get(`/api/v1/analyses/${id}/status`);
       return response.data;
@@ -142,6 +142,24 @@ export const analysisApi = {
       return response.data;
     } catch (error) {
       console.error('Delete analysis failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Associate an anonymous analysis with the current authenticated user
+   * @param id - Analysis ID to associate
+   * @returns Promise resolving to success message
+   * @throws Error if analysis not found or already associated
+   */
+  async associateAnalysis(id: string): Promise<{ message: string }> {
+    try {
+      console.log(`Making PUT request to /api/v1/analyses/${id}/associate`);
+      const response = await api.put(`/api/v1/analyses/${id}/associate`);
+      console.log('Associate API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Associate analysis failed:', error);
       throw error;
     }
   },

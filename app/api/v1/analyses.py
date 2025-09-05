@@ -238,6 +238,43 @@ async def list_user_analyses(
         )
 
 
+@router.put("/{analysis_id}/associate")
+async def associate_analysis(
+    analysis_id: int,
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    """Associate an anonymous analysis with the authenticated user.
+    
+    This endpoint allows authenticated users to claim ownership of an anonymous analysis
+    that was created before they logged in. The analysis must have user_id = null to be
+    associable.
+    """
+    try:
+        analysis_service = AnalysisService()
+        success = await analysis_service.associate_analysis(
+            analysis_id=analysis_id,
+            user_id=current_user.id
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Analysis not found or already associated with another user"
+            )
+        
+        logger.info(f"Associated analysis {analysis_id} with user {current_user.id}")
+        return {"message": "Analysis associated successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error associating analysis {analysis_id} with user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to associate analysis"
+        )
+
+
 @router.delete("/{analysis_id}")
 async def delete_analysis(
     analysis_id: int,

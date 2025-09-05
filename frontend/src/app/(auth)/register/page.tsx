@@ -21,11 +21,23 @@ function RegisterPageContent() {
   const redirectTo = searchParams.get('redirect') || '/dashboard';
   const analysisId = searchParams.get('analysis');
   
-  const handleRegisterSuccess = () => {
+  const handleRegisterSuccess = async () => {
+    // Check if we need to import auth for analysis association
+    const { useAuthStore } = await import('@/lib/auth');
+    const { associateAnalysisIfNeeded } = useAuthStore.getState();
+    
+    // Try to associate any pending anonymous analysis
+    const associatedAnalysisId = await associateAnalysisIfNeeded();
+    
     if (analysisId) {
-      // Redirect to specific analysis if coming from login gate
-      router.push(`/analysis/${analysisId}`);
+      // Redirect to specific analysis if coming from login gate (URL parameter)
+      router.push(`/analyses/${analysisId}`);
+    } else if (associatedAnalysisId) {
+      // Redirect to associated analysis if we just claimed one from sessionStorage
+      console.log(`Register success - redirecting to associated analysis ${associatedAnalysisId}`);
+      router.push(`/analyses/${associatedAnalysisId}`);
     } else {
+      // Default redirect
       router.push(redirectTo);
     }
   };

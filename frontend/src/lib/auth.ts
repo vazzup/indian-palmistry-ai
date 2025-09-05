@@ -5,9 +5,10 @@
 
 'use client';
 
+import React from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { authApi } from './api';
+import { authApi, analysisApi, handleApiError } from './api';
 
 export interface User {
   id: number;
@@ -33,6 +34,7 @@ interface AuthState {
   checkAuth: () => Promise<User | null>;
   clearError: () => void;
   setUser: (user: User | null) => void;
+  associateAnalysisIfNeeded: () => Promise<string | null>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -116,6 +118,7 @@ export const useAuthStore = create<AuthState>()(
         // This prevents loading states during app initialization
         try {
           const user = await authApi.getCurrentUser();
+          console.log('checkAuth: User retrieved successfully', user);
           set({ 
             isAuthenticated: true, 
             user,
@@ -124,6 +127,7 @@ export const useAuthStore = create<AuthState>()(
           return user;
         } catch (error: any) {
           // Clear authentication state if check fails
+          console.log('checkAuth: Auth check failed, clearing state', error);
           set({ 
             isAuthenticated: false, 
             user: null,
@@ -146,6 +150,36 @@ export const useAuthStore = create<AuthState>()(
           error: null 
         });
       },
+
+      // Associate analysis if returnToAnalysis exists in sessionStorage
+      associateAnalysisIfNeeded: async () => {
+        if (typeof window === 'undefined') return null;
+        
+        const analysisId = sessionStorage.getItem('returnToAnalysis');
+        if (!analysisId) {
+          console.log('No returnToAnalysis found in sessionStorage');
+          return null;
+        }
+        
+        try {
+          console.log(`Attempting to associate analysis ${analysisId} with current user`);
+          await analysisApi.associateAnalysis(analysisId);
+          
+          // Clear the sessionStorage after successful association
+          sessionStorage.removeItem('returnToAnalysis');
+          console.log(`Successfully associated analysis ${analysisId} and cleared sessionStorage`);
+          
+          return analysisId;
+        } catch (error: any) {
+          console.error(`Failed to associate analysis ${analysisId}:`, error);
+          
+          // Clear sessionStorage even on failure to prevent retry loops
+          sessionStorage.removeItem('returnToAnalysis');
+          
+          // Don't throw error - we want login/register to succeed even if association fails
+          return null;
+        }
+      },
     }),
     {
       name: 'auth-storage', // unique name for localStorage
@@ -160,15 +194,30 @@ export const useAuthStore = create<AuthState>()(
 
 // Convenience hook that matches the expected interface
 export const useAuth = () => {
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const storedIsAuthenticated = useAuthStore(state => state.isAuthenticated);
   const isLoading = useAuthStore(state => state.isLoading);
   const user = useAuthStore(state => state.user);
   const error = useAuthStore(state => state.error);
   const login = useAuthStore(state => state.login);
   const register = useAuthStore(state => state.register);
   const logout = useAuthStore(state => state.logout);
+  
+  // Fix invalid state: cannot be authenticated without user data
+  const isAuthenticated = storedIsAuthenticated && user !== null;
+  
+  // If we detect invalid state, clear it
+  React.useEffect(() => {
+    if (storedIsAuthenticated && !user) {
+      console.log('useAuth: Detected invalid auth state, clearing...');
+      useAuthStore.setState({ 
+        isAuthenticated: false, 
+        user: null 
+      });
+    }
+  }, [storedIsAuthenticated, user]);
   const checkAuth = useAuthStore(state => state.checkAuth);
   const clearError = useAuthStore(state => state.clearError);
+  const associateAnalysisIfNeeded = useAuthStore(state => state.associateAnalysisIfNeeded);
 
   return {
     isAuthenticated,
@@ -180,6 +229,7 @@ export const useAuth = () => {
     logout,
     checkAuth,
     clearError,
+    associateAnalysisIfNeeded,
   };
 };
 

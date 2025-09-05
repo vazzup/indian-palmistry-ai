@@ -104,7 +104,7 @@ describe('useAnalysisJobPolling', () => {
       .mockResolvedValueOnce({ status: 'processing' })
       .mockResolvedValueOnce({ 
         status: 'failed', 
-        error: errorMessage 
+        error_message: errorMessage 
       });
 
     const { result } = renderHook(() =>

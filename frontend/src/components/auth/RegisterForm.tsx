@@ -50,7 +50,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   onSuccess 
 }) => {
   const router = useRouter();
-  const { register: registerUser, isLoading, error, clearError } = useAuth();
+  const { register: registerUser, isLoading, error, clearError, associateAnalysisIfNeeded } = useAuth();
   
   const {
     register,
@@ -80,10 +80,20 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       await registerUser(data.email, data.password, data.name);
       console.log('Registration successful');
       
+      // Try to associate any pending anonymous analysis
+      const associatedAnalysisId = await associateAnalysisIfNeeded();
+      
       if (onSuccess) {
         onSuccess();
       } else {
-        router.push(redirectTo);
+        // If we associated an analysis, redirect to it instead of default redirect
+        if (associatedAnalysisId) {
+          console.log(`Registration successful - redirecting to associated analysis ${associatedAnalysisId}`);
+          router.push(`/analyses/${associatedAnalysisId}`);
+        } else {
+          console.log('Registration successful - using default redirect:', redirectTo);
+          router.push(redirectTo);
+        }
       }
     } catch (error: any) {
       // Error is handled by the auth store

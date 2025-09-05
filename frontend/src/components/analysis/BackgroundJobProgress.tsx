@@ -41,16 +41,8 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
     });
   }, []);
   
-  // Handle completion and errors
-  React.useEffect(() => {
-    if (status?.status === 'completed' && onComplete) {
-      onComplete(status.result);
-    }
-    
-    if (status?.status === 'failed' && onError) {
-      onError(status?.error || 'Analysis failed');
-    }
-  }, [status, onComplete, onError]);
+  // Completion and errors are handled by the polling hook
+  // No need for duplicate logic here
   
   const getStatusIcon = () => {
     if (!status) return <Clock className="w-6 h-6 text-gray-400" />;

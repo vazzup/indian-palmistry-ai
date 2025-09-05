@@ -45,22 +45,33 @@ export default function AnalysisDetailPage() {
   const [isDeleting, setIsDeleting] = React.useState(false);
   
   React.useEffect(() => {
-    const fetchAnalysis = async () => {
-      // Don't fetch if not authenticated
-      if (!isAuthenticated) {
-        return;
-      }
+    console.log('Dashboard page useEffect - authLoading:', authLoading, 'isAuthenticated:', isAuthenticated, 'analysisId:', analysisId);
+    
+    // Wait for auth to be loaded
+    if (authLoading) {
+      console.log('Auth still loading, waiting...');
+      return;
+    }
+    
+    // Redirect unauthenticated users to summary page
+    if (!isAuthenticated) {
+      console.log('User not authenticated, redirecting to summary page');
+      router.push(`/analysis/${analysisId}/summary`);
+      return;
+    }
 
+    console.log('User is authenticated, proceeding to fetch analysis');
+
+    const fetchAnalysis = async () => {
       try {
         setLoading(true);
         setError(null);
         const analysisData = await analysisApi.getAnalysis(analysisId);
         setAnalysis(analysisData);
       } catch (err: any) {
-        // Handle 401 errors gracefully - redirect to homepage
+        // Handle 401 errors gracefully - redirect to summary page
         if (err.response?.status === 401) {
-          setError('Please log in to view this analysis');
-          router.push('/');
+          router.push(`/analysis/${analysisId}/summary`);
           return;
         }
         setError(handleApiError(err));
@@ -69,8 +80,7 @@ export default function AnalysisDetailPage() {
       }
     };
     
-    // Wait for authentication to be checked before fetching
-    if (analysisId && !authLoading) {
+    if (analysisId) {
       fetchAnalysis();
     }
   }, [analysisId, isAuthenticated, authLoading, router]);
