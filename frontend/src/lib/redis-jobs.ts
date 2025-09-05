@@ -57,7 +57,7 @@ export function useAnalysisJobPolling({
           status: response.status as 'queued' | 'processing' | 'completed' | 'failed',
           result: response.result,
           // Fix: Use correct field name from backend API response
-          error: response.error_message
+          error: response.error
         });
 
         if (response.status === 'completed') {
@@ -66,7 +66,7 @@ export function useAnalysisJobPolling({
         } else if (response.status === 'failed') {
           setIsPolling(false);
           // Fix: Use correct field name from backend API response
-          onError?.(response.error_message || 'Analysis failed');
+          onError?.(response.error || 'Analysis failed');
         }
       } catch (error) {
         console.error('Error polling job status:', error);
