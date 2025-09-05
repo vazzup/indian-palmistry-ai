@@ -191,11 +191,6 @@ export default function HomePage() {
         <div className="max-w-md mx-auto space-y-6">
           {!showExperienceChoice ? (
             <>
-              {/* Value Proposition for Non-Authenticated Users */}
-              {!isAuthenticated && (
-                <ValuePropCard className="mb-6" onSignUp={handleAuthChoice} />
-              )}
-              
               {/* Instructions */}
               <Card>
                 <CardHeader>
@@ -231,7 +226,7 @@ export default function HomePage() {
                   </div>
                   
                   {/* Experience Choice Button for Guests */}
-                  {!isAuthenticated && (
+                  {/*{!isAuthenticated && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <Button 
                         onClick={handleGetStarted}
@@ -241,7 +236,7 @@ export default function HomePage() {
                         Choose Your Experience
                       </Button>
                     </div>
-                  )}
+                  )}*/}
                 </CardContent>
               </Card>
 
@@ -271,6 +266,12 @@ export default function HomePage() {
                   🔒 Your images are processed securely and not stored permanently
                 </p>
               </div>
+              
+              {/* Value Proposition for Non-Authenticated Users */}
+              {!isAuthenticated && (
+                <ValuePropCard className="mb-6" onSignUp={handleAuthChoice} />
+              )}
+              
             </>
           ) : (
             /* Experience Choice Component */

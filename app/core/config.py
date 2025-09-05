@@ -48,6 +48,10 @@ class Settings(BaseSettings):
         default=None,
         description="OpenAI API key for palmistry analysis"
     )
+    openai_assistant_id: Optional[str] = Field(
+        default=None,
+        description="OpenAI Assistant ID for palmistry analysis"
+    )
     
     # Security Configuration
     secret_key: str = Field(

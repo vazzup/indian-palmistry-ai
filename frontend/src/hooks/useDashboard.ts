@@ -767,7 +767,7 @@ export function useConversationsList(options?: {
 /**
  * Hook for managing conversation messages
  */
-export function useConversationMessages(conversationId: string, options?: {
+export function useConversationMessages(analysisId: string, conversationId: string, options?: {
   page?: number;
   limit?: number;
 }) {
@@ -777,7 +777,7 @@ export function useConversationMessages(conversationId: string, options?: {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchMessages = useCallback(async (skipCache?: boolean) => {
-    if (!conversationId) return;
+    if (!conversationId || !analysisId) return;
     
     try {
       setLoading(true);
@@ -792,7 +792,7 @@ export function useConversationMessages(conversationId: string, options?: {
         }
       }
       
-      const messagesData = await conversationsApi.getConversationMessages(conversationId, options);
+      const messagesData = await conversationsApi.getConversationMessages(analysisId, conversationId, options);
       setData(messagesData);
     } catch (err) {
       console.error('Failed to fetch conversation messages:', err);
@@ -801,7 +801,7 @@ export function useConversationMessages(conversationId: string, options?: {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [conversationId, options]);
+  }, [analysisId, conversationId, options]);
 
   const forceRefresh = useCallback(async () => {
     await fetchMessages(true);

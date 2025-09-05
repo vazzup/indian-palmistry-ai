@@ -69,8 +69,8 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
   // Validate file format and size
   const validateFile = async (file: File): Promise<{ isValid: boolean; error?: string }> => {
     // Check file type
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      return { isValid: false, error: 'Only JPEG and PNG files are allowed' };
+    if (!['image/jpeg', 'image/png', 'image/heic'].includes(file.type)) {
+      return { isValid: false, error: 'Only JPEG, PNG, and HEIC files are allowed' };
     }
     
     // Check file size
@@ -86,7 +86,12 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
       const isValidJPEG = bytes[0] === 0xFF && bytes[1] === 0xD8;
       const isValidPNG = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
       
-      if (!isValidJPEG && !isValidPNG) {
+      // Check HEIC magic bytes - look for "ftypheic" or "ftypmif1" starting at byte 4
+      const heicSignature1 = new TextDecoder().decode(bytes.slice(4, 12));
+      const heicSignature2 = new TextDecoder().decode(bytes.slice(4, 12));
+      const isValidHEIC = heicSignature1 === 'ftypheic' || heicSignature2 === 'ftypmif1';
+      
+      if (!isValidJPEG && !isValidPNG && !isValidHEIC) {
         return { isValid: false, error: 'Invalid image format detected' };
       }
     } catch (error) {
@@ -237,7 +242,7 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
                 Upload Your Palm Images
               </h3>
               <p className="text-sm text-gray-600">
-                Up to {maxFiles} images • JPEG or PNG • Max {maxSize}MB each
+                Up to {maxFiles} images • JPEG, PNG, or HEIC • Max {maxSize}MB each
               </p>
               <p className="text-xs text-muted-foreground">
                 Left palm, Right palm (optional)
@@ -352,7 +357,7 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png"
+        accept="image/jpeg,image/png,image/heic"
         multiple
         onChange={handleFileSelect}
         className="hidden"
@@ -361,7 +366,7 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/jpeg,image/png"
+        accept="image/jpeg,image/png,image/heic"
         capture="environment" // Use back camera
         onChange={handleFileSelect}
         className="hidden"

@@ -23,7 +23,8 @@ WORKDIR /app
 COPY pyproject.toml ./
 
 # Install Python dependencies
-RUN pip install -e .[dev]
+# Force rebuild of dependencies by adding a cache-busting comment
+RUN pip install --no-cache-dir -e .[dev]
 
 # Copy application code
 COPY app/ ./app/

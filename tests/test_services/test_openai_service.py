@@ -283,3 +283,113 @@ class TestOpenAIService:
                 await openai_service.generate_conversation_response(
                     "summary", "report", [], "question"
                 )
+
+    # Tests for Responses API
+    async def test_analyze_palm_images_with_responses_no_client(self, openai_service_no_key):
+        """Test Responses API analysis when no OpenAI client is configured."""
+        with pytest.raises(ValueError, match="OpenAI API key not configured"):
+            await openai_service_no_key.analyze_palm_images_with_responses("file_123")
+
+    async def test_analyze_palm_images_with_responses_no_files(self, openai_service):
+        """Test Responses API analysis when no file IDs are provided."""
+        with pytest.raises(ValueError, match="At least one palm image file ID is required"):
+            await openai_service.analyze_palm_images_with_responses()
+
+    async def test_analyze_palm_images_with_responses_success_single_file(self, openai_service):
+        """Test successful palm analysis with Responses API using single file."""
+        with patch.object(openai_service.client.responses, 'create') as mock_create:
+            # Mock Responses API response
+            mock_response = MagicMock()
+            mock_response.output_text = json.dumps({
+                "summary": "Test summary from Responses API",
+                "full_report": "Test full report from Responses API",
+                "key_features": ["line1", "line2"],
+                "strengths": ["strength1"],
+                "guidance": ["guidance1"]
+            })
+            mock_create.return_value = mock_response
+            
+            result = await openai_service.analyze_palm_images_with_responses(
+                left_file_id="file_123"
+            )
+            
+            # Verify result structure
+            assert result["summary"] == "Test summary from Responses API"
+            assert result["full_report"] == "Test full report from Responses API"
+            assert result["key_features"] == ["line1", "line2"]
+            assert result["strengths"] == ["strength1"]
+            assert result["guidance"] == ["guidance1"]
+            assert "tokens_used" in result
+            assert "cost" in result
+            
+            # Verify Responses API was called correctly
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args[1]
+            assert call_args["model"] == "gpt-4o"
+            assert len(call_args["input"]) == 1
+            assert call_args["input"][0]["role"] == "user"
+            
+            # Verify content structure
+            content = call_args["input"][0]["content"]
+            assert any(part["type"] == "input_text" for part in content)
+            assert any(part["type"] == "input_image" and part["file_id"] == "file_123" for part in content)
+
+    async def test_analyze_palm_images_with_responses_success_both_files(self, openai_service):
+        """Test successful palm analysis with Responses API using both files."""
+        with patch.object(openai_service.client.responses, 'create') as mock_create:
+            # Mock Responses API response
+            mock_response = MagicMock()
+            mock_response.output_text = json.dumps({
+                "summary": "Test summary with both palms",
+                "full_report": "Test full report with both palms"
+            })
+            mock_create.return_value = mock_response
+            
+            result = await openai_service.analyze_palm_images_with_responses(
+                left_file_id="file_123",
+                right_file_id="file_456"
+            )
+            
+            # Verify API call mentions both palms
+            call_args = mock_create.call_args[1]
+            content = call_args["input"][0]["content"]
+            
+            # Find the text content
+            text_part = next(part for part in content if part["type"] == "input_text")
+            assert "left palm and right palm" in text_part["text"]
+            
+            # Verify both file IDs are included
+            file_parts = [part for part in content if part["type"] == "input_image"]
+            assert len(file_parts) == 2
+            file_ids = {part["file_id"] for part in file_parts}
+            assert file_ids == {"file_123", "file_456"}
+
+    async def test_analyze_palm_images_with_responses_invalid_json(self, openai_service):
+        """Test Responses API analysis with invalid JSON response."""
+        with patch.object(openai_service.client.responses, 'create') as mock_create:
+            # Mock Responses API response with invalid JSON
+            mock_response = MagicMock()
+            mock_response.output_text = "Invalid JSON response from Responses API"
+            mock_create.return_value = mock_response
+            
+            result = await openai_service.analyze_palm_images_with_responses(
+                left_file_id="file_123"
+            )
+            
+            # Should fall back to using raw response
+            assert result["summary"] == "Invalid JSON response from Responses API"
+            assert result["full_report"] == "Invalid JSON response from Responses API"
+            assert result["key_features"] == []
+            assert result["strengths"] == []
+            assert result["guidance"] == []
+
+    async def test_analyze_palm_images_with_responses_api_error(self, openai_service):
+        """Test Responses API analysis when API returns error."""
+        with patch.object(openai_service.client.responses, 'create') as mock_create:
+            # Mock Responses API error
+            mock_create.side_effect = Exception("Responses API Error")
+            
+            with pytest.raises(Exception, match="Responses API Error"):
+                await openai_service.analyze_palm_images_with_responses(
+                    left_file_id="file_123"
+                )

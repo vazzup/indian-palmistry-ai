@@ -158,7 +158,7 @@ export default function DashboardPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard
+        {/*<StatsCard
             title="Total Readings"
             value={stats.totalAnalyses}
             description="All time palm analyses"
@@ -187,7 +187,7 @@ export default function DashboardPage() {
             description="Analysis completion rate"
             icon={Clock}
             trend={stats.successRate >= 80 ? { value: Math.round(stats.successRate), isPositive: true } : undefined}
-          />
+          />*/}
         </div>
 
         {/* Recent Analyses */}
