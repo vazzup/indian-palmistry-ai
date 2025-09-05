@@ -7,7 +7,6 @@ from fastapi import APIRouter, HTTPException, Depends, Query, status
 from app.schemas.conversation import (
     ConversationCreateRequest,
     ConversationResponse,
-    ConversationListResponse,
     MessageResponse,
     MessageListResponse,
     TalkRequest,
@@ -45,7 +44,7 @@ async def create_conversation(
         
         logger.info(f"Created conversation {conversation.id} for analysis {analysis_id}")
         
-        return ConversationResponse.model_validate(conversation)
+        return ConversationResponse.from_conversation(conversation, current_user.id)
         
     except ValueError as e:
         raise HTTPException(
@@ -60,46 +59,39 @@ async def create_conversation(
         )
 
 
-@router.get("/", response_model=ConversationListResponse)
-async def list_conversations(
+@router.get("/", response_model=ConversationResponse)
+async def get_analysis_conversation(
     analysis_id: int,
-    current_user: User = Depends(get_current_user),
-    page: int = Query(1, ge=1, description="Page number"),
-    per_page: int = Query(5, ge=1, le=20, description="Items per page")
-) -> ConversationListResponse:
-    """List conversations for an analysis with pagination.
+    current_user: User = Depends(get_current_user)
+) -> ConversationResponse:
+    """Get the conversation for an analysis.
     
-    Returns conversations ordered by creation date (most recent first).
-    Only the analysis owner can view conversations.
+    Returns the single conversation associated with the analysis.
+    Only the analysis owner can view the conversation.
     """
     try:
         conversation_service = ConversationService()
         
-        conversations, total = await conversation_service.get_analysis_conversations(
+        conversation = await conversation_service.get_analysis_conversation(
             analysis_id=analysis_id,
-            user_id=current_user.id,
-            page=page,
-            per_page=per_page
+            user_id=current_user.id
         )
         
-        conversation_responses = [ConversationResponse.model_validate(c) for c in conversations]
+        if not conversation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Conversation not found for this analysis"
+            )
         
-        has_more = page * per_page < total
+        return ConversationResponse.from_conversation(conversation, current_user.id)
         
-        return ConversationListResponse(
-            conversations=conversation_responses,
-            total=total,
-            page=page,
-            per_page=per_page,
-            has_more=has_more,
-            analysis_id=analysis_id
-        )
-        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error listing conversations for analysis {analysis_id}: {e}")
+        logger.error(f"Error getting conversation for analysis {analysis_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list conversations"
+            detail="Failed to get conversation"
         )
 
 
@@ -134,7 +126,7 @@ async def get_conversation(
                 detail="Conversation not found"
             )
         
-        return ConversationResponse.model_validate(conversation)
+        return ConversationResponse.from_conversation(conversation, current_user.id)
         
     except HTTPException:
         raise
@@ -301,7 +293,7 @@ async def update_conversation(
                 detail="Conversation not found"
             )
         
-        return ConversationResponse.model_validate(conversation)
+        return ConversationResponse.from_conversation(conversation, current_user.id)
         
     except HTTPException:
         raise

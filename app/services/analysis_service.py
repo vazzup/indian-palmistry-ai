@@ -64,18 +64,18 @@ class AnalysisService:
                 
                 # Save images if provided
                 if left_image:
-                    left_path, left_thumb = await self.image_service.save_image(
+                    left_path, left_file_id = await self.image_service.save_image(
                         left_image, user_id, analysis.id, "left"
                     )
                     analysis.left_image_path = left_path
-                    analysis.left_thumbnail_path = left_thumb  # Will be None for now
+                    analysis.left_file_id = left_file_id
                 
                 if right_image:
-                    right_path, right_thumb = await self.image_service.save_image(
+                    right_path, right_file_id = await self.image_service.save_image(
                         right_image, user_id, analysis.id, "right"
                     )
                     analysis.right_image_path = right_path
-                    analysis.right_thumbnail_path = right_thumb  # Will be None for now
+                    analysis.right_file_id = right_file_id
                 
                 # Update with image paths
                 await db.commit()
@@ -103,7 +103,10 @@ class AnalysisService:
             logger.error(f"Error creating analysis: {e}")
             # Clean up images if analysis creation failed
             if 'analysis' in locals():
-                self.image_service.delete_analysis_images(user_id, analysis.id)
+                await self.image_service.delete_analysis_images(
+                    analysis.left_image_path, analysis.right_image_path,
+                    analysis.left_file_id, analysis.right_file_id
+                )
             raise
     
     async def get_analysis_by_id(self, analysis_id: int) -> Optional[Analysis]:
@@ -232,7 +235,10 @@ class AnalysisService:
                     return False
                 
                 # Delete associated images
-                self.image_service.delete_analysis_images(analysis.user_id, analysis.id)
+                await self.image_service.delete_analysis_images(
+                    analysis.left_image_path, analysis.right_image_path,
+                    analysis.left_file_id, analysis.right_file_id
+                )
                 
                 # Invalidate user cache before deletion
                 if analysis.user_id:

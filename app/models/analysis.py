@@ -28,15 +28,20 @@ class Analysis(Base):
     # User relationship (nullable for anonymous uploads)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     
-    # Image paths
+    # Image paths and OpenAI file IDs
     left_image_path = Column(String(500), nullable=True)
     right_image_path = Column(String(500), nullable=True)
     left_thumbnail_path = Column(String(500), nullable=True)
     right_thumbnail_path = Column(String(500), nullable=True)
+    left_file_id = Column(String(255), nullable=True)  # OpenAI file ID for left palm
+    right_file_id = Column(String(255), nullable=True)  # OpenAI file ID for right palm
     
     # Analysis results
     summary = Column(Text, nullable=True)  # Available pre-login
     full_report = Column(Text, nullable=True)  # Available post-login only
+    key_features = Column(Text, nullable=True)  # JSON array of key observed features
+    strengths = Column(Text, nullable=True)  # JSON array of positive traits
+    guidance = Column(Text, nullable=True)  # JSON array of life guidance
     
     # Job tracking
     status = Column(Enum(AnalysisStatus), default=AnalysisStatus.QUEUED, nullable=False, index=True)
@@ -55,7 +60,7 @@ class Analysis(Base):
     
     # Relationships
     user = relationship("User", back_populates="analyses")
-    conversations = relationship("Conversation", back_populates="analysis", cascade="all, delete-orphan")
+    conversation = relationship("Conversation", back_populates="analysis", cascade="all, delete-orphan", uselist=False)
     
     def __repr__(self):
         return f"<Analysis(id={self.id}, user_id={self.user_id}, status={self.status.value})>"

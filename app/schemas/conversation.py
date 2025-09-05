@@ -29,6 +29,18 @@ class ConversationResponse(BaseModel):
     
     class Config:
         from_attributes = True
+    
+    @classmethod
+    def from_conversation(cls, conversation, user_id: int):
+        """Create ConversationResponse from Conversation model with user_id."""
+        return cls(
+            id=conversation.id,
+            analysis_id=conversation.analysis_id,
+            user_id=user_id,
+            title=conversation.title,
+            created_at=conversation.created_at,
+            updated_at=conversation.updated_at
+        )
 
 
 class ConversationListResponse(BaseModel):

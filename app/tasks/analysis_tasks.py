@@ -97,11 +97,11 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
         # Initialize services
         openai_service = OpenAIService()
         
-        # Process palm analysis with OpenAI
+        # Process palm analysis with OpenAI Responses API
         try:
-            result = asyncio.run(openai_service.analyze_palm_images(
-                left_image_path=analysis.left_image_path,
-                right_image_path=analysis.right_image_path
+            result = asyncio.run(openai_service.analyze_palm_images_with_responses(
+                left_file_id=analysis.left_file_id,  # OpenAI file ID
+                right_file_id=analysis.right_file_id  # OpenAI file ID
             ))
             
             # Update progress
@@ -126,6 +126,13 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
                     if analysis_record:
                         analysis_record.summary = result["summary"]
                         analysis_record.full_report = result["full_report"]
+                        
+                        # Store additional fields as JSON strings
+                        import json
+                        analysis_record.key_features = json.dumps(result.get("key_features", [])) if result.get("key_features") else None
+                        analysis_record.strengths = json.dumps(result.get("strengths", [])) if result.get("strengths") else None
+                        analysis_record.guidance = json.dumps(result.get("guidance", [])) if result.get("guidance") else None
+                        
                         analysis_record.status = AnalysisStatus.COMPLETED
                         analysis_record.processing_completed_at = datetime.utcnow()
                         analysis_record.tokens_used = result.get("tokens_used", 0)

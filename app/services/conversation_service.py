@@ -35,7 +35,10 @@ class ConversationService:
         user_id: int,
         title: Optional[str] = None
     ) -> Conversation:
-        """Create a new conversation for an analysis.
+        """Create a new conversation for an analysis or return existing one.
+        
+        Since we now have a one-to-one relationship, this method will return
+        the existing conversation if one already exists for this analysis.
         
         Args:
             analysis_id: ID of the analysis
@@ -43,7 +46,7 @@ class ConversationService:
             title: Optional title for the conversation
             
         Returns:
-            Created Conversation instance
+            Conversation instance (existing or newly created)
         """
         try:
             async with await self.get_session() as db:
@@ -57,13 +60,21 @@ class ConversationService:
                 if not analysis:
                     raise ValueError("Analysis not found or access denied")
                 
+                # Check if conversation already exists (one-to-one relationship)
+                existing_stmt = select(Conversation).where(Conversation.analysis_id == analysis_id)
+                existing_result = await db.execute(existing_stmt)
+                existing_conversation = existing_result.scalar_one_or_none()
+                
+                if existing_conversation:
+                    logger.info(f"Returning existing conversation {existing_conversation.id} for analysis {analysis_id}")
+                    return existing_conversation
+                
                 # Generate default title if not provided
                 if not title:
                     title = f"Conversation about Palm Reading #{analysis_id}"
                 
                 conversation = Conversation(
                     analysis_id=analysis_id,
-                    user_id=user_id,
                     title=title
                 )
                 
@@ -106,23 +117,19 @@ class ConversationService:
             logger.error(f"Error getting conversation {conversation_id}: {e}")
             return None
     
-    async def get_analysis_conversations(
+    async def get_analysis_conversation(
         self,
         analysis_id: int,
-        user_id: int,
-        page: int = 1,
-        per_page: int = 5
-    ) -> tuple[List[Conversation], int]:
-        """Get conversations for an analysis with pagination.
+        user_id: int
+    ) -> Optional[Conversation]:
+        """Get the single conversation for an analysis (one-to-one relationship).
         
         Args:
             analysis_id: Analysis ID
             user_id: User ID for access control
-            page: Page number (1-based)
-            per_page: Number of conversations per page
             
         Returns:
-            Tuple of (conversations_list, total_count)
+            Conversation instance if found, None otherwise
         """
         try:
             async with await self.get_session() as db:
@@ -134,31 +141,18 @@ class ConversationService:
                 analysis = analysis_result.scalar_one_or_none()
                 
                 if not analysis:
-                    return [], 0
+                    return None
                 
-                # Get total count
-                count_stmt = select(Conversation).where(Conversation.analysis_id == analysis_id)
-                count_result = await db.execute(count_stmt)
-                total = len(count_result.fetchall())
-                
-                # Get paginated results
-                offset = (page - 1) * per_page
-                stmt = (
-                    select(Conversation)
-                    .where(Conversation.analysis_id == analysis_id)
-                    .order_by(desc(Conversation.created_at))
-                    .limit(per_page)
-                    .offset(offset)
-                )
-                
+                # Get the single conversation for this analysis
+                stmt = select(Conversation).where(Conversation.analysis_id == analysis_id)
                 result = await db.execute(stmt)
-                conversations = result.scalars().all()
+                conversation = result.scalar_one_or_none()
                 
-                return list(conversations), total
+                return conversation
                 
         except Exception as e:
-            logger.error(f"Error getting conversations for analysis {analysis_id}: {e}")
-            return [], 0
+            logger.error(f"Error getting conversation for analysis {analysis_id}: {e}")
+            return None
     
     async def get_conversation_messages(
         self,
@@ -267,13 +261,21 @@ class ConversationService:
                 await db.commit()
                 await db.refresh(user_msg)
                 
-                # Generate AI response
-                ai_response_data = await self.openai_service.generate_conversation_response(
-                    analysis_summary=analysis.summary or "",
-                    analysis_full_report=analysis.full_report or "",
-                    conversation_history=conversation_history,
-                    user_question=user_message
-                )
+                # Generate AI response using assistant thread if available, otherwise fallback
+                if analysis.thread_id:
+                    # Use assistant thread for better context continuity
+                    ai_response_data = await self.openai_service.generate_conversation_response_with_assistant(
+                        thread_id=analysis.thread_id,
+                        user_question=user_message
+                    )
+                else:
+                    # Fallback to original method for backward compatibility
+                    ai_response_data = await self.openai_service.generate_conversation_response(
+                        analysis_summary=analysis.summary or "",
+                        analysis_full_report=analysis.full_report or "",
+                        conversation_history=conversation_history,
+                        user_question=user_message
+                    )
                 
                 # Add AI response to database
                 ai_msg = Message(

@@ -7,6 +7,7 @@ import logging
 from typing import Optional, Dict, Any
 from pathlib import Path
 from openai import AsyncOpenAI
+from fastapi import UploadFile
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ Remember: Palmistry is for guidance and entertainment. Always encourage users to
 """
 
 class OpenAIService:
-    """Service for OpenAI GPT-4 Vision integration."""
+    """Service for OpenAI GPT-4 Vision and Assistants API integration."""
     
     def __init__(self):
         """Initialize OpenAI service."""
@@ -40,6 +41,8 @@ class OpenAIService:
             self.client = None
         else:
             self.client = AsyncOpenAI(api_key=settings.openai_api_key)
+        
+        # Assistant ID no longer needed - using Responses API
     
     def _encode_image(self, image_path: str) -> Optional[str]:
         """Encode image to base64 for OpenAI API.
@@ -61,13 +64,17 @@ class OpenAIService:
     async def analyze_palm_images(
         self, 
         left_image_path: Optional[str] = None, 
-        right_image_path: Optional[str] = None
+        right_image_path: Optional[str] = None,
+        left_file_id: Optional[str] = None,
+        right_file_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Analyze palm images using OpenAI GPT-4 Vision.
         
         Args:
-            left_image_path: Path to left palm image
-            right_image_path: Path to right palm image
+            left_image_path: Path to left palm image (legacy, for backward compatibility)
+            right_image_path: Path to right palm image (legacy, for backward compatibility)  
+            left_file_id: OpenAI file ID for left palm image
+            right_file_id: OpenAI file ID for right palm image
             
         Returns:
             Dictionary with summary and full_report
@@ -75,7 +82,11 @@ class OpenAIService:
         if not self.client:
             raise ValueError("OpenAI API key not configured")
         
-        if not left_image_path and not right_image_path:
+        # Check if we have either file IDs or paths
+        has_left = left_file_id or left_image_path
+        has_right = right_file_id or right_image_path
+        
+        if not has_left and not has_right:
             raise ValueError("At least one palm image is required")
         
         try:
@@ -83,7 +94,19 @@ class OpenAIService:
             images = []
             image_descriptions = []
             
-            if left_image_path:
+            # Handle left palm
+            if left_file_id:
+                # Use OpenAI file reference
+                images.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"file://{left_file_id}",
+                        "detail": "high"
+                    }
+                })
+                image_descriptions.append("left palm")
+            elif left_image_path:
+                # Fallback to base64 encoding for legacy support
                 left_b64 = self._encode_image(left_image_path)
                 if left_b64:
                     images.append({
@@ -95,7 +118,19 @@ class OpenAIService:
                     })
                     image_descriptions.append("left palm")
             
-            if right_image_path:
+            # Handle right palm
+            if right_file_id:
+                # Use OpenAI file reference
+                images.append({
+                    "type": "image_url", 
+                    "image_url": {
+                        "url": f"file://{right_file_id}",
+                        "detail": "high"
+                    }
+                })
+                image_descriptions.append("right palm")
+            elif right_image_path:
+                # Fallback to base64 encoding for legacy support
                 right_b64 = self._encode_image(right_image_path)
                 if right_b64:
                     images.append({
@@ -388,4 +423,253 @@ The user now has a follow-up question. Please provide a helpful response based o
             
         except Exception as e:
             logger.error(f"Error generating response: {e}")
+            raise
+    
+    async def get_file_url(self, file_id: str) -> str:
+        """Get URL for accessing an uploaded OpenAI file.
+        
+        Args:
+            file_id: OpenAI file ID
+            
+        Returns:
+            URL to access the file
+        """
+        # For OpenAI files, we typically reference them by file_id
+        # The actual URL construction depends on how you want to serve them
+        return f"openai://file/{file_id}"
+    
+    async def delete_file(self, file_id: str) -> bool:
+        """Delete a file from OpenAI storage.
+        
+        Args:
+            file_id: OpenAI file ID
+            
+        Returns:
+            True if successfully deleted
+        """
+        if not self.client:
+            raise ValueError("OpenAI API key not configured")
+        
+        try:
+            await self.client.files.delete(file_id)
+            logger.info(f"Successfully deleted OpenAI file: {file_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error deleting OpenAI file {file_id}: {e}")
+            return False
+    
+    # DEPRECATED: analyze_palm_images_with_assistant removed
+    # Replaced with analyze_palm_images_with_responses() using OpenAI Responses API
+    
+    async def analyze_palm_images_with_responses(
+        self,
+        left_file_id: Optional[str] = None,
+        right_file_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Analyze palm images using OpenAI Responses API.
+        
+        Args:
+            left_file_id: OpenAI file ID for left palm image
+            right_file_id: OpenAI file ID for right palm image
+            
+        Returns:
+            Dictionary with analysis results including all JSON fields
+        """
+        if not self.client:
+            raise ValueError("OpenAI API key not configured")
+        
+        if not left_file_id and not right_file_id:
+            raise ValueError("At least one palm image file ID is required")
+        
+        try:
+            # Prepare content for message
+            content_parts = []
+            image_descriptions = []
+            
+            # Add text prompt
+            image_description = []
+            if left_file_id:
+                image_description.append("left palm")
+            if right_file_id:
+                image_description.append("right palm")
+            
+            image_desc_text = " and ".join(image_description)
+            
+            user_message = PALMISTRY_SYSTEM_PROMPT + f"""Please analyze the {image_desc_text} image(s) using traditional Indian palmistry (Hast Rekha Shastra).
+
+Provide your analysis in this exact JSON format:
+{{
+    "summary": "A brief 2-3 sentence summary suitable for preview",
+    "full_report": "A detailed palmistry analysis covering major lines (including love line, health line, career line, etc), mounts, and their meanings. Speak at length. Atleast between 200-250 words",
+    "key_features": ["list", "of", "key", "observed", "features"],
+    "strengths": ["positive", "traits", "and", "characteristics"],
+    "guidance": ["life", "guidance", "based", "on", "palm", "reading"]
+}}
+
+For key_features, guidance, and strength, don't send one words. Send full sentences in the list.
+
+Focus on traditional Indian palmistry interpretations and provide meaningful insights."""
+            
+            content_parts.append({
+                "type": "input_text",
+                "text": user_message
+            })
+            
+            # Add file inputs
+            if left_file_id:
+                content_parts.append({
+                    "type": "input_image",
+                    "file_id": left_file_id
+                })
+            
+            if right_file_id:
+                content_parts.append({
+                    "type": "input_image", 
+                    "file_id": right_file_id
+                })
+            
+            # Create response using Responses API
+            response = await self.client.responses.create(
+                model="gpt-4.1-mini",
+                input=[{
+                    "role": "user",
+                    "content": content_parts
+                }]
+            )
+            
+            # Get the response text
+            response_content = response.output_text
+            
+            # Parse the JSON response
+            try:
+                import json
+                import re
+                
+                # Clean up response
+                clean_text = response_content.strip()
+                if clean_text.startswith('```json'):
+                    clean_text = re.sub(r'^```json\s*\n?', '', clean_text)
+                if clean_text.endswith('```'):
+                    clean_text = re.sub(r'\n?```$', '', clean_text)
+                elif clean_text.startswith('```'):
+                    clean_text = re.sub(r'^```\s*\n?', '', clean_text)
+                    if clean_text.endswith('```'):
+                        clean_text = re.sub(r'\n?```$', '', clean_text)
+                
+                clean_text = clean_text.strip()
+                analysis_data = json.loads(clean_text)
+                
+                summary = analysis_data.get("summary", "Palm analysis completed.")
+                full_report = analysis_data.get("full_report", clean_text)
+                key_features = analysis_data.get("key_features", [])
+                strengths = analysis_data.get("strengths", [])
+                guidance = analysis_data.get("guidance", [])
+                
+            except (json.JSONDecodeError, Exception) as e:
+                logger.warning(f"Failed to parse JSON response: {e}")
+                # Fallback
+                lines = response_content.split('\n')
+                summary = lines[0][:200] + "..." if len(lines[0]) > 200 else lines[0]
+                full_report = response_content
+                key_features = []
+                strengths = []
+                guidance = []
+            
+            # Calculate token usage (approximation for Responses API)
+            tokens_used = len(response_content.split()) * 1.3
+            
+            logger.info(f"Responses API analysis completed. Tokens used (approx): {int(tokens_used)}")
+            
+            return {
+                "summary": summary,
+                "full_report": full_report,
+                "key_features": key_features,
+                "strengths": strengths,
+                "guidance": guidance,
+                "tokens_used": int(tokens_used),
+                "cost": self._calculate_cost(int(tokens_used))
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in Responses API palm analysis: {e}")
+            raise
+
+    async def generate_conversation_response_with_assistant(
+        self,
+        thread_id: str,
+        user_question: str
+    ) -> Dict[str, Any]:
+        """Generate response for follow-up questions using existing assistant thread.
+        
+        Args:
+            thread_id: OpenAI thread ID from the original analysis
+            user_question: User's follow-up question
+            
+        Returns:
+            Dictionary with response and metadata
+        """
+        if not self.client:
+            raise ValueError("OpenAI API key not configured")
+        
+        if not self.assistant_id:
+            raise ValueError("OpenAI Assistant ID not configured")
+        
+        try:
+            import asyncio
+            
+            # Add user message to the existing thread
+            await self.client.beta.threads.messages.create(
+                thread_id=thread_id,
+                role="user",
+                content=user_question
+            )
+            
+            # Create and run the assistant on the existing thread
+            run = await self.client.beta.threads.runs.create(
+                thread_id=thread_id,
+                assistant_id=self.assistant_id
+            )
+            
+            # Poll for completion
+            while run.status in ['queued', 'in_progress']:
+                await asyncio.sleep(1)
+                run = await self.client.beta.threads.runs.retrieve(
+                    thread_id=thread_id,
+                    run_id=run.id
+                )
+            
+            if run.status != 'completed':
+                raise Exception(f"Run failed with status: {run.status}")
+            
+            # Get the latest assistant response
+            messages = await self.client.beta.threads.messages.list(
+                thread_id=thread_id,
+                order="desc",
+                limit=1
+            )
+            
+            if not messages.data:
+                raise Exception("No response from assistant")
+            
+            # Get the most recent message (should be assistant's response)
+            latest_message = messages.data[0]
+            if latest_message.role != 'assistant':
+                raise Exception("Expected assistant response but got user message")
+            
+            response_content = latest_message.content[0].text.value
+            
+            # Calculate token usage (approximation)
+            tokens_used = len(response_content.split()) * 1.3
+            
+            logger.info(f"Generated assistant conversation response. Thread ID: {thread_id}")
+            
+            return {
+                "response": response_content,
+                "tokens_used": int(tokens_used),
+                "cost": self._calculate_cost(int(tokens_used))
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating assistant conversation response: {e}")
             raise

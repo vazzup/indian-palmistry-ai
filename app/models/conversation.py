@@ -29,7 +29,7 @@ class Conversation(Base):
     last_message_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     
     # Relationships
-    analysis = relationship("Analysis", back_populates="conversations")
+    analysis = relationship("Analysis", back_populates="conversation")
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan", order_by="Message.created_at")
     
     def __repr__(self):
