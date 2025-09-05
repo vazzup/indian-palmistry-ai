@@ -386,69 +386,13 @@ except:
         fi
     fi
     
-    # Create database tables from models (force recreate if schema is outdated)
-    print_status "Creating database tables from models..."
-    if docker exec indian-palmistry-ai-api-1 python -c "
-import asyncio
-from app.core.database import get_engine
-from app.models.base import Base
-import sqlite3
-import os
-
-# Import all models so they're registered
-from app.models import user, analysis, conversation, message
-
-async def setup_database():
-    engine = get_engine()
-    
-    # Check if we need to recreate tables
-    db_path = './data/dev.db'
-    needs_recreation = False
-    
-    if os.path.exists(db_path):
-        try:
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            cursor.execute('PRAGMA table_info(analyses);')
-            columns = [col[1] for col in cursor.fetchall()]
-            required = ['left_file_id', 'right_file_id', 'key_features', 'strengths', 'guidance']
-            missing = [col for col in required if col not in columns]
-            needs_recreation = len(missing) > 0
-            conn.close()
-            
-            if needs_recreation:
-                print('Database schema is outdated, recreating tables...')
-            else:
-                print('Database schema is up to date')
-        except:
-            needs_recreation = True
-            print('Database schema check failed, recreating tables...')
-    else:
-        print('Creating new database...')
-    
-    async with engine.begin() as conn:
-        if needs_recreation:
-            # Drop all tables and recreate with current schema
-            await conn.run_sync(Base.metadata.drop_all)
-            print('Dropped existing tables')
-        
-        # Create all tables fresh
-        await conn.run_sync(Base.metadata.create_all)
-        print('Database tables ready')
-
-asyncio.run(setup_database())
-" > /dev/null 2>&1; then
-        print_success "Database setup completed successfully"
+    # Run database migrations using Alembic
+    print_status "Running database migrations..."
+    if docker exec indian-palmistry-ai-api-1 python -m alembic upgrade head > /dev/null 2>&1; then
+        print_success "Database migrations completed successfully"
     else
-        print_error "Failed to create database tables"
-        print_status "Falling back to Alembic migrations..."
-        
-        # Fallback to migrations
-        if docker exec indian-palmistry-ai-api-1 python -m alembic upgrade head > /dev/null 2>&1; then
-            print_success "Database setup completed via migrations"
-        else
-            print_warning "Database setup may be incomplete, but continuing..."
-        fi
+        print_error "Database migrations failed"
+        exit 1
     fi
 }
 
