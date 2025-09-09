@@ -329,22 +329,11 @@ export default function AnalysesPage() {
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-3">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              Reading #{analysis.id}
-                            </h3>
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getStatusColorClass(analysis.status)}`}
-                            >
-                              {getStatusIcon(analysis.status)}
-                              <span className="ml-1 capitalize">{analysis.status}</span>
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {formatAnalysisDate(analysis.created_at, true)}
-                          </div>
+                        {/* Header - Clean without duplicate date */}
+                        <div className="mb-2">
+                          <h3 className="text-lg font-medium text-gray-900">
+                            Reading #{analysis.id}
+                          </h3>
                         </div>
 
                         {/* Summary */}
@@ -374,21 +363,11 @@ export default function AnalysesPage() {
                             </span>
                           )}*/}
                           
-                          <span>
-                            {analysis.left_image_url && analysis.right_image_url 
-                              ? 'Both palms' 
-                              : analysis.left_image_url 
-                                ? 'Left palm' 
-                                : analysis.right_image_url 
-                                  ? 'Right palm'
-                                  : 'No images'
-                            }
-                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions - Mobile Responsive */}
                     <div className="flex items-center space-x-2 ml-4">
                       {analysis.status === 'completed' && (
                         <Button
@@ -396,8 +375,8 @@ export default function AnalysesPage() {
                           size="sm"
                           onClick={() => handleViewAnalysis(analysis.id)}
                         >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View
+                          <Eye className="w-4 h-4" />
+                          <span className="hidden sm:ml-1 sm:inline">View</span>
                         </Button>
                       )}
                       
@@ -406,6 +385,7 @@ export default function AnalysesPage() {
                         size="sm"
                         onClick={(e) => handleDeleteAnalysis(analysis.id, e)}
                         className="text-red-600 hover:text-red-700 hover:border-red-300"
+                        title="Delete Reading"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

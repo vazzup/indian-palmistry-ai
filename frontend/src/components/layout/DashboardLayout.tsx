@@ -53,12 +53,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       current: pathname === '/analyses',
     },
     {
-      label: 'Conversations',
-      href: '/conversations',
-      icon: <MessageCircle className="w-5 h-5" />,
-      current: pathname === '/conversations',
-    },
-    {
       label: 'Profile',
       href: '/profile',
       icon: <User className="w-5 h-5" />,

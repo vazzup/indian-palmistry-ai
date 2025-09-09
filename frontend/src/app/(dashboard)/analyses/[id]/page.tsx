@@ -8,7 +8,6 @@ import {
   Eye,
   Calendar,
   Clock,
-  DollarSign,
   MessageCircle,
   Trash2,
   AlertTriangle
@@ -19,13 +18,13 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth';
 import { analysisApi, conversationsApi, handleApiError } from '@/lib/api';
 import { LoadingPage } from '@/components/ui/Spinner';
-import type { Analysis, Conversation, Message, TalkResponse, InitialConversationResponse } from '@/types';
+import type { Analysis, Message, TalkResponse, InitialConversationResponse } from '@/types';
 import { Input } from '@/components/ui/Input';
 
 export default function AnalysisDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const analysisId = params.id as string;
   
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
@@ -227,6 +226,21 @@ export default function AnalysisDetailPage() {
       return 'Unknown date';
     }
   };
+
+  /**
+   * Gets the user's initial for display in chat avatars
+   * Prioritizes name over email, falls back to 'U' if neither available
+   */
+  const getUserInitial = () => {
+    if (!user) return 'U';
+    if (user.name) {
+      return user.name.charAt(0).toUpperCase();
+    }
+    if (user.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
   
   if (loading || authLoading) {
     return <LoadingPage message={authLoading ? "Checking authentication..." : "Loading your full palm reading..."} />;
@@ -267,9 +281,9 @@ export default function AnalysisDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
             <div className="relative mb-6">
-              <div className="w-16 h-16 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto"></div>
+              <div className="w-16 h-16 border-4 border-saffron-200 border-t-saffron-600 rounded-full animate-spin mx-auto"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl">🪬</span>
+                <Hand className="w-6 h-6 text-saffron-600" />
               </div>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -279,52 +293,46 @@ export default function AnalysisDetailPage() {
               {transitionMessage}
             </p>
             <div className="flex justify-center space-x-1">
-              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
           </div>
         </div>
       )}
       
-      <div className="space-y-6">
-        {/* Back Button */}
+      <div className="space-y-6 h-full">
+        {/* 
+         * Responsive header with back navigation and delete action
+         * Layout adapts for mobile/desktop with text hiding on smaller screens
+         */}
         <div className="flex items-center justify-between">
+          {/* Back Button - Responsive */}
           <Button
             variant="outline"
             onClick={() => router.push('/analyses')}
             className="flex items-center"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Readings
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:ml-2 sm:inline">Back to Readings</span>
+            <span className="ml-1 sm:hidden">Back</span>
           </Button>
           
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-500">
-              Status: 
-              <span className={`ml-1 font-medium ${
-                analysis.status === 'COMPLETED' ? 'text-green-600' :
-                analysis.status === 'PROCESSING' ? 'text-yellow-600' : 
-                'text-red-600'
-              }`}>
-                {analysis.status}
-              </span>
-            </span>
-            
-            {/* Delete Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                console.log('Delete button clicked - showing confirmation modal');
-                setShowDeleteConfirm(true);
-              }}
-              className="text-red-600 hover:text-red-700 hover:border-red-300 border-red-200"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete Reading
-            </Button>
-          </div>
+          {/* Delete Button - Responsive */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              console.log('Delete button clicked - showing confirmation modal');
+              setShowDeleteConfirm(true);
+            }}
+            className="text-red-600 hover:text-red-700 hover:border-red-300 border-red-200"
+            title="Delete Reading"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="hidden sm:ml-2 sm:inline">Delete Reading</span>
+            <span className="ml-1 sm:hidden">Delete</span>
+          </Button>
         </div>
 
         {/* Render different content based on conversation mode */}
@@ -530,9 +538,13 @@ export default function AnalysisDetailPage() {
         ) : (
           // Chat Mode - Show conversation interface
           <>
-            {/* Chat Interface */}
-            <Card className="flex-1">
-              <CardHeader>
+            {/* 
+             * Enhanced chat interface with modern messaging UI
+             * Features: responsive design, proper viewport constraints, and chat bubbles
+             * Uses flexbox for proper scrolling behavior in constrained height
+             */}
+            <Card className="flex flex-col bg-gradient-to-b from-saffron-50/30 to-white h-[calc(100vh-200px)] max-h-[800px]">
+              <CardHeader className="border-b border-saffron-100 flex-shrink-0">
                 <CardTitle className="flex items-center gap-2">
                   <MessageCircle className="w-5 h-5 text-saffron-600" />
                   Conversation about your Palm Reading
@@ -541,33 +553,74 @@ export default function AnalysisDetailPage() {
                   Your questions and AI insights about this palm reading
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                  {messages.map((message) => (
+              
+              {/* Messages Area - Scrollable */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="space-y-6 p-6 min-h-0">
+                  {messages.length === 0 && !isAsking ? (
+                    // Empty state
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-saffron-400 to-saffron-600 flex items-center justify-center mb-4 shadow-lg">
+                        <Hand className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Your Palm Reading Conversation</h3>
+                      <p className="text-gray-600 text-sm max-w-sm">
+                        The conversation will appear here once it begins. Your questions and the AI's mystical insights will be displayed in a flowing dialogue.
+                      </p>
+                      <div className="mt-4 text-xs text-saffron-600 bg-saffron-50 px-3 py-1 rounded-full">
+                        AI responses on the left • Your messages on the right
+                      </div>
+                    </div>
+                  ) : (
+                    messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex ${message.role === 'USER' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${message.role.toLowerCase() === 'user' ? 'justify-end' : 'justify-start'} group`}
                     >
-                      <div
-                        className={`max-w-[85%] rounded-lg p-4 ${
-                          message.role === 'USER'
-                            ? 'bg-saffron-600 text-white'
-                            : 'bg-gray-100 text-gray-900 border'
-                        }`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-1">
+                      <div className={`flex items-start space-x-3 max-w-[80%] ${
+                        message.role.toLowerCase() === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                      }`}>
+                        {/* Avatar */}
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                          message.role.toLowerCase() === 'user' 
+                            ? 'bg-saffron-600 text-white shadow-sm' 
+                            : 'bg-gradient-to-br from-saffron-500 to-saffron-600 text-white shadow-md'
+                        }`}>
+                          {message.role.toLowerCase() === 'user' ? getUserInitial() : <Hand className="w-4 h-4" />}
+                        </div>
+                        
+                        {/* Message content */}
+                        <div
+                          className={`rounded-2xl px-4 py-3 shadow-sm relative ${
+                            message.role.toLowerCase() === 'user'
+                              ? 'bg-saffron-600 text-white rounded-tr-sm'
+                              : 'bg-white text-gray-900 border border-saffron-100 rounded-tl-sm'
+                          }`}
+                        >
+                          {/* Message tail */}
+                          <div className={`absolute top-2 w-3 h-3 ${
+                            message.role.toLowerCase() === 'user' 
+                              ? 'right-0 translate-x-1/2 rotate-45 bg-saffron-600' 
+                              : 'left-0 -translate-x-1/2 rotate-45 bg-white border-l border-t border-saffron-100'
+                          }`} />
+                          
+                          <div className="relative">
                             {message.message_type === 'INITIAL_READING' ? (
                               // Initial reading message with "Read more" link
                               <div>
-                                <p className="text-sm leading-relaxed">
-                                  {analysis.summary || 'Your palm reading analysis is ready.'}
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-xs font-medium text-saffron-700 bg-saffron-100 px-2 py-1 rounded-full">
+                                    Initial Reading
+                                  </span>
+                                </div>
+                                <p className="text-sm leading-relaxed mb-3">
+                                  {message.content || analysis.summary || 'Your palm reading analysis is ready.'}
                                 </p>
                                 <button
                                   onClick={() => setShowFullAnalysisModal(true)}
-                                  className="mt-2 text-xs text-saffron-600 hover:text-saffron-700 underline"
+                                  className="inline-flex items-center text-xs text-saffron-700 hover:text-saffron-800 font-medium transition-colors"
                                 >
-                                  Read more →
+                                  View Full Analysis →
                                 </button>
                               </div>
                             ) : (
@@ -575,81 +628,95 @@ export default function AnalysisDetailPage() {
                                 {message.content}
                               </p>
                             )}
-                            <div className="flex items-center justify-between mt-2">
+                            
+                            {/* Message metadata */}
+                            <div className={`mt-3 pt-2 border-t ${
+                              message.role.toLowerCase() === 'user' 
+                                ? 'border-saffron-500/30' 
+                                : 'border-gray-100'
+                            }`}>
                               <p className={`text-xs ${
-                                message.role === 'USER' ? 'text-saffron-200' : 'text-gray-500'
+                                message.role.toLowerCase() === 'user' ? 'text-saffron-200' : 'text-gray-500'
                               }`}>
                                 {new Date(message.created_at).toLocaleTimeString('en-US', {
                                   hour: '2-digit',
                                   minute: '2-digit'
                                 })}
                               </p>
-                              {message.cost && (
-                                <p className={`text-xs ${
-                                  message.role === 'USER' ? 'text-saffron-200' : 'text-gray-500'
-                                }`}>
-                                  ${message.cost.toFixed(3)}
-                                </p>
-                              )}
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                   
                   {isAsking && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 border rounded-lg p-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="animate-pulse">
+                    <div className="flex justify-start group">
+                      <div className="flex items-start space-x-3 max-w-[80%]">
+                        {/* AI Avatar */}
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-gradient-to-br from-saffron-500 to-saffron-600 text-white shadow-md">
+                          <Hand className="w-4 h-4" />
+                        </div>
+                        
+                        {/* Typing indicator */}
+                        <div className="bg-white text-gray-900 border border-saffron-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm relative">
+                          <div className="absolute top-2 left-0 -translate-x-1/2 rotate-45 bg-white border-l border-t border-saffron-100 w-3 h-3" />
+                          <div className="flex items-center space-x-3">
                             <div className="flex space-x-1">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                              <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                              <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                             </div>
+                            <span className="text-sm text-gray-600">The mystic is contemplating...</span>
                           </div>
-                          <span className="text-sm text-gray-600">AI is thinking...</span>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
-                
-                {/* Message input */}
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex space-x-2">
-                    <Input
-                      type="text"
-                      placeholder="Ask another question..."
-                      value={question}
-                      onChange={(e) => setQuestion(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleAskQuestion();
-                        }
-                      }}
-                      disabled={isAsking || isTransitioning}
-                      className="flex-1"
-                    />
+              </div>
+              
+              {/* Message Input Area - Fixed at Bottom */}
+              <div className="border-t border-saffron-100 bg-white/80 backdrop-blur-sm flex-shrink-0">
+                <div className="p-4">
+                  <div className="flex space-x-3 items-end">
+                    <div className="flex-1 relative">
+                      <Input
+                        type="text"
+                        placeholder="Ask another question about your palm reading..."
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAskQuestion();
+                          }
+                        }}
+                        disabled={isAsking || isTransitioning}
+                        className="border-saffron-200 focus:border-saffron-500 focus:ring-saffron-500 rounded-xl bg-white"
+                      />
+                    </div>
                     <Button
                       onClick={handleAskQuestion}
                       disabled={!question.trim() || isAsking || isTransitioning}
                       loading={isAsking || isTransitioning}
-                      className="bg-saffron-600 hover:bg-saffron-700 text-white"
+                      className="bg-saffron-600 hover:bg-saffron-700 text-white rounded-xl px-6 py-2 font-medium"
                     >
-                      Send
+                      {isAsking || isTransitioning ? 'Sending...' : 'Send'}
                     </Button>
                   </div>
                   
                   {conversationError && (
-                    <div className="p-3 mt-2 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-sm text-red-600">{conversationError}</p>
+                    <div className="p-3 mt-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-600 flex items-center gap-2">
+                        <span className="text-red-500">⚠️</span>
+                        {conversationError}
+                      </p>
                     </div>
                   )}
                 </div>
-              </CardContent>
+              </div>
             </Card>
           </>
         )}

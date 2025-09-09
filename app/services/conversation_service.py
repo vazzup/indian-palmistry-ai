@@ -466,21 +466,12 @@ Feel free to ask me any questions about your reading, and I'll provide detailed 
                 await db.commit()
                 await db.refresh(user_msg)
                 
-                # Generate AI response using assistant thread if available, otherwise fallback
-                if analysis.thread_id:
-                    # Use assistant thread for better context continuity
-                    ai_response_data = await self.openai_service.generate_conversation_response_with_assistant(
-                        thread_id=analysis.thread_id,
-                        user_question=user_message
-                    )
-                else:
-                    # Fallback to original method for backward compatibility
-                    ai_response_data = await self.openai_service.generate_conversation_response(
-                        analysis_summary=analysis.summary or "",
-                        analysis_full_report=analysis.full_report or "",
-                        conversation_history=conversation_history,
-                        user_question=user_message
-                    )
+                # Generate AI response using unified contextual response method
+                # This ensures consistent conversation flow regardless of whether
+                # the analysis has a thread_id (assistant mode) or not (fallback mode)
+                ai_response_data = await self._generate_contextual_response(
+                    analysis, user_message, conversation_history
+                )
                 
                 # Add AI response to database
                 ai_msg = Message(

@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from app.services.conversation_service import ConversationService
 from app.models.conversation import Conversation
-from app.models.message import Message, MessageRole
+from app.models.message import Message, MessageRole, MessageType
 from app.models.analysis import Analysis
 
 
@@ -344,3 +344,52 @@ class TestConversationService:
             assert len(messages) == 2
             assert total == 2
             assert messages == mock_messages
+    
+    async def test_unified_contextual_response_method(self, conversation_service):
+        """Test the unified contextual response method that replaces thread-specific logic."""
+        with patch.object(conversation_service, 'get_conversation_by_id') as mock_get_conv, \
+             patch.object(conversation_service, 'get_session') as mock_session, \
+             patch.object(conversation_service, '_generate_contextual_response') as mock_generate:
+            
+            mock_db = AsyncMock()
+            mock_session.return_value.__aenter__.return_value = mock_db
+            
+            # Mock conversation and analysis
+            mock_conversation = Conversation(id=1, analysis_id=1, user_id=1)
+            mock_get_conv.return_value = mock_conversation
+            
+            mock_analysis = Analysis(
+                id=1, 
+                summary="Test palm reading summary", 
+                full_report="Detailed palm analysis",
+                thread_id="test_thread_id"  # Has thread_id but should use unified method
+            )
+            mock_db.execute.return_value.scalar_one_or_none.side_effect = [
+                mock_analysis,  # Analysis query
+                MagicMock(scalars=lambda: MagicMock(all=lambda: []))  # Messages query (conversation history)
+            ]
+            
+            # Mock the unified contextual response
+            mock_generate.return_value = {
+                "response": "Unified AI response about your palm",
+                "tokens_used": 150,
+                "cost": 0.015
+            }
+            
+            result = await conversation_service.add_message_and_respond(
+                conversation_id=1,
+                user_id=1,
+                user_message="What does this line mean?"
+            )
+            
+            # Verify unified method was called instead of thread-specific logic
+            mock_generate.assert_called_once_with(
+                mock_analysis,
+                "What does this line mean?",
+                []  # conversation history
+            )
+            
+            # Verify result contains unified response data
+            assert result["assistant_message"]["content"] == "Unified AI response about your palm"
+            assert result["tokens_used"] == 150
+            assert result["cost"] == 0.015
