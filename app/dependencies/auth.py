@@ -38,21 +38,31 @@ async def get_current_user_optional(request: Request) -> Optional[User]:
     try:
         # Get session ID from cookie
         session_id = request.cookies.get("session_id")
+        logger.info(f"Auth debug: session_id from cookie: {session_id}")
         if not session_id:
+            logger.info("Auth debug: No session_id cookie found")
             return None
         
         # Get session data from Redis
         session_data = await session_manager.get_session(session_id)
+        logger.info(f"Auth debug: session_data from Redis: {session_data is not None}")
         if not session_data:
+            logger.info(f"Auth debug: No session data found in Redis for session_id: {session_id}")
             return None
         
         user_data = session_data.get("user_data")
+        logger.info(f"Auth debug: user_data from session: {user_data is not None}")
         if not user_data:
+            logger.info(f"Auth debug: No user_data in session_data: {session_data.keys() if session_data else 'None'}")
             return None
+        
+        user_id = user_data.get("user_id")
+        logger.info(f"Auth debug: user_id from user_data: {user_id}")
         
         # Get user from database
         user_service = UserService()
-        user = await user_service.get_user_by_id(user_data.get("user_id"))
+        user = await user_service.get_user_by_id(user_id)
+        logger.info(f"Auth debug: user from database: {user.email if user else None}")
         
         return user
         
@@ -73,12 +83,15 @@ async def get_current_user(request: Request) -> User:
     Raises:
         HTTPException: If user is not authenticated
     """
+    logger.info(f"get_current_user called for: {request.method} {request.url.path}")
     user = await get_current_user_optional(request)
     if not user:
+        logger.warning(f"Authentication failed for: {request.method} {request.url.path}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required"
         )
+    logger.info(f"Authentication successful for user {user.id} ({user.email})")
     return user
 
 
@@ -127,8 +140,9 @@ async def verify_csrf_token(request: Request, current_user: User = Depends(get_c
             detail="Invalid session"
         )
     
-    # Verify CSRF token matches session
-    session_csrf_token = session_data.get("csrf_token")
+    # FIXED: CSRF token is nested under user_data in session structure
+    # SessionManager stores user data under "user_data" key, so we need to access it there
+    session_csrf_token = session_data.get("user_data", {}).get("csrf_token")
     if not session_csrf_token or csrf_token != session_csrf_token:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

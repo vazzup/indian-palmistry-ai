@@ -368,12 +368,28 @@ db_path = './data/dev.db'
 try:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+    
+    # Check analyses table
     cursor.execute('PRAGMA table_info(analyses);')
-    columns = [col[1] for col in cursor.fetchall()]
-    required = ['left_file_id', 'right_file_id', 'key_features', 'strengths', 'guidance']
-    missing = [col for col in required if col not in columns]
+    analyses_columns = [col[1] for col in cursor.fetchall()]
+    analyses_required = ['left_file_id', 'right_file_id', 'key_features', 'strengths', 'guidance']
+    analyses_missing = [col for col in analyses_required if col not in analyses_columns]
+    
+    # Check conversations table for new columns
+    cursor.execute('PRAGMA table_info(conversations);')
+    conversations_columns = [col[1] for col in cursor.fetchall()]
+    conversations_required = ['mode', 'has_initial_message']
+    conversations_missing = [col for col in conversations_required if col not in conversations_columns]
+    
+    # Check messages table for new columns
+    cursor.execute('PRAGMA table_info(messages);')
+    messages_columns = [col[1] for col in cursor.fetchall()]
+    messages_required = ['message_type', 'analysis_data']
+    messages_missing = [col for col in messages_required if col not in messages_columns]
+    
     conn.close()
-    print('no' if missing else 'yes')
+    all_missing = analyses_missing + conversations_missing + messages_missing
+    print('no' if all_missing else 'yes')
 except:
     print('no')
 " 2>/dev/null || echo "no")

@@ -116,18 +116,46 @@ export const useAuthStore = create<AuthState>()(
       checkAuth: async () => {
         // Don't set loading to true for background auth checks
         // This prevents loading states during app initialization
+        const currentState = get();
+        console.log('checkAuth: Starting auth check with current state:', {
+          isAuthenticated: currentState.isAuthenticated,
+          hasUser: !!currentState.user,
+          userEmail: currentState.user?.email
+        });
+        
         try {
           const user = await authApi.getCurrentUser();
-          console.log('checkAuth: User retrieved successfully', user);
-          set({ 
-            isAuthenticated: true, 
-            user,
-            error: null 
+          console.log('checkAuth: API response received:', {
+            hasUser: !!user,
+            userEmail: user?.email,
+            userId: user?.id
           });
-          return user;
+          
+          if (user) {
+            // Valid user returned - set authenticated state
+            console.log('checkAuth: Setting authenticated state with user:', user.email);
+            set({ 
+              isAuthenticated: true, 
+              user,
+              error: null 
+            });
+            return user;
+          } else {
+            // Null user returned (401 error) - clear auth state
+            console.log('checkAuth: No valid user session, clearing auth state');
+            set({ 
+              isAuthenticated: false, 
+              user: null,
+              error: null 
+            });
+            return null;
+          }
         } catch (error: any) {
-          // Clear authentication state if check fails
-          console.log('checkAuth: Auth check failed, clearing state', error);
+          // Network or other errors - clear authentication state
+          console.log('checkAuth: Auth check failed with error, clearing auth state:', {
+            error: error?.message || error,
+            status: error?.response?.status
+          });
           set({ 
             isAuthenticated: false, 
             user: null,
@@ -205,10 +233,21 @@ export const useAuth = () => {
   // Fix invalid state: cannot be authenticated without user data
   const isAuthenticated = storedIsAuthenticated && user !== null;
   
+  // Debug logging for auth state changes
+  React.useEffect(() => {
+    console.log('useAuth: Auth state changed:', {
+      storedIsAuthenticated,
+      hasUser: !!user,
+      userEmail: user?.email,
+      finalIsAuthenticated: isAuthenticated,
+      isLoading
+    });
+  }, [storedIsAuthenticated, user, isAuthenticated, isLoading]);
+  
   // If we detect invalid state, clear it
   React.useEffect(() => {
     if (storedIsAuthenticated && !user) {
-      console.log('useAuth: Detected invalid auth state, clearing...');
+      console.log('useAuth: Detected invalid auth state (authenticated but no user), clearing...');
       useAuthStore.setState({ 
         isAuthenticated: false, 
         user: null 

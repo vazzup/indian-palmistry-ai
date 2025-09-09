@@ -3,7 +3,7 @@ Analysis schemas for request/response validation.
 """
 
 import json
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 from pydantic import BaseModel, Field, field_serializer, field_validator
 from app.models.analysis import AnalysisStatus
@@ -39,6 +39,10 @@ class AnalysisResponse(BaseModel):
     created_at: datetime = Field(..., description="When analysis was created")
     updated_at: Optional[datetime] = Field(None, description="When analysis was last updated")
     
+    # Conversation state
+    conversation_mode: Literal['analysis', 'chat'] = Field(default='analysis', description="Current view mode for this analysis")
+    conversation_id: Optional[int] = Field(None, description="Associated conversation ID if exists")
+    
     @field_serializer('created_at', 'updated_at', 'processing_started_at', 'processing_completed_at')
     def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:
         """Serialize datetime to ISO string."""
@@ -61,6 +65,36 @@ class AnalysisResponse(BaseModel):
             except (json.JSONDecodeError, TypeError):
                 return []
         return v
+    
+    @classmethod
+    def from_analysis(cls, analysis, conversation=None):
+        """Create AnalysisResponse from Analysis model and optional Conversation."""
+        # Convert the analysis model to dict
+        analysis_dict = {
+            'id': analysis.id,
+            'user_id': analysis.user_id,
+            'left_image_path': analysis.left_image_path,
+            'right_image_path': analysis.right_image_path,
+            'left_thumbnail_path': analysis.left_thumbnail_path,
+            'right_thumbnail_path': analysis.right_thumbnail_path,
+            'summary': analysis.summary,
+            'full_report': analysis.full_report,
+            'key_features': analysis.key_features,
+            'strengths': analysis.strengths,
+            'guidance': analysis.guidance,
+            'status': analysis.status,
+            'job_id': analysis.job_id,
+            'error_message': analysis.error_message,
+            'processing_started_at': analysis.processing_started_at,
+            'processing_completed_at': analysis.processing_completed_at,
+            'tokens_used': analysis.tokens_used,
+            'cost': analysis.cost,
+            'created_at': analysis.created_at,
+            'updated_at': analysis.updated_at,
+            'conversation_mode': 'chat' if conversation else 'analysis',
+            'conversation_id': conversation.id if conversation else None
+        }
+        return cls(**analysis_dict)
     
     class Config:
         from_attributes = True

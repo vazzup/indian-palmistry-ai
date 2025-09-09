@@ -166,29 +166,24 @@ async def get_analysis(
     analysis_id: int,
     current_user: User = Depends(get_current_user)
 ) -> AnalysisResponse:
-    """Get full analysis details (requires authentication).
+    """Get full analysis details with conversation mode (requires authentication).
     
-    Returns complete analysis including the full report, which is only available
-    to authenticated users who own the analysis.
+    Returns complete analysis including the full report and conversation mode,
+    which is only available to authenticated users who own the analysis.
     """
     try:
         analysis_service = AnalysisService()
-        analysis = await analysis_service.get_analysis_by_id(analysis_id)
+        analysis, conversation = await analysis_service.get_analysis_with_conversation_mode(
+            analysis_id, current_user.id
+        )
         
         if not analysis:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Analysis not found"
+                detail="Analysis not found or you don't have permission to access it"
             )
         
-        # Check if user owns this analysis or if it's anonymous and user is authenticated
-        if analysis.user_id and analysis.user_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission to access this analysis"
-            )
-        
-        return AnalysisResponse.model_validate(analysis)
+        return AnalysisResponse.from_analysis(analysis, conversation)
         
     except HTTPException:
         raise

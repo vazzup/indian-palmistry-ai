@@ -25,13 +25,20 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.log(`API Request failed: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+
     // Handle 401 Unauthorized errors by clearing local auth state
     if (error.response?.status === 401) {
+      console.log('API: Received 401 Unauthorized - clearing local auth state');
       // Only clear auth state if we're in the browser (not SSR)
       if (typeof window !== 'undefined') {
         // Import auth store dynamically to avoid SSR issues
         import('@/lib/auth').then(({ useAuthStore }) => {
-          const { logout } = useAuthStore.getState();
+          console.log('API: Clearing auth state due to 401 error');
           // Clear local auth state without calling server logout
           // since server already rejected the session
           useAuthStore.setState({
@@ -179,7 +186,19 @@ export const authApi = {
         password: data.password,
         name: data.name
       });
-      return response.data;
+      
+      // Log the raw API response for debugging
+      console.log('authApi.register: Raw API response:', response.data);
+      
+      // Extract user from the AuthResponse structure
+      // Backend returns: { success, message, user: {...}, csrf_token }
+      if (response.data && response.data.user) {
+        console.log('authApi.register: Extracted user data:', response.data.user);
+        return response.data.user;
+      } else {
+        console.error('authApi.register: No user data in response:', response.data);
+        throw new Error('Invalid response format: missing user data');
+      }
     } catch (error) {
       console.error('Registration failed:', error);
       throw new Error(handleApiError(error));
@@ -195,7 +214,19 @@ export const authApi = {
         email: data.email,
         password: data.password
       });
-      return response.data;
+      
+      // Log the raw API response for debugging
+      console.log('authApi.login: Raw API response:', response.data);
+      
+      // Extract user from the LoginResponse structure
+      // Backend returns: { success, message, user: {...}, csrf_token, session_expires }
+      if (response.data && response.data.user) {
+        console.log('authApi.login: Extracted user data:', response.data.user);
+        return response.data.user;
+      } else {
+        console.error('authApi.login: No user data in response:', response.data);
+        throw new Error('Invalid response format: missing user data');
+      }
     } catch (error) {
       console.error('Login failed:', error);
       throw new Error(handleApiError(error));
@@ -220,10 +251,18 @@ export const authApi = {
   async getCurrentUser(): Promise<any> {
     try {
       const response = await api.get('/api/v1/auth/me');
+      
+      // Log the response for debugging
+      console.log('authApi.getCurrentUser: API response:', response.data);
+      
+      // /me endpoint returns UserResponse directly (not wrapped)
       return response.data;
     } catch (error: any) {
       // Handle 401 gracefully - user is not authenticated
       if (error.response?.status === 401) {
+        console.log('authApi.getCurrentUser: User not authenticated (401)');
+        // Return null to indicate no authenticated user, but don't throw
+        // This allows checkAuth to handle the null return gracefully
         return null;
       }
       console.error('Get current user failed:', error);
@@ -236,10 +275,17 @@ export const authApi = {
    */
   async getCSRFToken(): Promise<string> {
     try {
+      console.log('authApi.getCSRFToken: Requesting CSRF token...');
       const response = await api.get('/api/v1/auth/csrf-token');
+      console.log('authApi.getCSRFToken: Success, got token');
       return response.data.csrf_token;
-    } catch (error) {
-      console.error('Get CSRF token failed:', error);
+    } catch (error: any) {
+      console.error('authApi.getCSRFToken: Failed with error:', {
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        detail: error?.response?.data?.detail,
+        message: error?.message
+      });
       // Return empty string if CSRF is not available
       return '';
     }
@@ -427,6 +473,37 @@ export const conversationsApi = {
       return response.data;
     } catch (error) {
       console.error('Create conversation failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
+
+  /**
+   * Start a new conversation with initial reading and first question
+   */
+  async startConversation(analysisId: string, firstQuestion: string): Promise<any> {
+    try {
+      // Get CSRF token for security
+      console.log('startConversation: Getting CSRF token...');
+      const csrfToken = await authApi.getCSRFToken();
+      console.log('startConversation: Got CSRF token:', csrfToken ? 'SUCCESS' : 'EMPTY');
+      
+      console.log('startConversation: Making API request with token:', csrfToken ? 'present' : 'empty');
+      const response = await api.post(`/api/v1/analyses/${analysisId}/conversations/start`, {
+        message: firstQuestion
+      }, {
+        headers: {
+          'X-CSRF-Token': csrfToken
+        }
+      });
+      console.log('startConversation: API request successful');
+      return response.data;
+    } catch (error: any) {
+      console.error('startConversation: Failed with error:', {
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        detail: error?.response?.data?.detail,
+        url: error?.config?.url
+      });
       throw new Error(handleApiError(error));
     }
   },

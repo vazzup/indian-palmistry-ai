@@ -3,7 +3,7 @@ Message model for conversation messages.
 """
 
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Boolean, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Boolean, Float, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.models.base import Base
@@ -14,6 +14,13 @@ class MessageRole(enum.Enum):
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
+
+
+class MessageType(enum.Enum):
+    """Type enum for message purpose."""
+    INITIAL_READING = "initial_reading"  # First AI message with analysis summary
+    USER_QUESTION = "user_question"      # User follow-up questions
+    AI_RESPONSE = "ai_response"          # AI responses to questions
 
 
 class Message(Base):
@@ -30,6 +37,8 @@ class Message(Base):
     # Message content
     role = Column(Enum(MessageRole), nullable=False, index=True)
     content = Column(Text, nullable=False)
+    message_type = Column(Enum(MessageType), nullable=False, default=MessageType.USER_QUESTION, index=True)
+    analysis_data = Column(JSON, nullable=True)  # Store full analysis data for initial reading modal
     
     # Processing metadata
     tokens_used = Column(Integer, default=0)  # Tokens used for AI responses

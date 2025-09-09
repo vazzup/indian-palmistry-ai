@@ -3,11 +3,12 @@ Conversation service for managing palm reading conversations.
 """
 
 import logging
+import json
 from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_
-from app.models.conversation import Conversation
-from app.models.message import Message, MessageRole
+from app.models.conversation import Conversation, ConversationMode
+from app.models.message import Message, MessageRole, MessageType
 from app.models.analysis import Analysis
 from app.services.openai_service import OpenAIService
 from app.core.database import AsyncSessionLocal
@@ -89,6 +90,190 @@ class ConversationService:
             logger.error(f"Error creating conversation: {e}")
             raise
     
+    async def initialize_conversation_with_reading(
+        self,
+        analysis_id: int,
+        user_id: int,
+        first_question: str
+    ) -> Dict[str, Any]:
+        """Initialize a conversation with reading summary and first Q&A.
+        
+        Creates conversation with:
+        1. Initial AI message containing analysis summary + full data for modal
+        2. User's first question  
+        3. AI response with full analysis context
+        
+        Args:
+            analysis_id: ID of the analysis
+            user_id: ID of the user
+            first_question: User's first question
+            
+        Returns:
+            Dictionary with conversation and all messages
+        """
+        try:
+            async with await self.get_session() as db:
+                # Verify analysis exists and belongs to user
+                analysis_stmt = select(Analysis).where(
+                    and_(Analysis.id == analysis_id, Analysis.user_id == user_id)
+                )
+                analysis_result = await db.execute(analysis_stmt)
+                analysis = analysis_result.scalar_one_or_none()
+                
+                if not analysis:
+                    raise ValueError("Analysis not found or access denied")
+                
+                # Check if conversation already exists
+                existing_stmt = select(Conversation).where(Conversation.analysis_id == analysis_id)
+                existing_result = await db.execute(existing_stmt)
+                existing_conversation = existing_result.scalar_one_or_none()
+                
+                if existing_conversation:
+                    # If conversation exists, just add the user question and get response
+                    return await self.add_message_and_respond(
+                        existing_conversation.id, user_id, first_question
+                    )
+                
+                # Create new conversation in CHAT mode
+                conversation = Conversation(
+                    analysis_id=analysis_id,
+                    title=f"Questions about Palm Reading #{analysis_id}",
+                    mode=ConversationMode.CHAT,
+                    has_initial_message=True
+                )
+                
+                db.add(conversation)
+                await db.commit()
+                await db.refresh(conversation)
+                
+                logger.info(f"Created conversation {conversation.id} for analysis {analysis_id}")
+                
+                # Prepare full analysis data for the modal
+                analysis_data = {
+                    "summary": analysis.summary,
+                    "full_report": analysis.full_report,
+                    "key_features": json.loads(analysis.key_features) if analysis.key_features else [],
+                    "strengths": json.loads(analysis.strengths) if analysis.strengths else [],
+                    "guidance": json.loads(analysis.guidance) if analysis.guidance else [],
+                    "created_at": analysis.created_at.isoformat(),
+                    "processing_time": None
+                }
+                
+                if analysis.processing_started_at and analysis.processing_completed_at:
+                    processing_time = (analysis.processing_completed_at - analysis.processing_started_at).total_seconds()
+                    analysis_data["processing_time"] = processing_time
+                
+                # Create initial AI message with analysis summary
+                initial_message_content = f"""Welcome! Here's a summary of your palm reading analysis:
+
+{analysis.summary or 'Your palm analysis has been completed successfully.'}
+
+Feel free to ask me any questions about your reading, and I'll provide detailed insights based on your palm analysis."""
+                
+                initial_msg = Message(
+                    conversation_id=conversation.id,
+                    role=MessageRole.ASSISTANT,
+                    content=initial_message_content,
+                    message_type=MessageType.INITIAL_READING,
+                    analysis_data=analysis_data
+                )
+                db.add(initial_msg)
+                
+                # Add user's first question
+                user_msg = Message(
+                    conversation_id=conversation.id,
+                    role=MessageRole.USER,
+                    content=first_question,
+                    message_type=MessageType.USER_QUESTION
+                )
+                db.add(user_msg)
+                
+                await db.commit()
+                await db.refresh(initial_msg)
+                await db.refresh(user_msg)
+                
+                # Generate AI response to the first question with full context
+                ai_response_data = await self._generate_contextual_response(
+                    analysis, first_question, []
+                )
+                
+                # Add AI response
+                ai_msg = Message(
+                    conversation_id=conversation.id,
+                    role=MessageRole.ASSISTANT,
+                    content=ai_response_data["response"],
+                    message_type=MessageType.AI_RESPONSE,
+                    tokens_used=ai_response_data.get("tokens_used", 0),
+                    cost=ai_response_data.get("cost", 0.0)
+                )
+                db.add(ai_msg)
+                await db.commit()
+                await db.refresh(ai_msg)
+                
+                logger.info(
+                    f"Initialized conversation {conversation.id} with {ai_response_data.get('tokens_used', 0)} tokens"
+                )
+                
+                return {
+                    "conversation": conversation,
+                    "initial_message": initial_msg,
+                    "user_message": user_msg,
+                    "assistant_message": ai_msg,
+                    "tokens_used": ai_response_data.get("tokens_used", 0),
+                    "cost": ai_response_data.get("cost", 0.0)
+                }
+                
+        except Exception as e:
+            logger.error(f"Error initializing conversation: {e}")
+            raise
+    
+    async def _generate_contextual_response(
+        self,
+        analysis: Analysis,
+        user_question: str,
+        conversation_history: List[Dict[str, str]]
+    ) -> Dict[str, Any]:
+        """Generate AI response with full analysis context.
+        
+        Args:
+            analysis: Analysis model with full data
+            user_question: User's question
+            conversation_history: Previous conversation messages
+            
+        Returns:
+            Dictionary with response and metadata
+        """
+        try:
+            # Use assistant thread if available for better context
+            if hasattr(analysis, 'thread_id') and analysis.thread_id:
+                return await self.openai_service.generate_conversation_response_with_assistant(
+                    thread_id=analysis.thread_id,
+                    user_question=user_question
+                )
+            else:
+                # Enhanced context with full analysis data
+                return await self.openai_service.generate_conversation_response_with_images(
+                    analysis_summary=analysis.summary or "",
+                    analysis_full_report=analysis.full_report or "",
+                    key_features=json.loads(analysis.key_features) if analysis.key_features else [],
+                    strengths=json.loads(analysis.strengths) if analysis.strengths else [],
+                    guidance=json.loads(analysis.guidance) if analysis.guidance else [],
+                    left_image_path=analysis.left_image_path,
+                    right_image_path=analysis.right_image_path,
+                    conversation_history=conversation_history,
+                    user_question=user_question
+                )
+                
+        except Exception as e:
+            logger.error(f"Error generating contextual response: {e}")
+            # Fallback to basic response
+            return await self.openai_service.generate_conversation_response(
+                analysis_summary=analysis.summary or "",
+                analysis_full_report=analysis.full_report or "",
+                conversation_history=conversation_history,
+                user_question=user_question
+            )
+    
     async def get_conversation_by_id(
         self,
         conversation_id: int,
@@ -96,20 +281,39 @@ class ConversationService:
     ) -> Optional[Conversation]:
         """Get conversation by ID with user access check.
         
+        IMPORTANT: Conversations don't have a direct user_id field. 
+        Ownership is validated through the associated Analysis.user_id.
+        This was previously attempting to check Conversation.user_id which doesn't exist.
+        
         Args:
             conversation_id: Conversation ID
             user_id: User ID for access control
             
         Returns:
-            Conversation instance if found and accessible
+            Conversation instance if found and accessible, None if not found or access denied
         """
         try:
             async with await self.get_session() as db:
-                stmt = select(Conversation).where(
-                    and_(Conversation.id == conversation_id, Conversation.user_id == user_id)
+                logger.info(f"ConversationService debug: Looking for conversation_id={conversation_id} for user_id={user_id}")
+                
+                # FIXED: Join with Analysis to check ownership through analysis.user_id
+                # Previously was checking non-existent Conversation.user_id field
+                stmt = (
+                    select(Conversation)
+                    .join(Analysis, Conversation.analysis_id == Analysis.id)
+                    .where(
+                        and_(
+                            Conversation.id == conversation_id,
+                            Analysis.user_id == user_id
+                        )
+                    )
                 )
                 result = await db.execute(stmt)
                 conversation = result.scalar_one_or_none()
+                
+                logger.info(f"ConversationService debug: Conversation found: {conversation is not None}")
+                if conversation:
+                    logger.info(f"ConversationService debug: Conversation analysis_id: {conversation.analysis_id}")
                 
                 return conversation
                 
@@ -255,7 +459,8 @@ class ConversationService:
                 user_msg = Message(
                     conversation_id=conversation_id,
                     role=MessageRole.USER,
-                    content=user_message
+                    content=user_message,
+                    message_type=MessageType.USER_QUESTION
                 )
                 db.add(user_msg)
                 await db.commit()
@@ -282,6 +487,7 @@ class ConversationService:
                     conversation_id=conversation_id,
                     role=MessageRole.ASSISTANT,
                     content=ai_response_data["response"],
+                    message_type=MessageType.AI_RESPONSE,
                     tokens_used=ai_response_data.get("tokens_used", 0),
                     cost=ai_response_data.get("cost", 0.0)
                 )
@@ -323,8 +529,16 @@ class ConversationService:
         """
         try:
             async with await self.get_session() as db:
-                stmt = select(Conversation).where(
-                    and_(Conversation.id == conversation_id, Conversation.user_id == user_id)
+                # Join with Analysis to check ownership through analysis.user_id
+                stmt = (
+                    select(Conversation)
+                    .join(Analysis, Conversation.analysis_id == Analysis.id)
+                    .where(
+                        and_(
+                            Conversation.id == conversation_id,
+                            Analysis.user_id == user_id
+                        )
+                    )
                 )
                 result = await db.execute(stmt)
                 conversation = result.scalar_one_or_none()
@@ -358,8 +572,16 @@ class ConversationService:
         """
         try:
             async with await self.get_session() as db:
-                stmt = select(Conversation).where(
-                    and_(Conversation.id == conversation_id, Conversation.user_id == user_id)
+                # Join with Analysis to check ownership through analysis.user_id
+                stmt = (
+                    select(Conversation)
+                    .join(Analysis, Conversation.analysis_id == Analysis.id)
+                    .where(
+                        and_(
+                            Conversation.id == conversation_id,
+                            Analysis.user_id == user_id
+                        )
+                    )
                 )
                 result = await db.execute(stmt)
                 conversation = result.scalar_one_or_none()

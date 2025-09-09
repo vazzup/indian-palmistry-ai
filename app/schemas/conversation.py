@@ -2,10 +2,10 @@
 Pydantic schemas for conversation and message API endpoints.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field
-from app.models.message import MessageRole
+from app.models.message import MessageRole, MessageType
 
 
 class ConversationCreateRequest(BaseModel):
@@ -59,6 +59,8 @@ class MessageResponse(BaseModel):
     conversation_id: int
     role: MessageRole
     content: str
+    message_type: MessageType
+    analysis_data: Optional[Dict[str, Any]] = None
     tokens_used: Optional[int] = None
     cost: Optional[float] = None
     created_at: datetime
@@ -86,5 +88,20 @@ class TalkResponse(BaseModel):
     """Response schema for AI conversation response."""
     user_message: MessageResponse
     assistant_message: MessageResponse
+    tokens_used: int
+    cost: float
+
+
+class InitialConversationRequest(BaseModel):
+    """Request schema for starting a conversation with first question."""
+    message: str = Field(..., min_length=1, max_length=2000, description="First user question")
+
+
+class InitialConversationResponse(BaseModel):
+    """Response schema for conversation initialization."""
+    conversation: ConversationResponse
+    initial_message: MessageResponse  # AI message with analysis summary
+    user_message: MessageResponse     # User's first question
+    assistant_message: MessageResponse # AI response to first question
     tokens_used: int
     cost: float

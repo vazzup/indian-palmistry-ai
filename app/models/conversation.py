@@ -2,10 +2,17 @@
 Conversation model for follow-up questions on analyses.
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
+import enum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Enum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.models.base import Base
+
+
+class ConversationMode(enum.Enum):
+    """Mode enum for conversation display."""
+    ANALYSIS = "analysis"  # Show full analysis view
+    CHAT = "chat"         # Show chat interface
 
 
 class Conversation(Base):
@@ -22,6 +29,8 @@ class Conversation(Base):
     # Metadata
     title = Column(String(255), nullable=False)  # Auto-generated or user-provided title
     is_active = Column(Boolean, default=True, nullable=False)
+    mode = Column(Enum(ConversationMode), nullable=False, default=ConversationMode.CHAT, index=True)
+    has_initial_message = Column(Boolean, default=False, nullable=False)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)

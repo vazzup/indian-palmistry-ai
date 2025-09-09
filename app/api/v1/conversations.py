@@ -11,7 +11,9 @@ from app.schemas.conversation import (
     MessageListResponse,
     TalkRequest,
     TalkResponse,
-    ConversationUpdateRequest
+    ConversationUpdateRequest,
+    InitialConversationRequest,
+    InitialConversationResponse
 )
 from app.services.conversation_service import ConversationService
 from app.models.user import User
@@ -20,6 +22,54 @@ from app.dependencies.auth import get_current_user, verify_csrf_token
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/analyses/{analysis_id}/conversations", tags=["conversations"])
+
+
+@router.post("/start", response_model=InitialConversationResponse, dependencies=[Depends(verify_csrf_token)])
+async def start_conversation(
+    analysis_id: int,
+    request: InitialConversationRequest,
+    current_user: User = Depends(get_current_user)
+) -> InitialConversationResponse:
+    """Start conversation with initial AI reading message + user's first question.
+    
+    Creates a conversation with:
+    1. Initial AI message containing the analysis summary
+    2. User's first question
+    3. AI response to the first question with full analysis context
+    
+    This transforms the analysis from 'analysis' mode to 'chat' mode permanently.
+    """
+    try:
+        conversation_service = ConversationService()
+        
+        result = await conversation_service.initialize_conversation_with_reading(
+            analysis_id=analysis_id,
+            user_id=current_user.id,
+            first_question=request.message
+        )
+        
+        logger.info(f"Started conversation for analysis {analysis_id} with {result.get('tokens_used', 0)} tokens")
+        
+        return InitialConversationResponse(
+            conversation=ConversationResponse.from_conversation(result["conversation"], current_user.id),
+            initial_message=MessageResponse.model_validate(result["initial_message"]),
+            user_message=MessageResponse.model_validate(result["user_message"]),
+            assistant_message=MessageResponse.model_validate(result["assistant_message"]),
+            tokens_used=result.get("tokens_used", 0),
+            cost=result.get("cost", 0.0)
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error starting conversation for analysis {analysis_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to start conversation"
+        )
 
 
 @router.post("/", response_model=ConversationResponse)
@@ -150,28 +200,41 @@ async def get_conversation_messages(
     
     Returns messages ordered chronologically (oldest first).
     Only the conversation owner can view messages.
+    
+    DEBUG: Enhanced with comprehensive logging to debug conversation access issues.
     """
+    logger.info(f"GET messages endpoint called: analysis_id={analysis_id}, conversation_id={conversation_id}, user_id={current_user.id}")
+    
     try:
         conversation_service = ConversationService()
         
         # Verify conversation exists and belongs to analysis
+        logger.info(f"Looking for conversation {conversation_id} for user {current_user.id}")
         conversation = await conversation_service.get_conversation_by_id(
             conversation_id=conversation_id,
             user_id=current_user.id
         )
         
+        logger.info(f"Conversation found: {conversation is not None}")
+        if conversation:
+            logger.info(f"Conversation analysis_id: {conversation.analysis_id}, expected: {analysis_id}")
+        
         if not conversation or conversation.analysis_id != analysis_id:
+            logger.warning(f"Conversation not found or analysis mismatch: conversation={conversation is not None}, analysis_id_match={conversation.analysis_id == analysis_id if conversation else False}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation not found"
             )
         
+        logger.info(f"Getting messages for conversation {conversation_id}, page={page}, per_page={per_page}")
         messages, total = await conversation_service.get_conversation_messages(
             conversation_id=conversation_id,
             user_id=current_user.id,
             page=page,
             per_page=per_page
         )
+        
+        logger.info(f"Retrieved {len(messages) if messages else 0} messages, total={total}")
         
         message_responses = [MessageResponse.model_validate(m) for m in messages]
         
@@ -186,10 +249,11 @@ async def get_conversation_messages(
             conversation_id=conversation_id
         )
         
-    except HTTPException:
+    except HTTPException as he:
+        logger.warning(f"HTTP exception in get_conversation_messages: {he.status_code} - {he.detail}")
         raise
     except Exception as e:
-        logger.error(f"Error getting messages for conversation {conversation_id}: {e}")
+        logger.error(f"Error getting messages for conversation {conversation_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get messages"

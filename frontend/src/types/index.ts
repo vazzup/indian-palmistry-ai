@@ -32,6 +32,9 @@ export interface Analysis {
   cost?: number;
   created_at: string;
   updated_at: string;
+  // New conversation mode fields
+  conversation_mode: 'analysis' | 'chat';
+  conversation_id?: number;
 }
 
 export interface Conversation {
@@ -48,6 +51,8 @@ export interface Message {
   conversation_id: number;
   role: 'USER' | 'ASSISTANT';
   content: string;
+  message_type: 'INITIAL_READING' | 'USER_QUESTION' | 'AI_RESPONSE';
+  analysis_data?: Record<string, any>;
   tokens_used?: number;
   cost?: number;
   created_at: string;
@@ -55,6 +60,15 @@ export interface Message {
 
 // API Response types for conversation endpoints
 export interface TalkResponse {
+  user_message: Message;
+  assistant_message: Message;
+  tokens_used: number;
+  cost: number;
+}
+
+export interface InitialConversationResponse {
+  conversation: Conversation;
+  initial_message: Message;
   user_message: Message;
   assistant_message: Message;
   tokens_used: number;

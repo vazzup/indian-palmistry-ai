@@ -16,24 +16,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const initializeAuth = async () => {
+      console.log('AuthProvider: Starting authentication check...');
+      console.log('AuthProvider: Current auth state before check:', { isAuthenticated, user: user?.email });
+      
       try {
-        console.log('AuthProvider: Checking for existing session...');
         // Check if user has a valid session with the server
-        await checkAuth();
-        console.log('AuthProvider: Auth check completed');
+        const authUser = await checkAuth();
+        
+        if (authUser) {
+          console.log('AuthProvider: Valid session found for user:', authUser.email);
+        } else {
+          console.log('AuthProvider: No valid session - user needs to log in');
+        }
+        
+        // Auth check completed successfully - set initialized
+        console.log('AuthProvider: Auth check completed successfully, setting hasInitialized to true');
+        setHasInitialized(true);
       } catch (error) {
         // Auth check failed, user is not authenticated
-        console.log('AuthProvider: No valid session found', error);
-      } finally {
+        console.error('AuthProvider: Auth check failed with error:', error);
+        
+        // Even on error, we consider auth initialized (just failed)
+        console.log('AuthProvider: Auth check failed but initialization completed, setting hasInitialized to true');
         setHasInitialized(true);
       }
     };
 
     // Only initialize once when the app loads
     if (!hasInitialized) {
+      console.log('AuthProvider: Initializing authentication for the first time');
       initializeAuth();
     }
-  }, [checkAuth, hasInitialized]);
+  }, [checkAuth, hasInitialized, isAuthenticated, user]);
 
   // Show loading spinner only during initial authentication check
   if (!hasInitialized) {

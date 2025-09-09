@@ -84,7 +84,8 @@ async def register_user(
             max_age=settings.session_expire_seconds,
             httponly=True,
             secure=settings.is_production,
-            samesite="lax"
+            samesite="lax",
+            domain="localhost" if not settings.is_production else None
         )
         
         logger.info(f"User registered and logged in: {user.id} ({user.email})")
@@ -158,7 +159,8 @@ async def login_user(
             max_age=settings.session_expire_seconds,
             httponly=True,
             secure=settings.is_production,
-            samesite="lax"
+            samesite="lax",
+            domain="localhost" if not settings.is_production else None
         )
         
         session_expires = login_time + timedelta(seconds=settings.session_expire_seconds)
@@ -206,7 +208,8 @@ async def logout_user(
             key="session_id",
             httponly=True,
             secure=settings.is_production,
-            samesite="lax"
+            samesite="lax",
+            domain="localhost" if not settings.is_production else None
         )
         
         return LogoutResponse(
@@ -221,7 +224,8 @@ async def logout_user(
             key="session_id",
             httponly=True,
             secure=settings.is_production,
-            samesite="lax"
+            samesite="lax",
+            domain="localhost" if not settings.is_production else None
         )
         
         return LogoutResponse(
@@ -282,8 +286,7 @@ async def update_user_profile(
 
 @router.get("/csrf-token")
 async def get_csrf_token(
-    request: Request,
-    current_user: User = Depends(get_current_user)
+    request: Request
 ) -> dict:
     """Get CSRF token for the current session.
     
@@ -304,11 +307,13 @@ async def get_csrf_token(
                 detail="Invalid session"
             )
         
-        csrf_token = session_data.get("csrf_token")
+        csrf_token = session_data.get("user_data", {}).get("csrf_token")
         if not csrf_token:
             # Generate new CSRF token if not exists
             csrf_token = generate_csrf_token()
-            session_data["csrf_token"] = csrf_token
+            if "user_data" not in session_data:
+                session_data["user_data"] = {}
+            session_data["user_data"]["csrf_token"] = csrf_token
             await session_manager.update_session(session_id, session_data)
         
         return {"csrf_token": csrf_token}

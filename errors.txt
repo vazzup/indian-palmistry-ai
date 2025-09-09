@@ -1,0 +1,138 @@
+
+## Error Type
+Console AxiosError
+
+## Error Message
+Request failed with status code 401
+
+
+    at async Object.getAnalysis (src/lib/api.ts:93:24)
+    at async AnalysisDetailPage.useEffect.fetchAnalysis (src/app/(dashboard)/analyses/[id]/page.tsx:57:30)
+
+## Code Frame
+  91 |   async getAnalysis(id: string): Promise<Analysis> {
+  92 |     try {
+> 93 |       const response = await api.get(`/api/v1/analyses/${id}`);
+     |                        ^
+  94 |       return response.data;
+  95 |     } catch (error) {
+  96 |       console.error('Get analysis failed:', error);
+
+Next.js version: 15.5.0 (Webpack)
+
+## Error Type
+Console TypeError
+
+## Error Message
+Failed to fetch
+
+
+    at AnalysisDetailPage.useEffect.fetchAnalysis (src/app/(dashboard)/analyses/[id]/page.tsx:63:18)
+
+## Code Frame
+  61 |         if (err.response?.status === 401) {
+  62 |           setError('Please log in to view this analysis');
+> 63 |           router.push('/');
+     |                  ^
+  64 |           return;
+  65 |         }
+  66 |         setError(handleApiError(err));
+
+Next.js version: 15.5.0 (Webpack)
+
+## Error Type
+Console AxiosError
+
+## Error Message
+Network Error
+
+
+    at async Object.getAnalysis (src/lib/api.ts:93:24)
+    at async AnalysisDetailPage.useEffect.fetchAnalysis (src/app/(dashboard)/analyses/[id]/page.tsx:57:30)
+
+## Code Frame
+  91 |   async getAnalysis(id: string): Promise<Analysis> {
+  92 |     try {
+> 93 |       const response = await api.get(`/api/v1/analyses/${id}`);
+     |                        ^
+  94 |       return response.data;
+  95 |     } catch (error) {
+  96 |       console.error('Get analysis failed:', error);
+
+Next.js version: 15.5.0 (Webpack)
+
+## Error Type
+Console AxiosError
+
+## Error Message
+Network Error
+
+
+    at XMLHttpRequest.handleError (webpack-internal:///(app-pages-browser)/./node_modules/axios/lib/adapters/xhr.js:124:14)
+    at Axios.request (webpack-internal:///(app-pages-browser)/./node_modules/axios/lib/core/Axios.js:57:41)
+    at async Object.getCurrentUser (webpack-internal:///(app-pages-browser)/./src/lib/api.ts:184:30)
+    at async checkAuth (webpack-internal:///(app-pages-browser)/./src/lib/auth.ts:107:30)
+
+Next.js version: 15.5.0 (Webpack)
+
+## Error Type
+Console TypeError
+
+## Error Message
+Failed to fetch
+
+
+    at createFetch (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/fetch-server-response.js:163:33)
+    at fetchServerResponse (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/fetch-server-response.js:88:27)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/prefetch-cache-utils.js:197:106)
+    at Object.task (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/promise-queue.js:30:38)
+    at PromiseQueue.processNext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/promise-queue.js:81:186)
+    at PromiseQueue.bump (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/promise-queue.js:53:80)
+    at navigateReducer (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/reducers/navigate-reducer.js:171:36)
+    at clientReducer (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/router-reducer.js:25:61)
+    at Object.action (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router-instance.js:156:55)
+    at runAction (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router-instance.js:66:38)
+    at dispatchAction (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router-instance.js:136:9)
+    at Object.dispatch (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router-instance.js:154:40)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/use-action-queue.js:55:29)
+    at startTransition (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:7968:27)
+    at dispatch (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/use-action-queue.js:54:13)
+    at dispatchAppRouterAction (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/use-action-queue.js:37:5)
+    at dispatchNavigateAction (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router-instance.js:207:49)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router-instance.js:260:13)
+    at exports.startTransition (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react/cjs/react.development.js:1150:27)
+    at Object.push (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router-instance.js:258:36)
+    at DashboardLayout.useEffect (webpack-internal:///(app-pages-browser)/./src/app/(dashboard)/layout.tsx:38:24)
+    at Object.react_stack_bottom_frame (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:23669:20)
+    at runWithFiberInDEV (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:872:30)
+    at commitHookEffectListMount (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:12345:29)
+    at commitHookPassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:12466:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14387:13)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14380:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14514:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14380:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14514:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14380:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14390:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14380:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14390:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14380:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14380:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14380:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14360:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14390:11)
+
+Next.js version: 15.5.0 (Webpack)
+
+

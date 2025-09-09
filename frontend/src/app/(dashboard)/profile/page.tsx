@@ -39,10 +39,11 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading, isAuthenticated } = useAuth();
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [isInitializing, setIsInitializing] = React.useState(true);
   
   const {
     register,
@@ -63,8 +64,71 @@ export default function ProfilePage() {
         name: user.name,
         email: user.email,
       });
+      setIsInitializing(false);
+    } else if (!isLoading && !isAuthenticated) {
+      // User is not authenticated and not loading, redirect to login
+      router.push('/login');
+    } else if (!isLoading && isAuthenticated && !user) {
+      // Edge case: authenticated but no user data
+      console.warn('Profile: Authenticated but no user data available');
+      setIsInitializing(false);
     }
-  }, [user, reset]);
+  }, [user, reset, isLoading, isAuthenticated, router]);
+
+  // Show loading state while auth is being verified or user data is loading
+  if (isInitializing || isLoading || (!user && isAuthenticated)) {
+    return (
+      <DashboardLayout
+        title="Profile Settings"
+        description="Manage your account and privacy settings"
+      >
+        <div className="max-w-4xl space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <User className="w-5 h-5 mr-2" />
+                Profile Information
+              </CardTitle>
+              <CardDescription>
+                Loading your profile information...
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Profile Picture Skeleton */}
+                <div className="flex items-center space-x-6">
+                  <div className="w-20 h-20 bg-gray-200 rounded-full animate-pulse"></div>
+                  <div>
+                    <div className="h-6 bg-gray-200 rounded w-32 animate-pulse mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24 animate-pulse mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-40 animate-pulse"></div>
+                  </div>
+                </div>
+
+                {/* Form Fields Skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="h-4 bg-gray-200 rounded w-20 animate-pulse mb-2"></div>
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div>
+                    <div className="h-4 bg-gray-200 rounded w-24 animate-pulse mb-2"></div>
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+
+                {/* Action Button Skeleton */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <div></div>
+                  <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const onSubmit = async (data: ProfileFormData) => {
     try {

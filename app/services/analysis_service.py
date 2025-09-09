@@ -3,11 +3,12 @@ Analysis service for managing palm reading analyses.
 """
 
 import logging
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from fastapi import UploadFile
 from app.models.analysis import Analysis, AnalysisStatus
+from app.models.conversation import Conversation
 from app.services.image_service import ImageService
 from app.core.database import AsyncSessionLocal
 from app.core.cache import cache_service, CacheKeys
@@ -129,6 +130,46 @@ class AnalysisService:
         except Exception as e:
             logger.error(f"Error getting analysis {analysis_id}: {e}")
             return None
+    
+    async def get_analysis_with_conversation_mode(
+        self, 
+        analysis_id: int, 
+        user_id: Optional[int] = None
+    ) -> Tuple[Optional[Analysis], Optional[Conversation]]:
+        """Get analysis and determine conversation mode based on existing conversation.
+        
+        Args:
+            analysis_id: Analysis ID
+            user_id: User ID for access control (None for anonymous access)
+            
+        Returns:
+            Tuple of (Analysis, Conversation) where Conversation is None if no conversation exists
+        """
+        try:
+            async with await self.get_session() as db:
+                # Get analysis
+                analysis_stmt = select(Analysis).where(Analysis.id == analysis_id)
+                
+                # Add user access control if user_id provided
+                if user_id is not None:
+                    analysis_stmt = analysis_stmt.where(Analysis.user_id == user_id)
+                
+                analysis_result = await db.execute(analysis_stmt)
+                analysis = analysis_result.scalar_one_or_none()
+                
+                if not analysis:
+                    return None, None
+                
+                # Get conversation if exists
+                conversation_stmt = select(Conversation).where(Conversation.analysis_id == analysis_id)
+                conversation_result = await db.execute(conversation_stmt)
+                conversation = conversation_result.scalar_one_or_none()
+                
+                return analysis, conversation
+                
+        except Exception as e:
+            logger.error(f"Error getting analysis with conversation mode {analysis_id}: {e}")
+            return None, None
     
     async def get_analysis_status(self, analysis_id: int) -> Optional[Analysis]:
         """Get analysis status for polling.
