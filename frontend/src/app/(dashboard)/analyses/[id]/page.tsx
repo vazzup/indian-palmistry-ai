@@ -287,7 +287,7 @@ export default function AnalysisDetailPage() {
               </div>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Transitioning to Chat Mode
+              Pondering your question...
             </h3>
             <p className="text-gray-600 mb-4 min-h-[1.5rem]">
               {transitionMessage}
@@ -454,7 +454,7 @@ export default function AnalysisDetailPage() {
             )}
 
             {/* Analysis Metadata */}
-            <Card>
+            {/*<Card>
               <CardHeader>
                 <CardTitle className="text-sm font-medium text-gray-600">
                   Analysis Details
@@ -486,7 +486,7 @@ export default function AnalysisDetailPage() {
                   )}
                 </div>
               </CardContent>
-            </Card>
+            </Card>*/}
 
             {/* Ask Follow-up Question Section */}
             <Card>

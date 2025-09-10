@@ -251,28 +251,26 @@ Feel free to ask me any questions about your reading, and I'll provide detailed 
                     user_question=user_question
                 )
             else:
-                # Enhanced context with full analysis data
+                # CRITICAL FIX: Use OpenAI Responses API with full visual context
+                # This method includes palm images (via file_ids) along with complete analysis data
+                # Previously was calling non-existent method and falling back to text-only responses
                 return await self.openai_service.generate_conversation_response_with_images(
                     analysis_summary=analysis.summary or "",
                     analysis_full_report=analysis.full_report or "",
                     key_features=json.loads(analysis.key_features) if analysis.key_features else [],
                     strengths=json.loads(analysis.strengths) if analysis.strengths else [],
                     guidance=json.loads(analysis.guidance) if analysis.guidance else [],
-                    left_image_path=analysis.left_image_path,
-                    right_image_path=analysis.right_image_path,
+                    left_file_id=analysis.left_file_id,  # OpenAI file ID for left palm image
+                    right_file_id=analysis.right_file_id,  # OpenAI file ID for right palm image
                     conversation_history=conversation_history,
                     user_question=user_question
                 )
                 
         except Exception as e:
             logger.error(f"Error generating contextual response: {e}")
-            # Fallback to basic response
-            return await self.openai_service.generate_conversation_response(
-                analysis_summary=analysis.summary or "",
-                analysis_full_report=analysis.full_report or "",
-                conversation_history=conversation_history,
-                user_question=user_question
-            )
+            # IMPORTANT: Re-raise exception instead of using dangerous fallback
+            # Previous implementation silently fell back to text-only response, masking bugs
+            raise
     
     async def get_conversation_by_id(
         self,

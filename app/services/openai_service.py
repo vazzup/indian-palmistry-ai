@@ -68,7 +68,13 @@ class OpenAIService:
         left_file_id: Optional[str] = None,
         right_file_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Analyze palm images using OpenAI GPT-4 Vision.
+        """DEPRECATED: Use analyze_palm_images_with_responses() instead.
+        
+        This method uses the older Chat Completions API and is deprecated.
+        Use analyze_palm_images_with_responses() which uses the newer Responses API
+        for better image handling and consistent formatting.
+        
+        Analyze palm images using OpenAI GPT-4 Vision.
         
         Args:
             left_image_path: Path to left palm image (legacy, for backward compatibility)
@@ -593,6 +599,134 @@ Focus on traditional Indian palmistry interpretations and provide meaningful ins
             
         except Exception as e:
             logger.error(f"Error in Responses API palm analysis: {e}")
+            raise
+
+    async def generate_conversation_response_with_images(
+        self,
+        analysis_summary: str,
+        analysis_full_report: str,
+        key_features: list,
+        strengths: list,
+        guidance: list,
+        left_file_id: Optional[str] = None,
+        right_file_id: Optional[str] = None,
+        conversation_history: list = None,
+        user_question: str = ""
+    ) -> Dict[str, Any]:
+        """Generate conversation response with palm images using OpenAI Responses API.
+        
+        This method provides full visual context by including the original palm images
+        along with the complete analysis and conversation history.
+        
+        Args:
+            analysis_summary: Summary of the original palm analysis
+            analysis_full_report: Detailed palm analysis report
+            key_features: List of key observed features from analysis
+            strengths: List of positive traits from analysis
+            guidance: List of life guidance from analysis
+            left_file_id: OpenAI file ID for left palm image
+            right_file_id: OpenAI file ID for right palm image
+            conversation_history: Previous conversation messages
+            user_question: Current user question
+            
+        Returns:
+            Dictionary with response and metadata
+        """
+        if not self.client:
+            raise ValueError("OpenAI API key not configured")
+        
+        if not left_file_id and not right_file_id:
+            raise ValueError("At least one palm image file ID is required")
+        
+        if conversation_history is None:
+            conversation_history = []
+        
+        try:
+            # Build complete conversation context
+            image_description = []
+            if left_file_id:
+                image_description.append("left palm")
+            if right_file_id:
+                image_description.append("right palm")
+            
+            image_desc_text = " and ".join(image_description)
+            
+            # Construct full context with original analysis
+            context_parts = [
+                f"{PALMISTRY_SYSTEM_PROMPT}\n",
+                "ORIGINAL PALM ANALYSIS:",
+                f"Summary: {analysis_summary}",
+                f"Full Report: {analysis_full_report}",
+                f"Key Features: {', '.join(key_features) if key_features else 'None specified'}",
+                f"Strengths: {', '.join(strengths) if strengths else 'None specified'}",
+                f"Guidance: {', '.join(guidance) if guidance else 'None specified'}",
+                ""
+            ]
+            
+            # Add conversation history if present
+            if conversation_history:
+                context_parts.append("CONVERSATION HISTORY:")
+                for msg in conversation_history:
+                    role = "User" if msg.get("role") == "user" else "Assistant"
+                    context_parts.append(f"{role}: {msg.get('content', '')}")
+                context_parts.append("")
+            
+            # Add current question
+            context_parts.extend([
+                f"The user is now asking about the {image_desc_text} shown in the images:",
+                f"Question: {user_question}",
+                "",
+                "Please provide a helpful response based on the palm analysis and images. Reference specific visual features you can observe in the palm images when relevant to the question. Use traditional Indian palmistry knowledge and keep your response focused and detailed."
+            ])
+            
+            full_context = "\n".join(context_parts)
+            
+            # Prepare content parts for OpenAI Responses API
+            content_parts = [{
+                "type": "input_text",
+                "text": full_context
+            }]
+            
+            # Add image file references
+            if left_file_id:
+                content_parts.append({
+                    "type": "input_image",
+                    "file_id": left_file_id
+                })
+            
+            if right_file_id:
+                content_parts.append({
+                    "type": "input_image",
+                    "file_id": right_file_id
+                })
+            
+            # Create response using Responses API
+            response = await self.client.responses.create(
+                model="gpt-4.1-mini",
+                input=[{
+                    "role": "user",
+                    "content": content_parts
+                }]
+            )
+            
+            # Get the response text
+            response_content = response.output_text
+            
+            # Calculate tokens and cost (approximate for Responses API)
+            input_tokens = len(full_context.split()) * 1.3  # Rough approximation
+            output_tokens = len(response_content.split()) * 1.3
+            total_tokens = int(input_tokens + output_tokens)
+            
+            logger.info(f"Generated conversation response with images. Approximate tokens: {total_tokens}")
+            
+            return {
+                "response": response_content,
+                "tokens_used": total_tokens,
+                "cost": self._calculate_cost(total_tokens)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating conversation response with images: {e}")
             raise
 
     async def generate_conversation_response_with_assistant(
