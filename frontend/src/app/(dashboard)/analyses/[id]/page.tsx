@@ -20,6 +20,8 @@ import { analysisApi, conversationsApi, handleApiError } from '@/lib/api';
 import { LoadingPage } from '@/components/ui/Spinner';
 import type { Analysis, Message, TalkResponse, InitialConversationResponse } from '@/types';
 import { Input } from '@/components/ui/Input';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function AnalysisDetailPage() {
   const params = useParams();
@@ -624,9 +626,39 @@ export default function AnalysisDetailPage() {
                                 </button>
                               </div>
                             ) : (
-                              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                {message.content}
-                              </p>
+                              // MARKDOWN RENDERING: Render markdown for AI messages, plain text for user messages
+                              // This solves the issue where AI responses contained raw markdown (### headers, **bold**)
+                              // that wasn't being formatted properly, making responses hard to read.
+                              message.role.toLowerCase() === 'assistant' ? (
+                                <div className="text-sm leading-relaxed">
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]} // GitHub Flavored Markdown support
+                                    components={{
+                                      // Custom styled headers with hierarchical saffron theming
+                                      // H3 gets saffron accent as it's commonly used for section headers
+                                      h1: ({children}) => <h1 className="text-base font-bold text-gray-900 mb-2 mt-0">{children}</h1>,
+                                      h2: ({children}) => <h2 className="text-sm font-bold text-gray-900 mb-2 mt-3 first:mt-0">{children}</h2>,
+                                      h3: ({children}) => <h3 className="text-sm font-semibold text-saffron-700 mb-2 mt-3 first:mt-0">{children}</h3>,
+                                      h4: ({children}) => <h4 className="text-sm font-semibold text-gray-800 mb-1 mt-2 first:mt-0">{children}</h4>,
+                                      // Bold text gets saffron accent for emphasis and cultural consistency
+                                      strong: ({children}) => <strong className="font-semibold text-saffron-700">{children}</strong>,
+                                      // Lists with proper indentation and spacing for palmistry feature lists
+                                      ul: ({children}) => <ul className="list-disc ml-4 mb-2 space-y-1">{children}</ul>,
+                                      ol: ({children}) => <ol className="list-decimal ml-4 mb-2 space-y-1">{children}</ol>,
+                                      li: ({children}) => <li className="text-sm text-gray-800">{children}</li>,
+                                      // Paragraphs with consistent spacing, works well with Hindi/English mixed content
+                                      p: ({children}) => <p className="text-sm text-gray-800 mb-2 last:mb-0">{children}</p>
+                                    }}
+                                  >
+                                    {message.content}
+                                  </ReactMarkdown>
+                                </div>
+                              ) : (
+                                // User messages remain as plain text with whitespace preservation
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                  {message.content}
+                                </p>
+                              )
                             )}
                             
                             {/* Message metadata */}
