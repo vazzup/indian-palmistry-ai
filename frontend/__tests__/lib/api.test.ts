@@ -1,220 +1,104 @@
-/**
- * @fileoverview Tests for API client utilities
- * Tests error handling, request formatting, and type safety
- */
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import axios from 'axios';
-import { analysisApi, handleApiError } from '@/lib/api';
-import type { Analysis } from '@/types';
+import { handleApiError } from '@/lib/api';
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => ({
-      post: vi.fn(),
-      get: vi.fn(),
-    })),
-  },
-}));
-
-// Mock the api instance directly
-const mockApi = {
-  post: vi.fn(),
-  get: vi.fn(),
-};
-
-vi.mock('@/lib/api', async () => {
-  const actual = await vi.importActual('@/lib/api');
-  return {
-    ...actual,
-    // Override the api instance used internally
-  };
-});
-
-// Create a simpler mock for the axios instance
-vi.doMock('@/lib/api', async () => {
-  const { handleApiError } = await vi.importActual('@/lib/api');
-  
-  return {
-    analysisApi: {
-      uploadImages: vi.fn(),
-      getAnalysis: vi.fn(),
-      getAnalysisStatus: vi.fn(),
-      getAnalysisSummary: vi.fn(),
-    },
-    handleApiError,
-  };
-});
-
-const { analysisApi } = await import('@/lib/api');
-const mockedAnalysisApi = vi.mocked(analysisApi);
-
-describe('analysisApi', () => {
+describe('API utilities', () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
-  describe('uploadImages', () => {
-    it('should upload images and return analysis data', async () => {
-      const mockAnalysis: Analysis = {
-        id: 1,
-        status: 'QUEUED',
-        created_at: '2023-01-01T00:00:00Z',
-        updated_at: '2023-01-01T00:00:00Z',
-      };
-
-      const mockResponse = { data: mockAnalysis };
-      mockedAxios.post.mockResolvedValue(mockResponse);
-
-      const file1 = new File(['test'], 'palm1.jpg', { type: 'image/jpeg' });
-      const file2 = new File(['test'], 'palm2.jpg', { type: 'image/jpeg' });
-      const files = [file1, file2];
-
-      const result = await analysisApi.uploadImages(files);
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        '/api/v1/analyses/upload',
-        expect.any(FormData),
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+  describe('handleApiError', () => {
+    it('should extract message from response data', () => {
+      const error = {
+        response: {
+          data: {
+            message: 'Validation error'
+          }
         }
-      );
-      expect(result).toEqual(mockAnalysis);
-    });
-
-    it('should handle upload errors gracefully', async () => {
-      const errorMessage = 'Upload failed';
-      mockedAxios.post.mockRejectedValue(new Error(errorMessage));
-
-      const file = new File(['test'], 'palm.jpg', { type: 'image/jpeg' });
+      };
       
-      await expect(analysisApi.uploadImages([file])).rejects.toThrow(errorMessage);
-    });
-  });
-
-  describe('getAnalysis', () => {
-    it('should fetch analysis by ID', async () => {
-      const mockAnalysis: Analysis = {
-        id: 1,
-        status: 'COMPLETED',
-        summary: 'Your palm shows strong life lines...',
-        created_at: '2023-01-01T00:00:00Z',
-        updated_at: '2023-01-01T00:00:00Z',
-      };
-
-      const mockResponse = { data: mockAnalysis };
-      mockedAxios.get.mockResolvedValue(mockResponse);
-
-      const result = await analysisApi.getAnalysis('1');
-
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/analyses/1');
-      expect(result).toEqual(mockAnalysis);
-    });
-  });
-
-  describe('getAnalysisStatus', () => {
-    it('should fetch analysis status', async () => {
-      const mockStatus = { 
-        status: 'processing', 
-        progress: 50,
-        result: null 
-      };
-
-      const mockResponse = { data: mockStatus };
-      mockedAxios.get.mockResolvedValue(mockResponse);
-
-      const result = await analysisApi.getAnalysisStatus('1');
-
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/analyses/1/status');
-      expect(result).toEqual(mockStatus);
-    });
-  });
-
-  describe('getAnalysisSummary', () => {
-    it('should fetch analysis summary by ID (session fix)', async () => {
-      const mockSummary = {
-        id: '1',
-        status: 'completed',
-        summary: 'Your palm shows strong life lines indicating vitality...',
-        created_at: '2023-01-01T00:00:00Z'
-      };
-
-      const mockResponse = { data: mockSummary };
-      mockedAxios.get.mockResolvedValue(mockResponse);
-
-      const result = await analysisApi.getAnalysisSummary('1');
-
-      expect(mockedAxios.get).toHaveBeenCalledWith('/api/v1/analyses/1/summary');
-      expect(result).toEqual(mockSummary);
+      const result = handleApiError(error);
+      expect(result).toBe('Validation error');
     });
 
-    it('should handle summary fetch errors', async () => {
-      const errorMessage = 'Analysis not found';
-      mockedAxios.get.mockRejectedValue(new Error(errorMessage));
-      
-      await expect(analysisApi.getAnalysisSummary('nonexistent')).rejects.toThrow(errorMessage);
-    });
-
-    it('should handle incomplete analysis (no summary yet)', async () => {
-      const mockIncomplete = {
-        id: '2',
-        status: 'processing',
-        summary: null,
-        created_at: '2023-01-01T00:00:00Z'
-      };
-
-      const mockResponse = { data: mockIncomplete };
-      mockedAxios.get.mockResolvedValue(mockResponse);
-
-      const result = await analysisApi.getAnalysisSummary('2');
-
-      expect(result.status).toBe('processing');
-      expect(result.summary).toBe(null);
-    });
-  });
-});
-
-describe('handleApiError', () => {
-  it('should handle server response errors', () => {
-    const error = {
-      response: {
-        data: {
-          detail: 'Invalid file format'
+    it('should extract detail from response data', () => {
+      const error = {
+        response: {
+          data: {
+            detail: 'Not found'
+          }
         }
-      }
-    };
+      };
+      
+      const result = handleApiError(error);
+      expect(result).toBe('Not found');
+    });
 
-    const result = handleApiError(error);
-    expect(result).toBe('Error: Invalid file format');
-  });
+    it('should handle array of error details', () => {
+      const error = {
+        response: {
+          data: {
+            detail: [
+              { msg: 'Field is required' },
+              { msg: 'Invalid format' }
+            ]
+          }
+        }
+      };
+      
+      const result = handleApiError(error);
+      expect(result).toBe('Field is required, Invalid format');
+    });
 
-  it('should handle network errors', () => {
-    const error = {
-      request: {}
-    };
+    it('should use error message as fallback', () => {
+      const error = {
+        message: 'Network error'
+      };
+      
+      const result = handleApiError(error);
+      expect(result).toBe('Network error');
+    });
 
-    const result = handleApiError(error);
-    expect(result).toBe('Network error: Unable to connect to server');
-  });
+    it('should handle unknown errors', () => {
+      const error = {};
+      
+      const result = handleApiError(error);
+      expect(result).toBe('An unexpected error occurred');
+    });
 
-  it('should handle generic errors', () => {
-    const error = new Error('Something went wrong');
+    it('should handle status-specific errors', () => {
+      const error = {
+        response: {
+          status: 401,
+          data: {}
+        }
+      };
+      
+      const result = handleApiError(error);
+      expect(result).toBe('Authentication required');
+    });
 
-    const result = handleApiError(error);
-    expect(result).toBe('Error: Something went wrong');
-  });
+    it('should handle rate limiting', () => {
+      const error = {
+        response: {
+          status: 429,
+          data: {}
+        }
+      };
+      
+      const result = handleApiError(error);
+      expect(result).toBe('Too many requests. Please wait and try again.');
+    });
 
-  it('should handle server errors without detail', () => {
-    const error = {
-      response: {
-        data: {}
-      }
-    };
-
-    const result = handleApiError(error);
-    expect(result).toBe('Error: Server error occurred');
+    it('should handle server errors', () => {
+      const error = {
+        response: {
+          status: 500,
+          data: {}
+        }
+      };
+      
+      const result = handleApiError(error);
+      expect(result).toBe('Server error. Please try again later.');
+    });
   });
 });

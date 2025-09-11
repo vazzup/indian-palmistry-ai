@@ -1,24 +1,22 @@
-/**
- * @jest-environment jsdom
- */
 import { renderHook, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
 import { useCSRF } from '@/hooks/useCSRF';
 import { authApi } from '@/lib/api';
 
 // Mock the API
-jest.mock('@/lib/api', () => ({
+vi.mock('@/lib/api', () => ({
   authApi: {
-    getCSRFToken: jest.fn(),
+    getCSRFToken: vi.fn(),
   },
 }));
 
-const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
+const mockAuthApi = vi.mocked(authApi);
 
 describe('useCSRF', () => {
   beforeEach(() => {
     // Clear DOM and mocks
     document.head.innerHTML = '';
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -85,7 +83,7 @@ describe('useCSRF', () => {
   });
 
   it('should handle API errors gracefully', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockAuthApi.getCSRFToken.mockRejectedValue(new Error('API Error'));
 
     const { result } = renderHook(() => useCSRF());
@@ -122,7 +120,7 @@ describe('useCSRF', () => {
   });
 
   it('should handle refresh errors gracefully', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockAuthApi.getCSRFToken
       .mockResolvedValueOnce('initial-token')
       .mockRejectedValueOnce(new Error('Refresh Error'));

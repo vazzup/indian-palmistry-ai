@@ -6,6 +6,7 @@ import { InstallPrompt } from "@/components/ui/InstallPrompt";
 import { PerformanceProvider } from "@/components/providers/PerformanceProvider";
 import { SecurityProvider } from "@/components/providers/SecurityProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { LegalNotice } from "@/components/legal/LegalNotice";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -114,6 +115,13 @@ export default function RootLayout({
             </PerformanceProvider>
           </SecurityProvider>
         </AuthProvider>
+        
+        {/* Global Footer */}
+        <footer className="mt-8 py-6 border-t border-gray-100 bg-gray-50/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <LegalNotice variant="footer" />
+          </div>
+        </footer>
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ import { Hand } from 'lucide-react';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Spinner } from '@/components/ui/Spinner';
 import { getRandomMessage } from '@/lib/cultural-theme';
+import { LegalNotice } from '@/components/legal/LegalNotice';
 
 function LoginPageContent() {
   const router = useRouter();
@@ -42,10 +43,10 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col justify-center py-4 overflow-hidden">
       {/* Header */}
-      <div className="py-8 px-4">
-        <div className="max-w-md mx-auto text-center space-y-4">
+      <div className="px-4 mb-6">
+        <div className="max-w-md mx-auto text-center space-y-3">
           {/* Logo */}
           <div 
             className="mx-auto w-16 h-16 bg-gradient-to-br from-saffron-400 to-saffron-600 rounded-full flex items-center justify-center cursor-pointer"
@@ -67,7 +68,7 @@ function LoginPageContent() {
       </div>
 
       {/* Login Form */}
-      <div className="flex-1 px-4 pb-8">
+      <div className="px-4">
         <LoginForm 
           redirectTo={redirectTo}
           onSuccess={handleLoginSuccess}
@@ -75,9 +76,9 @@ function LoginPageContent() {
       </div>
 
       {/* Footer */}
-      <div className="py-6 px-4 text-center">
-        <p className="text-xs text-muted-foreground">
-          🔒 Your privacy is protected. We use secure authentication.
+      <div className="px-4 mt-6">
+        <p className="text-xs text-muted-foreground text-center">
+          Your privacy is protected. We use secure authentication.
         </p>
       </div>
     </div>

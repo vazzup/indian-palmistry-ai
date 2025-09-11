@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { conversationsApi } from '@/lib/api';
+import { LegalNotice } from '@/components/legal/LegalNotice';
 import type { Conversation, Message, TalkResponse } from '@/types';
 
 interface AnalysisConversationsProps {
@@ -318,6 +319,9 @@ export const AnalysisConversations: React.FC<AnalysisConversationsProps> = ({
             <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
+        <div className="mb-3">
+          <LegalNotice variant="card" />
+        </div>
         <div className="flex space-x-2">
           <Input
             type="text"

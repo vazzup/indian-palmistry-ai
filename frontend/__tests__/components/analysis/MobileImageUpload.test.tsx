@@ -7,14 +7,34 @@ global.URL.createObjectURL = vi.fn(() => 'mock-url');
 global.URL.revokeObjectURL = vi.fn();
 
 // Mock FileReader
-global.FileReader = class {
+global.FileReader = class MockFileReader {
   result = new ArrayBuffer(8);
+  error: DOMException | null = null;
+  readyState = FileReader.DONE;
+  EMPTY = FileReader.EMPTY;
+  LOADING = FileReader.LOADING;
+  DONE = FileReader.DONE;
+  
+  onabort: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onerror: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onloadend: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onloadstart: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  onprogress: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  
+  addEventListener = vi.fn();
+  removeEventListener = vi.fn();
+  dispatchEvent = vi.fn();
+  abort = vi.fn();
+  readAsDataURL = vi.fn();
+  readAsText = vi.fn();
+  readAsBinaryString = vi.fn();
+  
   readAsArrayBuffer = vi.fn(() => {
     // Simulate JPEG magic bytes
     this.result = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]).buffer;
     if (this.onload) this.onload({} as ProgressEvent<FileReader>);
   });
-  onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
 } as any;
 
 describe('MobileImageUpload Component', () => {

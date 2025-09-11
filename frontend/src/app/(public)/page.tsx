@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/Button';
 import { analysisApi, handleApiError } from '@/lib/api';
 import { getRandomMessage } from '@/lib/cultural-theme';
+import { LegalNotice } from '@/components/legal/LegalNotice';
+import { LegalLinks } from '@/components/legal/LegalLinks';
 import type { Analysis } from '@/types';
 
 export default function HomePage() {
@@ -218,12 +220,8 @@ export default function HomePage() {
                 </Card>
               )}
 
-              {/* Privacy Note */}
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">
-                  🔒 Your images are processed securely and not stored permanently
-                </p>
-              </div>
+              {/* Legal Notice */}
+              <LegalNotice variant="upload" />
             </div>
           </div>
         </div>
@@ -277,7 +275,8 @@ export default function HomePage() {
       </div>
 
       {/* Footer */}
-      <div className="py-6 px-4 text-center">
+      <div className="py-8 px-4 text-center space-y-4">
+        <LegalLinks variant="footer" />
         <p className="text-xs text-muted-foreground">
           Based on traditional Indian palmistry (Hast Rekha Shastra) enhanced with AI
         </p>

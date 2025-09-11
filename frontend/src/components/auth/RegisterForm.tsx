@@ -33,6 +33,16 @@ const registerSchema = z.object({
   confirmPassword: z
     .string()
     .min(1, 'Please confirm your password'),
+  acceptTerms: z
+    .boolean()
+    .refine(val => val === true, {
+      message: 'You must agree to the Terms of Service and Privacy Policy'
+    }),
+  acceptDisclaimer: z
+    .boolean()
+    .refine(val => val === true, {
+      message: 'You must acknowledge this is for entertainment only'
+    }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
@@ -66,7 +76,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   }, []); // Remove clearError from dependency array to prevent infinite calls
   
   const onSubmit = async (data: RegisterFormData) => {
-    console.log('Form submitted with data:', data);
+    console.log('Form submitted with data:', { 
+      name: data.name, 
+      email: data.email, 
+      acceptTerms: data.acceptTerms,
+      acceptDisclaimer: data.acceptDisclaimer,
+      password: '[REDACTED]' 
+    });
     try {
       clearError();
       
@@ -104,9 +120,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center space-y-2">
-        <div className="mx-auto w-12 h-12 bg-saffron-100 rounded-full flex items-center justify-center">
-          <span className="text-saffron-600 text-xl">🌸</span>
-        </div>
         <CardTitle className="text-2xl">Create Account</CardTitle>
         <CardDescription>
           Join us to unlock your full palm reading experience and save your conversations
@@ -174,24 +187,61 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             autoComplete="new-password"
           />
           
-          {/* Terms notice */}
-          <div className="text-xs text-muted-foreground">
-            By creating an account, you agree to our{' '}
-            <button
-              type="button"
-              className="text-saffron-600 hover:text-saffron-700 underline"
-              onClick={() => window.open('/terms', '_blank')}
-            >
-              Terms of Service
-            </button>{' '}
-            and{' '}
-            <button
-              type="button"
-              className="text-saffron-600 hover:text-saffron-700 underline"
-              onClick={() => window.open('/privacy', '_blank')}
-            >
-              Privacy Policy
-            </button>
+          {/* Legal Agreement Checkboxes */}
+          <div className="space-y-3">
+            {/* Terms and Privacy Policy Agreement */}
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                {...register('acceptTerms')}
+                type="checkbox"
+                disabled={isLoading || isSubmitting}
+                className="mt-1 w-4 h-4 text-saffron-600 bg-white border-gray-300 rounded focus:ring-saffron-500 focus:ring-2"
+              />
+              <div className="text-xs text-gray-700">
+                I agree to the{' '}
+                <button
+                  type="button"
+                  className="text-saffron-600 hover:text-saffron-700 underline font-medium"
+                  onClick={() => window.open('/terms', '_blank')}
+                >
+                  Terms of Service
+                </button>{' '}
+                and{' '}
+                <button
+                  type="button"
+                  className="text-saffron-600 hover:text-saffron-700 underline font-medium"
+                  onClick={() => window.open('/privacy', '_blank')}
+                >
+                  Privacy Policy
+                </button>
+                {errors.acceptTerms && (
+                  <div className="text-red-500 text-xs mt-1">{errors.acceptTerms.message}</div>
+                )}
+              </div>
+            </label>
+
+            {/* Entertainment Disclaimer Agreement */}
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                {...register('acceptDisclaimer')}
+                type="checkbox"
+                disabled={isLoading || isSubmitting}
+                className="mt-1 w-4 h-4 text-saffron-600 bg-white border-gray-300 rounded focus:ring-saffron-500 focus:ring-2"
+              />
+              <div className="text-xs text-gray-700">
+                <strong>I understand this is for entertainment purposes only</strong> and agree to the{' '}
+                <button
+                  type="button"
+                  className="text-saffron-600 hover:text-saffron-700 underline font-medium"
+                  onClick={() => window.open('/disclaimer', '_blank')}
+                >
+                  disclaimer
+                </button>
+                {errors.acceptDisclaimer && (
+                  <div className="text-red-500 text-xs mt-1">{errors.acceptDisclaimer.message}</div>
+                )}
+              </div>
+            </label>
           </div>
           
           {/* Submit button */}

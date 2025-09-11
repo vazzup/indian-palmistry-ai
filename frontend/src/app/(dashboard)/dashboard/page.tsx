@@ -272,7 +272,6 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <span className="text-lg mr-2">💡</span>
               Palm Reading Tips
             </CardTitle>
             <CardDescription>
@@ -282,25 +281,25 @@ export default function DashboardPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">🖐️ Best Photo Practices</h4>
+                <h4 className="font-medium text-sm">Best Photo Practices</h4>
                 <p className="text-xs text-muted-foreground">
                   Use natural lighting and keep your palm flat for the most accurate readings
                 </p>
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">💬 Ask Follow-up Questions</h4>
+                <h4 className="font-medium text-sm">Ask Follow-up Questions</h4>
                 <p className="text-xs text-muted-foreground">
                   Chat with AI about specific aspects of your reading for deeper insights
                 </p>
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">📊 Track Progress</h4>
+                <h4 className="font-medium text-sm">Track Progress</h4>
                 <p className="text-xs text-muted-foreground">
                   Compare readings over time to see how your life path evolves
                 </p>
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">🔮 Cultural Context</h4>
+                <h4 className="font-medium text-sm">Cultural Context</h4>
                 <p className="text-xs text-muted-foreground">
                   Our AI uses traditional Indian palmistry principles for authentic readings
                 </p>

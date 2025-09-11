@@ -1,40 +1,38 @@
-/**
- * @jest-environment jsdom
- */
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import { SecureForm } from '@/components/ui/SecureForm';
 import { useCSRF } from '@/hooks/useCSRF';
 import { sanitizeObject, rateLimiter } from '@/lib/security';
 
 // Mock dependencies
-jest.mock('@/hooks/useCSRF');
-jest.mock('@/lib/security', () => ({
-  sanitizeObject: jest.fn(),
+vi.mock('@/hooks/useCSRF');
+vi.mock('@/lib/security', () => ({
+  sanitizeObject: vi.fn(),
   rateLimiter: {
-    isAllowed: jest.fn(),
+    isAllowed: vi.fn(),
   },
 }));
 
-const mockUseCSRF = useCSRF as jest.MockedFunction<typeof useCSRF>;
-const mockSanitizeObject = sanitizeObject as jest.MockedFunction<typeof sanitizeObject>;
-const mockRateLimiter = rateLimiter as jest.Mocked<typeof rateLimiter>;
+const mockUseCSRF = vi.mocked(useCSRF);
+const mockSanitizeObject = vi.mocked(sanitizeObject);
+const mockRateLimiter = vi.mocked(rateLimiter);
 
 describe('SecureForm', () => {
-  const mockOnSubmit = jest.fn();
+  const mockOnSubmit = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Default mock implementations
     mockUseCSRF.mockReturnValue({
       csrfToken: 'test-csrf-token',
       isLoading: false,
-      refreshCSRFToken: jest.fn(),
+      refreshCSRFToken: vi.fn(),
     });
 
-    mockSanitizeObject.mockImplementation((obj) => obj);
+    mockSanitizeObject.mockImplementation((obj: any) => obj);
     mockRateLimiter.isAllowed.mockReturnValue(true);
   });
 
@@ -67,7 +65,7 @@ describe('SecureForm', () => {
     mockUseCSRF.mockReturnValue({
       csrfToken: null,
       isLoading: false,
-      refreshCSRFToken: jest.fn(),
+      refreshCSRFToken: vi.fn(),
     });
 
     render(

@@ -78,7 +78,7 @@ function RegisterPageContent() {
       {/* Footer */}
       <div className="py-6 px-4 text-center">
         <p className="text-xs text-muted-foreground">
-          🔒 Your data is secure and will never be shared
+          Your data is secure and will never be shared
         </p>
       </div>
     </div>

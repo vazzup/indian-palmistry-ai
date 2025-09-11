@@ -97,7 +97,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
         
         <div className="bg-white/70 rounded-lg p-4 border border-saffron-200">
           <p className="text-xs text-center text-saffron-700 mb-3">
-            ✨ Free account • No payment required • Instant access
+            Free account • No payment required • Instant access
           </p>
           
           <div className="space-y-3">

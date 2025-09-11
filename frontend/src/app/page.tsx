@@ -272,7 +272,7 @@ export default function HomePage() {
               {/* Privacy Note */}
               <div className="text-center">
                 <p className="text-xs text-gray-600">
-                  🔒 Your images are processed securely and not stored permanently
+                  Your images are processed securely and not stored permanently
                 </p>
               </div>
               

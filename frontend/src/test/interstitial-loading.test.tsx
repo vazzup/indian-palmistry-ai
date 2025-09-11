@@ -6,8 +6,7 @@
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // Mock the entire page component for testing
 const MockAnalysisDetailPage = () => {
@@ -80,13 +79,13 @@ const MockAnalysisDetailPage = () => {
 
 describe('InterstitialLoadingScreen', () => {
   beforeEach(() => {
-    jest.clearAllTimers();
-    jest.useFakeTimers();
+    vi.clearAllTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   test('displays loading screen when transitioning', () => {
@@ -116,7 +115,7 @@ describe('InterstitialLoadingScreen', () => {
     );
     
     // Advance timer by 1200ms to trigger first message change
-    jest.advanceTimersByTime(1200);
+    vi.advanceTimersByTime(1200);
     
     // Should show second message
     expect(screen.getByTestId('transition-message')).toHaveTextContent(
@@ -124,7 +123,7 @@ describe('InterstitialLoadingScreen', () => {
     );
     
     // Advance timer by another 1200ms
-    jest.advanceTimersByTime(1200);
+    vi.advanceTimersByTime(1200);
     
     // Should show third message
     expect(screen.getByTestId('transition-message')).toHaveTextContent(
@@ -142,7 +141,7 @@ describe('InterstitialLoadingScreen', () => {
     expect(screen.getByTestId('interstitial-loading')).toBeInTheDocument();
     
     // Advance timer by 3000ms to complete transition
-    jest.advanceTimersByTime(3000);
+    vi.advanceTimersByTime(3000);
     
     // Should hide loading screen
     expect(screen.queryByTestId('interstitial-loading')).not.toBeInTheDocument();
@@ -193,13 +192,13 @@ describe('InterstitialLoadingScreen', () => {
     // Test full cycle through messages
     messages.forEach((expectedMessage, index) => {
       if (index > 0) {
-        jest.advanceTimersByTime(1200);
+        vi.advanceTimersByTime(1200);
       }
       expect(screen.getByTestId('transition-message')).toHaveTextContent(expectedMessage);
     });
     
     // Advance one more time to test looping
-    jest.advanceTimersByTime(1200);
+    vi.advanceTimersByTime(1200);
     expect(screen.getByTestId('transition-message')).toHaveTextContent(messages[0]);
   });
 });

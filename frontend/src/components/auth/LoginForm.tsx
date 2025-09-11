@@ -79,9 +79,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center space-y-2">
-        <div className="mx-auto w-12 h-12 bg-saffron-100 rounded-full flex items-center justify-center">
-          <span className="text-saffron-600 text-xl">🪬</span>
-        </div>
         <CardTitle className="text-2xl">Welcome Back</CardTitle>
         <CardDescription>
           Sign in to access your palm readings and conversations

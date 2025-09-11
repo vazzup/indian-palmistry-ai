@@ -154,7 +154,7 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
           {isActive && (
             <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
               <p className="text-xs text-orange-700">
-                ✨ Ancient wisdom meets modern technology
+                Ancient wisdom meets modern technology
               </p>
             </div>
           )}

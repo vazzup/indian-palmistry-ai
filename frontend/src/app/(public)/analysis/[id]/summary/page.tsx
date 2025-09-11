@@ -206,13 +206,13 @@ export default function AnalysisSummaryPage() {
 
             {/* Analysis metadata */}
             <div className="text-center text-xs text-saffron-600 space-y-1">
-              <p>✨ Analysis completed in {
+              <p>Analysis completed in {
                 analysis.processing_completed_at && analysis.processing_started_at 
                   ? Math.round((new Date(analysis.processing_completed_at).getTime() - 
                                new Date(analysis.processing_started_at).getTime()) / 1000)
                   : 'Unknown'
               } seconds</p>
-              <p>🔮 Based on {analysis.tokens_used || 'many'} AI insights</p>
+              <p>Based on {analysis.tokens_used || 'many'} AI insights</p>
             </div>
           </CardContent>
         </Card>

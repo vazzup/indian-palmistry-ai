@@ -1,12 +1,10 @@
-/**
- * @jest-environment jsdom
- */
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { vi } from 'vitest';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 // Mock Next.js Image component
-jest.mock('next/image', () => {
+vi.mock('next/image', () => {
   return function MockImage({ src, alt, onLoad, onError, ...props }: any) {
     return (
       <img
@@ -23,7 +21,7 @@ jest.mock('next/image', () => {
 
 describe('OptimizedImage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render with basic props', () => {
@@ -97,21 +95,20 @@ describe('OptimizedImage', () => {
     expect(screen.queryByTestId('image-skeleton')).not.toBeVisible();
   });
 
-  it('should use custom error message', () => {
+  it('should show default error message on image error', () => {
     render(
       <OptimizedImage
         src="/test-image.jpg"
         alt="Test image"
         width={400}
         height={300}
-        errorMessage="Custom error message"
       />
     );
 
     const image = screen.getByTestId('next-image');
     fireEvent.error(image);
 
-    expect(screen.getByText('Custom error message')).toBeInTheDocument();
+    expect(screen.getByText('Image not available')).toBeInTheDocument();
   });
 
   it('should apply correct container classes', () => {

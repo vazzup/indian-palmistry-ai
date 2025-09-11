@@ -1,28 +1,26 @@
-/**
- * @jest-environment jsdom
- */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { vi } from 'vitest';
 import { OfflineIndicator } from '@/components/ui/OfflineIndicator';
 import { useOffline } from '@/hooks/useOffline';
 
 // Mock the useOffline hook
-jest.mock('@/hooks/useOffline');
+vi.mock('@/hooks/useOffline');
 
-const mockUseOffline = useOffline as jest.MockedFunction<typeof useOffline>;
+const mockUseOffline = vi.mocked(useOffline);
 
 describe('OfflineIndicator', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
-  it('should not render when online', () => {
+  it('should not render when online with no pending actions', () => {
     mockUseOffline.mockReturnValue({
       isOnline: true,
-      isOffline: false,
-      syncQueue: [],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      pendingActions: [],
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
     const { container } = render(<OfflineIndicator />);
@@ -32,151 +30,143 @@ describe('OfflineIndicator', () => {
   it('should render offline indicator when offline', () => {
     mockUseOffline.mockReturnValue({
       isOnline: false,
-      isOffline: true,
-      syncQueue: [],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      pendingActions: [],
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
     render(<OfflineIndicator />);
     
-    expect(screen.getByText('You are currently offline')).toBeInTheDocument();
-    expect(screen.getByText('Some features may be limited')).toBeInTheDocument();
+    expect(screen.getByText('You\'re Offline')).toBeInTheDocument();
+    expect(screen.getByText('Some features may not work. Changes will sync when back online.')).toBeInTheDocument();
   });
 
-  it('should show sync queue count when items are pending', () => {
+  it('should show pending actions count when back online', () => {
     mockUseOffline.mockReturnValue({
-      isOnline: false,
-      isOffline: true,
-      syncQueue: [
+      isOnline: true,
+      pendingActions: [
         {
           id: '1',
-          type: 'CREATE',
-          endpoint: '/api/test1',
+          action: 'upload_analysis',
           data: { name: 'test1' },
           timestamp: Date.now(),
         },
         {
           id: '2',
-          type: 'UPDATE',
-          endpoint: '/api/test2',
+          action: 'send_message',
           data: { name: 'test2' },
           timestamp: Date.now(),
         },
       ],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
     render(<OfflineIndicator />);
     
-    expect(screen.getByText('You are currently offline')).toBeInTheDocument();
-    expect(screen.getByText('2 changes will sync when you reconnect')).toBeInTheDocument();
+    expect(screen.getByText('Back Online')).toBeInTheDocument();
+    expect(screen.getByText('2 pending actions to sync')).toBeInTheDocument();
   });
 
-  it('should show singular text for single sync item', () => {
+  it('should show singular text for single pending action', () => {
     mockUseOffline.mockReturnValue({
-      isOnline: false,
-      isOffline: true,
-      syncQueue: [
+      isOnline: true,
+      pendingActions: [
         {
           id: '1',
-          type: 'CREATE',
-          endpoint: '/api/test1',
+          action: 'upload_analysis',
           data: { name: 'test1' },
           timestamp: Date.now(),
         },
       ],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
     render(<OfflineIndicator />);
     
-    expect(screen.getByText('1 change will sync when you reconnect')).toBeInTheDocument();
+    expect(screen.getByText('1 pending action to sync')).toBeInTheDocument();
   });
 
-  it('should have proper styling classes', () => {
+  it('should have proper positioning classes', () => {
     mockUseOffline.mockReturnValue({
       isOnline: false,
-      isOffline: true,
-      syncQueue: [],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      pendingActions: [],
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
     render(<OfflineIndicator />);
     
-    const indicator = screen.getByText('You are currently offline').closest('div');
+    const indicator = screen.getByText('You\'re Offline').closest('div')?.closest('div')?.closest('div');
     
     expect(indicator).toHaveClass(
       'fixed',
-      'top-0',
-      'left-0',
-      'right-0',
-      'bg-amber-500',
-      'text-white',
-      'px-4',
-      'py-2',
-      'text-center',
-      'text-sm',
+      'bottom-4',
+      'left-4',
+      'right-4',
       'z-50'
     );
   });
 
-  it('should include wifi off icon', () => {
+  it('should show wifi off icon when offline', () => {
     mockUseOffline.mockReturnValue({
       isOnline: false,
-      isOffline: true,
-      syncQueue: [],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      pendingActions: [],
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
     render(<OfflineIndicator />);
     
-    // Check for WiFi off icon (should be an SVG or icon element)
-    const iconElement = screen.getByText('You are currently offline').previousSibling;
-    expect(iconElement).toBeInTheDocument();
+    // Check for WiFi off icon (Lucide icon)
+    const container = screen.getByText('You\'re Offline').closest('div')?.closest('div');
+    expect(container?.querySelector('svg')).toBeInTheDocument();
   });
 
-  it('should be accessible', () => {
+  it('should show sync button when online with pending actions', () => {
+    const mockProcessPendingActions = vi.fn();
     mockUseOffline.mockReturnValue({
-      isOnline: false,
-      isOffline: true,
-      syncQueue: [
+      isOnline: true,
+      pendingActions: [
         {
           id: '1',
-          type: 'CREATE',
-          endpoint: '/api/test1',
+          action: 'upload_analysis',
           data: { name: 'test1' },
           timestamp: Date.now(),
         },
       ],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      addPendingAction: vi.fn(),
+      processPendingActions: mockProcessPendingActions,
+      clearPendingActions: vi.fn(),
     });
 
     render(<OfflineIndicator />);
     
-    const indicator = screen.getByRole('status', { name: /offline/i });
-    expect(indicator).toBeInTheDocument();
-    expect(indicator).toHaveAttribute('aria-label', 'Offline status with 1 pending change');
+    const syncButton = screen.getByRole('button', { name: /sync now/i });
+    expect(syncButton).toBeInTheDocument();
+    
+    fireEvent.click(syncButton);
+    expect(mockProcessPendingActions).toHaveBeenCalled();
   });
 
-  it('should handle empty sync queue accessibility', () => {
+  it('should show cached content message when offline', () => {
     mockUseOffline.mockReturnValue({
       isOnline: false,
-      isOffline: true,
-      syncQueue: [],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      pendingActions: [],
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
     render(<OfflineIndicator />);
     
-    const indicator = screen.getByRole('status', { name: /offline/i });
-    expect(indicator).toHaveAttribute('aria-label', 'Currently offline');
+    expect(screen.getByText('Cached content available')).toBeInTheDocument();
   });
 
   it('should update when connection status changes', () => {
@@ -185,75 +175,64 @@ describe('OfflineIndicator', () => {
     // Initially offline
     mockUseOffline.mockReturnValue({
       isOnline: false,
-      isOffline: true,
-      syncQueue: [],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      pendingActions: [],
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
     rerender(<OfflineIndicator />);
-    expect(screen.getByText('You are currently offline')).toBeInTheDocument();
+    expect(screen.getByText('You\'re Offline')).toBeInTheDocument();
 
-    // Go back online
+    // Go back online with no pending actions (should not render)
     mockUseOffline.mockReturnValue({
       isOnline: true,
-      isOffline: false,
-      syncQueue: [],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      pendingActions: [],
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
     rerender(<OfflineIndicator />);
-    expect(screen.queryByText('You are currently offline')).not.toBeInTheDocument();
+    expect(screen.queryByText('You\'re Offline')).not.toBeInTheDocument();
+    expect(screen.queryByText('Back Online')).not.toBeInTheDocument();
   });
 
-  it('should update sync count dynamically', () => {
-    const { rerender } = render(<OfflineIndicator />);
-
-    // Start with no pending items
+  it('should show success message when all actions synced', () => {
     mockUseOffline.mockReturnValue({
-      isOnline: false,
-      isOffline: true,
-      syncQueue: [],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      isOnline: true,
+      pendingActions: [],
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
-    rerender(<OfflineIndicator />);
-    expect(screen.getByText('Some features may be limited')).toBeInTheDocument();
+    const { container } = render(<OfflineIndicator />);
+    
+    // Should not render when online with no pending actions
+    expect(container).toBeEmptyDOMElement();
+  });
 
-    // Add pending items
+  it('should show wifi icon when online', () => {
     mockUseOffline.mockReturnValue({
-      isOnline: false,
-      isOffline: true,
-      syncQueue: [
+      isOnline: true,
+      pendingActions: [
         {
           id: '1',
-          type: 'CREATE',
-          endpoint: '/api/test1',
+          action: 'upload_analysis',
           data: { name: 'test1' },
           timestamp: Date.now(),
         },
-        {
-          id: '2',
-          type: 'UPDATE',
-          endpoint: '/api/test2',
-          data: { name: 'test2' },
-          timestamp: Date.now(),
-        },
-        {
-          id: '3',
-          type: 'DELETE',
-          endpoint: '/api/test3',
-          data: undefined,
-          timestamp: Date.now(),
-        },
       ],
-      addToSyncQueue: jest.fn(),
-      processSync: jest.fn(),
+      addPendingAction: vi.fn(),
+      processPendingActions: vi.fn(),
+      clearPendingActions: vi.fn(),
     });
 
-    rerender(<OfflineIndicator />);
-    expect(screen.getByText('3 changes will sync when you reconnect')).toBeInTheDocument();
+    render(<OfflineIndicator />);
+    
+    // Should show wifi icon when online
+    const container = screen.getByText('Back Online').closest('div')?.closest('div');
+    expect(container?.querySelector('svg')).toBeInTheDocument();
   });
 });

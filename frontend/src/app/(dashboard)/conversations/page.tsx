@@ -440,7 +440,7 @@ export default function ConversationsPage() {
                 </p>
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">🎯 Organize by Topic</h4>
+                <h4 className="font-medium text-sm">Organize by Topic</h4>
                 <p className="text-xs text-muted-foreground">
                   Create separate conversations for different topics like career, love, or health
                 </p>

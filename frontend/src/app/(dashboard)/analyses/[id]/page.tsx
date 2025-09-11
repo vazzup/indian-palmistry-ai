@@ -22,6 +22,7 @@ import type { Analysis, Message, TalkResponse, InitialConversationResponse } fro
 import { Input } from '@/components/ui/Input';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { LegalNotice } from '@/components/legal/LegalNotice';
 
 export default function AnalysisDetailPage() {
   const params = useParams();
@@ -337,6 +338,7 @@ export default function AnalysisDetailPage() {
           </Button>
         </div>
 
+
         {/* Render different content based on conversation mode */}
         {analysis.conversation_mode === 'analysis' ? (
           // Analysis Mode - Show full traditional view with ask question section
@@ -540,6 +542,7 @@ export default function AnalysisDetailPage() {
         ) : (
           // Chat Mode - Show conversation interface
           <>
+            
             {/* 
              * Enhanced chat interface with modern messaging UI
              * Features: responsive design, proper viewport constraints, and chat bubbles

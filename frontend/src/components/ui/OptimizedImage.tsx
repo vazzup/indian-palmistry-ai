@@ -61,7 +61,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       {hasError && !fallback && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
           <div className="text-center text-gray-500">
-            <div className="text-2xl mb-2">🖼️</div>
+            <div className="text-2xl mb-2">[ ]</div>
             <p className="text-sm">Image not available</p>
           </div>
         </div>

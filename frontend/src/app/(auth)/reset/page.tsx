@@ -82,7 +82,7 @@ export default function ResetPasswordPage() {
           <Card className="w-full max-w-md mx-auto">
             <CardHeader className="text-center space-y-2">
               <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 text-xl">✉️</span>
+                <span className="text-green-600 text-xl">📧</span>
               </div>
               <CardTitle className="text-xl">Email Sent!</CardTitle>
               <CardDescription>
@@ -124,7 +124,7 @@ export default function ResetPasswordPage() {
         {/* Footer */}
         <div className="py-6 px-4 text-center">
           <p className="text-xs text-muted-foreground">
-            🔒 For security, reset links expire in 15 minutes
+            For security, reset links expire in 15 minutes
           </p>
         </div>
       </div>
@@ -214,7 +214,7 @@ export default function ResetPasswordPage() {
       {/* Footer */}
       <div className="py-6 px-4 text-center">
         <p className="text-xs text-muted-foreground">
-          🔒 Reset links are secure and expire for your protection
+          Reset links are secure and expire for your protection
         </p>
       </div>
     </div>
