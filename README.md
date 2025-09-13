@@ -1,4 +1,4 @@
-# Indian Palmistry AI
+# PalmistTalk
 
 An AI-powered application for traditional Indian palmistry readings using OpenAI's Vision API and natural language processing.
 
@@ -8,7 +8,7 @@ This project combines ancient Indian palmistry wisdom (Hast Rekha Shastra) with 
 
 ## 🚀 Current Status: Phase 4 Complete Integration & User Experience Excellence - Production Ready
 
-The application is now a **fully operational, enterprise-grade** Indian Palmistry AI platform with complete system integration, advanced authentication flow, cache debug system, and seamless user experience. All components have been integrated into a production-ready system with comprehensive functionality:
+The application is now a **fully operational, enterprise-grade** PalmistTalk platform with complete system integration, advanced authentication flow, cache debug system, and seamless user experience. All components have been integrated into a production-ready system with comprehensive functionality:
 
 ### Backend (Enterprise-Grade)
 - ✅ **Advanced Authentication System**: Session management with HTTP-only cookies and CSRF protection
@@ -293,7 +293,7 @@ The application will be available at:
 ### Using the Application
 
 1. Open http://localhost:3000 in your browser
-2. You'll see the Indian Palmistry AI interface with cultural saffron theme
+2. You'll see the PalmistTalk interface with cultural saffron theme
 3. Upload palm images using the drag & drop interface
 4. Watch real-time analysis progress with traditional messaging
 5. Get AI-powered palmistry insights based on Hast Rekha Shastra

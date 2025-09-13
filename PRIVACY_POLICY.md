@@ -1,17 +1,11 @@
-'use client';
+# Privacy Policy - PalmistTalk
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { LegalDocument } from '@/components/legal/LegalDocument';
-
-const privacyContent = `# Privacy Policy - PalmistTalk
-
-**Effective Date**: January 17, 2025  
-**Last Updated**: January 17, 2025
+**Effective Date**: [To be updated]  
+**Last Updated**: [To be updated]
 
 ## 1. Introduction
 
-PalmistTalk, operated by Vatsal Kanakiya ("we," "our," or "us"), respects your privacy and is committed to protecting your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our palmistry interpretation service (the "Service").
+PalmistTalk ("we," "our," or "us") respects your privacy and is committed to protecting your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our palmistry interpretation service (the "Service").
 
 **Please read this Privacy Policy carefully.** By using our Service, you consent to the practices described in this policy.
 
@@ -62,6 +56,10 @@ PalmistTalk, operated by Vatsal Kanakiya ("we," "our," or "us"), respects your p
 - We use **OpenAI's services** to analyze palm images and generate interpretations
 - OpenAI may temporarily process your images and conversations according to their privacy policy
 - We do not control how third-party AI services handle data
+
+#### Authentication Services
+- If you log in through social media or other third-party services (future feature)
+- We may receive basic profile information as permitted by those services
 
 ## 3. How We Use Your Information
 
@@ -114,6 +112,11 @@ PalmistTalk, operated by Vatsal Kanakiya ("we," "our," or "us"), respects your p
 - **Content delivery networks** for faster service delivery
 - **Security services** for protecting against cyber threats
 
+#### Analytics and Monitoring
+- **Web analytics services** for understanding user behavior (anonymized data)
+- **Performance monitoring** for service reliability
+- **Error tracking** for identifying and fixing issues
+
 ### 4.2 Legal Disclosure
 We may disclose your information when:
 - **Required by law** or legal process
@@ -142,11 +145,23 @@ We may disclose your information when:
 - **Regular access audits** and permission reviews
 - **Employee training** on privacy and security practices
 
+### 5.3 Data Backup and Recovery
+- **Regular backups** of user data for disaster recovery
+- **Secure backup storage** with encryption
+- **Tested recovery procedures** to ensure data availability
+- **Geographic backup distribution** for redundancy
+
+### 5.4 Incident Response
+- **Immediate containment** of any security incidents
+- **Prompt notification** to affected users when required by law
+- **Forensic analysis** to understand and prevent future incidents
+- **Coordination with authorities** when necessary
+
 ## 6. Data Retention
 
 ### 6.1 Account Data
 - **Active accounts**: Data retained while account remains active
-- **Inactive accounts**: Data may be deleted after 3 years of inactivity
+- **Inactive accounts**: Data may be deleted after [X] years of inactivity
 - **Deleted accounts**: Most data permanently deleted within 30 days
 
 ### 6.2 Palm Images and Analysis
@@ -155,7 +170,7 @@ We may disclose your information when:
 - **Conversation history**: Kept for context in future interactions
 
 ### 6.3 Technical Data
-- **Server logs**: Retained for 6 months for security and debugging
+- **Server logs**: Retained for [X] months for security and debugging
 - **Analytics data**: Anonymized and aggregated data may be retained longer
 - **Legal compliance**: Data retained as required by applicable laws
 
@@ -172,10 +187,26 @@ We may disclose your information when:
 - **Push notifications**: Control mobile notifications through device settings
 - **Analytics**: Opt out of certain analytics tracking through browser settings
 
+### 7.3 Regional Rights (Where Applicable)
+
+#### European Union (GDPR)
+- **Right to access** your personal data
+- **Right to rectification** of incorrect data
+- **Right to erasure** ("right to be forgotten")
+- **Right to restrict processing** in certain circumstances
+- **Right to data portability** in machine-readable format
+- **Right to object** to certain data processing
+
+#### California (CCPA)
+- **Right to know** what personal information we collect
+- **Right to delete** personal information we have collected
+- **Right to opt-out** of sale of personal information (we don't sell data)
+- **Right to non-discrimination** for exercising privacy rights
+
 ## 8. International Data Transfers
 
 ### 8.1 Data Processing Locations
-- **Primary servers**: Located in India
+- **Primary servers**: [Location to be specified]
 - **Backup systems**: May be located in different countries
 - **AI processing**: OpenAI services may process data in multiple locations
 - **CDN services**: Content may be served from various global locations
@@ -193,6 +224,12 @@ We may disclose your information when:
 - **Parental consent**: Users under 18 require parental consent and supervision
 - **No intentional collection**: We don't knowingly collect data from children under 13
 - **Immediate deletion**: Any data from children discovered will be promptly deleted
+
+### 9.2 Parental Controls
+If you believe your child has provided information to us:
+- **Contact us immediately** to request data deletion
+- **Verify identity** as the parent or guardian
+- **Receive confirmation** of data removal
 
 ## 10. Cookies and Tracking
 
@@ -236,9 +273,8 @@ For questions about this Privacy Policy or your personal information:
 **Subject Line**: "Privacy Policy Inquiry"  
 **Response Time**: We aim to respond within 48 hours
 
-### 12.2 Data Protection Contact
-**Contact**: Vatsal Kanakiya  
-**Email**: connect@palmisttalk.com  
+### 12.2 Data Protection Officer
+**Contact**: [DPO contact information if applicable]  
 **Responsibilities**: Handling privacy complaints and ensuring compliance
 
 ### 12.3 Regulatory Authorities
@@ -254,18 +290,4 @@ We are committed to protecting your privacy while providing an entertaining and 
 
 **Your trust is important to us, and we work hard to earn and keep it.**
 
-*For the most current version of this Privacy Policy, please check our website regularly.*`;
-
-export default function PrivacyPage() {
-  const router = useRouter();
-
-  return (
-    <LegalDocument
-      title="Privacy Policy"
-      content={privacyContent}
-      effectiveDate="January 17, 2025"
-      lastUpdated="January 17, 2025"
-      onBack={() => router.back()}
-    />
-  );
-}
+*For the most current version of this Privacy Policy, please check our website regularly.*

@@ -1,4 +1,4 @@
-# 🚀 Indian Palmistry AI - Quick Start Guide
+# 🚀 PalmistTalk - Quick Start Guide
 
 ## One-Command Startup
 

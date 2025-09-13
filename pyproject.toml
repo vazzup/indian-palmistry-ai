@@ -1,9 +1,9 @@
 [project]
-name = "indian-palmistry-ai"
+name = "palmisttalk-backend"
 version = "0.1.0"
-description = "AI-powered Indian palmistry backend application"
+description = "AI-powered Indian palmistry backend application for PalmistTalk.com"
 authors = [
-    {name = "Indian Palmistry AI Team"}
+    {name = "PalmistTalk Team"}
 ]
 requires-python = ">=3.9"
 dependencies = [

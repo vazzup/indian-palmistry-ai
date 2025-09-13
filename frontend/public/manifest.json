@@ -1,7 +1,7 @@
 {
-  "name": "Indian Palmistry AI",
-  "short_name": "Palmistry AI",
-  "description": "AI-powered traditional Indian palmistry readings with OpenAI Vision API",
+  "name": "PalmistTalk - AI Palm Reading",
+  "short_name": "PalmistTalk",
+  "description": "AI-powered traditional Indian palmistry readings at PalmistTalk.com with OpenAI Vision API",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -57,7 +57,7 @@
     {
       "name": "New Reading",
       "short_name": "New Reading",
-      "description": "Start a new palm reading",
+      "description": "Start a new palm reading at PalmistTalk",
       "url": "/",
       "icons": [
         {
@@ -69,7 +69,7 @@
     {
       "name": "My Readings",
       "short_name": "Readings",
-      "description": "View your palm readings",
+      "description": "View your PalmistTalk readings",
       "url": "/analyses",
       "icons": [
         {
@@ -81,7 +81,7 @@
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
-      "description": "Open your dashboard",
+      "description": "Open your PalmistTalk dashboard",
       "url": "/dashboard",
       "icons": [
         {
@@ -97,14 +97,14 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Home screen for palm upload"
+      "label": "PalmistTalk home screen for palm upload"
     },
     {
       "src": "/screenshots/mobile-dashboard.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "User dashboard with analytics"
+      "label": "PalmistTalk user dashboard with analytics"
     }
   ]
 }

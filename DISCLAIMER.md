@@ -1,10 +1,4 @@
-'use client';
-
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { LegalDocument } from '@/components/legal/LegalDocument';
-
-const disclaimerContent = `# Disclaimer - PalmistTalk
+# Disclaimer - PalmistTalk
 
 **⚠️ IMPORTANT: READ BEFORE USING THIS SERVICE ⚠️**
 
@@ -140,7 +134,7 @@ If you are currently experiencing:
 
 ## Your Responsibility
 
-By using Indian Palmistry AI, you acknowledge that:
+By using PalmistTalk, you acknowledge that:
 
 1. **You understand this is entertainment only**
 2. **You will not make important decisions based solely on palm readings**
@@ -190,19 +184,5 @@ Remember: You have the power to create your own destiny through informed choices
 
 **Enjoy exploring the fascinating world of traditional palmistry, but always keep both feet firmly planted in reality!**
 
-*Last Updated: January 17, 2025*
-*Version: 1.0*`;
-
-export default function DisclaimerPage() {
-  const router = useRouter();
-
-  return (
-    <LegalDocument
-      title="Disclaimer"
-      content={disclaimerContent}
-      effectiveDate="January 17, 2025"
-      lastUpdated="January 17, 2025"
-      onBack={() => router.back()}
-    />
-  );
-}
+*Last Updated: [Date to be added]*
+*Version: 1.0*

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Main landing page for Indian Palmistry AI application
+ * @fileoverview Main landing page for PalmistTalk application
  * Features mobile-first design with cultural authenticity
  * Handles palm image upload and real-time analysis progress
  */
@@ -22,7 +22,7 @@ import { getRandomMessage } from '@/lib/cultural-theme';
 import type { Analysis } from '@/types';
 
 /**
- * Main landing page component for Indian Palmistry AI
+ * Main landing page component for PalmistTalk
  * 
  * Features:
  * - Cultural saffron-based design theme
@@ -162,7 +162,7 @@ export default function HomePage() {
           {/* Title */}
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-gray-900">
-              Indian Palmistry AI
+              PalmistTalk
             </h1>
             <p className="text-lg text-gray-600">
               {welcomeMessage}
@@ -356,7 +356,7 @@ export default function HomePage() {
       {/* Footer */}
       <div className="py-6 px-4 text-center">
         <p className="text-xs text-gray-600">
-          Based on traditional Indian palmistry (Hast Rekha Shastra) enhanced with AI
+          PalmistTalk.com - Based on traditional Indian palmistry (Hast Rekha Shastra) enhanced with AI
         </p>
       </div>
     </div>

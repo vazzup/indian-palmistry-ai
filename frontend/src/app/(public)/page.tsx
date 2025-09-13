@@ -108,7 +108,7 @@ export default function HomePage() {
           {/* Title */}
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-foreground">
-              Indian Palmistry AI
+              PalmistTalk
             </h1>
             <p className="text-lg text-muted-foreground">
               {welcomeMessage}
@@ -177,7 +177,7 @@ export default function HomePage() {
             <CardHeader>
               <CardTitle className="text-lg">Get Your Reading</CardTitle>
               <CardDescription>
-                Upload clear photos of your palm(s) for an AI-powered reading based on ancient Indian palmistry
+                Upload clear photos of your palm(s) for an AI-powered reading at PalmistTalk.com based on ancient Indian palmistry
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -278,7 +278,7 @@ export default function HomePage() {
       <div className="py-8 px-4 text-center space-y-4">
         <LegalLinks variant="footer" />
         <p className="text-xs text-muted-foreground">
-          Based on traditional Indian palmistry (Hast Rekha Shastra) enhanced with AI
+          PalmistTalk.com - Based on traditional Indian palmistry (Hast Rekha Shastra) enhanced with AI
         </p>
       </div>
     </div>

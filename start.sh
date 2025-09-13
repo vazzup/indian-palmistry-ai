@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Indian Palmistry AI - Project Startup Script
+# PalmistTalk - Project Startup Script
 # This script starts the complete application stack
 
 set -e  # Exit on any error
@@ -31,7 +31,7 @@ print_error() {
 
 print_header() {
     echo -e "\n${BLUE}================================"
-    echo -e "  Indian Palmistry AI Startup"
+    echo -e "  PalmistTalk Startup"
     echo -e "================================${NC}\n"
 }
 
@@ -631,7 +631,7 @@ show_status() {
     echo -e "   • For issues, check: ${YELLOW}docker compose logs${NC}"
     echo -e "   • Frontend runs in background - check frontend.log for errors"
     
-    echo -e "\n${GREEN}🚀 Your Indian Palmistry AI application is now running!${NC}\n"
+    echo -e "\n${GREEN}🚀 Your PalmistTalk application is now running!${NC}\n"
 }
 
 # Function to handle cleanup on exit

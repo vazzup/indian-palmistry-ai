@@ -1,13 +1,7 @@
-'use client';
+# Terms and Conditions
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { LegalDocument } from '@/components/legal/LegalDocument';
-
-const termsContent = `# Terms and Conditions
-
-**Effective Date**: January 17, 2025  
-**Last Updated**: January 17, 2025
+**Effective Date**: [To be updated]  
+**Last Updated**: [To be updated]
 
 ## 1. Acceptance of Terms
 
@@ -103,7 +97,7 @@ You may **not**:
 
 ## 9. Indemnification
 
-You agree to indemnify and hold harmless Vatsal Kanakiya (the operator of PalmistTalk) from any claims, damages, losses, or expenses arising from:
+You agree to indemnify and hold harmless PalmistTalk, its officers, directors, employees, and agents from any claims, damages, losses, or expenses arising from:
 - Your use of the Service
 - Your violation of these Terms
 - Your violation of any third-party rights
@@ -150,7 +144,7 @@ We may terminate or suspend your access to the Service:
 ## 14. Governing Law and Disputes
 
 ### 14.1 Governing Law
-These Terms shall be governed by and construed in accordance with the laws of India, with jurisdiction in Mumbai.
+These Terms shall be governed by and construed in accordance with the laws of [Jurisdiction to be specified].
 
 ### 14.2 Dispute Resolution
 - We encourage informal resolution of disputes through customer support
@@ -163,14 +157,14 @@ If any provision of these Terms is found to be unenforceable, the remaining prov
 
 ## 16. Entire Agreement
 
-These Terms, together with our Privacy Policy and any additional terms, constitute the entire agreement between you and Vatsal Kanakiya (operator of PalmistTalk).
+These Terms, together with our Privacy Policy and any additional terms, constitute the entire agreement between you and PalmistTalk.
 
 ## 17. Contact Information
 
 For questions about these Terms and Conditions, please contact us at:
 
 **Email**: connect@palmisttalk.com  
-**Operated by**: Vatsal Kanakiya
+**Website**: PalmistTalk.com
 
 ---
 
@@ -188,18 +182,4 @@ The Service requires:
 - Ability to upload digital images
 - Acceptance of cookies and similar technologies
 
-By continuing to use PalmistTalk, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.`;
-
-export default function TermsPage() {
-  const router = useRouter();
-
-  return (
-    <LegalDocument
-      title="Terms and Conditions"
-      content={termsContent}
-      effectiveDate="January 17, 2025"
-      lastUpdated="January 17, 2025"
-      onBack={() => router.back()}
-    />
-  );
-}
+By continuing to use PalmistTalk, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
