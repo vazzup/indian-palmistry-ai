@@ -62,49 +62,9 @@ const nextConfig: NextConfig = {
   // Required for Docker standalone build
   output: 'standalone',
 
-  // Performance optimizations (simplified for production stability)
-  experimental: {
-    // optimizeCss: true, // Disabled to prevent build issues
-    // optimizePackageImports: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-  },
-
-  // Image optimization
+  // Image optimization - simplified for production
   images: {
-    domains: ['localhost'],
-    formats: ['image/avif', 'image/webp'],
-    minimumCacheTTL: 31536000, // 1 year
-    unoptimized: process.env.NODE_ENV === 'production', // Disable optimization in production for simpler deployment
-  },
-  
-  // Security headers
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
-          },
-        ],
-      },
-    ];
+    unoptimized: true, // Disable Next.js image optimization for Docker
   },
 };
 
