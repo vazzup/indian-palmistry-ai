@@ -416,14 +416,25 @@ except:
 start_frontend() {
     print_status "Setting up frontend application..."
     
-    # Kill any existing processes on port 3000
+    # Kill any existing processes on port 3000 (more aggressive cleanup)
     if command -v lsof > /dev/null 2>&1; then
-        local existing_pid=$(lsof -ti :3000 2>/dev/null || true)
-        if [ ! -z "$existing_pid" ]; then
-            print_status "Stopping existing process on port 3000 (PID: $existing_pid)..."
-            kill $existing_pid 2>/dev/null || true
-            sleep 2
+        local existing_pids=$(lsof -ti :3000 2>/dev/null || true)
+        if [ ! -z "$existing_pids" ]; then
+            print_status "Stopping existing processes on port 3000..."
+            echo "$existing_pids" | xargs -r kill -9 2>/dev/null || true
+            sleep 3
+            # Double check
+            local remaining_pids=$(lsof -ti :3000 2>/dev/null || true)
+            if [ ! -z "$remaining_pids" ]; then
+                print_warning "Some processes still running on port 3000, forcing kill..."
+                echo "$remaining_pids" | xargs -r kill -9 2>/dev/null || true
+                sleep 2
+            fi
         fi
+    elif command -v pkill > /dev/null 2>&1; then
+        # Alternative for systems without lsof
+        pkill -f "next.*dev.*3000" 2>/dev/null || true
+        sleep 2
     fi
     
     # Check if frontend directory exists
