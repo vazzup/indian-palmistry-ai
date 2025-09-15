@@ -59,17 +59,21 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig: NextConfig = {
+  // Required for Docker standalone build
+  output: 'standalone',
+
   // Performance optimizations
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
   },
-  
+
   // Image optimization
   images: {
     domains: ['localhost'],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 31536000, // 1 year
+    unoptimized: process.env.NODE_ENV === 'production', // Disable optimization in production for simpler deployment
   },
   
   // Security headers
