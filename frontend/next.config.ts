@@ -62,10 +62,10 @@ const nextConfig: NextConfig = {
   // Required for Docker standalone build
   output: 'standalone',
 
-  // Performance optimizations
+  // Performance optimizations (simplified for production stability)
   experimental: {
-    optimizeCss: true,
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+    // optimizeCss: true, // Disabled to prevent build issues
+    // optimizePackageImports: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
   },
 
   // Image optimization
@@ -108,4 +108,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withBundleAnalyzer(withPWA(nextConfig));
+// Temporarily disable PWA for production build stability
+// export default withBundleAnalyzer(withPWA(nextConfig));
+export default withBundleAnalyzer(nextConfig);
