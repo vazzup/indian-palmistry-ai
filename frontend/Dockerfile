@@ -1,5 +1,5 @@
 # Multi-stage build for optimal production image
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 WORKDIR /app
 
 # Install dependencies only when needed

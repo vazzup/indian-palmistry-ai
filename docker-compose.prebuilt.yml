@@ -1,0 +1,11 @@
+# Docker compose override for pre-built frontend
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prebuilt
+    environment:
+      - NEXT_PUBLIC_API_URL=https://yourdomain.com/api  # ⚠️ Replace with your domain
+      - NEXT_PUBLIC_SITE_URL=https://yourdomain.com  # ⚠️ Replace with your domain
+      - NODE_ENV=production
+    restart: unless-stopped
