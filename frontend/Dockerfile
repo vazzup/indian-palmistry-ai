@@ -12,7 +12,7 @@ RUN npm ci --only=production && npm cache clean --force
 # Build stage
 FROM base AS build
 WORKDIR /app
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 
