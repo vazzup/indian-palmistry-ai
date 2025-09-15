@@ -19,10 +19,10 @@ export default function AnalysisSummaryPage() {
   const { isAuthenticated, user } = useAuth();
   
   // Debug auth state
-  console.log('AnalysisSummaryPage - Auth State:', { 
-    isAuthenticated, 
+  console.log('AnalysisSummaryPage - Auth State:', {
+    isAuthenticated,
     user: user ? { id: user.id, email: user.email } : null,
-    localStorage: localStorage.getItem('auth-storage') 
+    localStorage: typeof window !== 'undefined' ? localStorage.getItem('auth-storage') : null
   });
   
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
@@ -74,7 +74,11 @@ export default function AnalysisSummaryPage() {
               {error || 'This palm reading could not be found.'}
             </p>
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/';
+                }
+              }}
               className="text-saffron-600 hover:text-saffron-700 underline"
             >
               Start a new reading
@@ -100,7 +104,11 @@ export default function AnalysisSummaryPage() {
               {analysis.error_message || 'The palm reading could not be completed.'}
             </p>
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/';
+                }
+              }}
               className="text-saffron-600 hover:text-saffron-700 underline"
             >
               Try with different images
