@@ -31,7 +31,11 @@ except ImportError:
     from sqlalchemy.orm import declarative_base
     
     class MockSettings:
-        database_url = os.getenv("DATABASE_URL", "sqlite:///./data/dev.db")
+        # Use environment variable or fallback based on environment
+        database_url = os.getenv("DATABASE_URL") or (
+            "sqlite:///./data/production.db" if os.getenv("ENVIRONMENT") == "production"
+            else "sqlite:///./data/dev.db"
+        )
     
     settings = MockSettings()
     Base = declarative_base()

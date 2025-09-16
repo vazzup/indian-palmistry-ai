@@ -256,28 +256,14 @@ wait_for_services() {
 run_database_migrations() {
     print_header "Running Database Migrations"
 
-    print_status "Initializing database schema..."
+    print_status "Applying Alembic migrations..."
 
-    # Create database schema directly from models (bypassing migration history issues)
-    if docker compose -f "$COMPOSE_FILE" exec -T api python -c "
-from app.core.database import engine
-from app.models import Base
-Base.metadata.create_all(bind=engine)
-print('Database schema created successfully')
-"; then
-        print_status "Database schema initialized"
-
-        # Mark all migrations as applied (stamp as current)
-        print_status "Marking migrations as applied..."
-        if docker compose -f "$COMPOSE_FILE" exec -T api alembic stamp head; then
-            print_success "Database migrations completed successfully"
-        else
-            print_warning "Schema created but failed to stamp migration history"
-            print_status "This is usually fine for production - schema is ready"
-        fi
+    # Run Alembic migrations in the API container
+    if docker compose -f "$COMPOSE_FILE" exec -T api alembic upgrade head; then
+        print_success "Database migrations completed successfully"
     else
-        print_error "Database schema creation failed"
-        print_status "Checking API container logs..."
+        print_error "Database migrations failed"
+        print_status "Checking migration logs..."
         docker compose -f "$COMPOSE_FILE" logs --tail 20 api
         return 1
     fi
