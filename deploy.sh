@@ -258,11 +258,13 @@ run_database_migrations() {
 
     print_status "Applying Alembic migrations..."
 
-    # Run Alembic migrations in the API container
-    if docker compose -f "$COMPOSE_FILE" exec -T api alembic upgrade head; then
+    # Run Alembic migrations in the API container from correct working directory
+    if docker compose -f "$COMPOSE_FILE" exec -T api bash -c "cd /app && alembic upgrade head"; then
         print_success "Database migrations completed successfully"
     else
         print_error "Database migrations failed"
+        print_status "Checking if alembic files exist in container..."
+        docker compose -f "$COMPOSE_FILE" exec -T api bash -c "ls -la /app/alembic*" || true
         print_status "Checking migration logs..."
         docker compose -f "$COMPOSE_FILE" logs --tail 20 api
         return 1
