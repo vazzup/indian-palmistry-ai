@@ -91,7 +91,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    command: ["celery", "-A", "app.core.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+    command: ["celery", "-A", "app.core.celery_app", "worker", "--loglevel=info", "--concurrency=2", "--queues=analysis,default"]
     networks:
       - palmisttalk-network
 
