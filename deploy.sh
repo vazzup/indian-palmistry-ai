@@ -384,8 +384,8 @@ server {
     }
 
     # Health check endpoint (no rate limiting)
-    location /api/healthz {
-        proxy_pass http://localhost:8000/api/healthz;
+    location /healthz {
+        proxy_pass http://localhost:8000/healthz;
         proxy_set_header Host \$host;
         access_log off;
     }
