@@ -329,6 +329,9 @@ server {
     listen 80;
     server_name $domain www.$domain;
 
+    # Allow larger uploads for palm images
+    client_max_body_size 50M;
+
     # Security headers
     add_header X-Content-Type-Options nosniff;
     add_header X-Frame-Options DENY;
