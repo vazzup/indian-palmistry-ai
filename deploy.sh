@@ -252,6 +252,23 @@ wait_for_services() {
     print_success "All services are ready"
 }
 
+# Run database migrations
+run_database_migrations() {
+    print_header "Running Database Migrations"
+
+    print_status "Applying Alembic migrations..."
+
+    # Run Alembic migrations in the API container
+    if docker compose -f "$COMPOSE_FILE" exec -T api alembic upgrade head; then
+        print_success "Database migrations completed successfully"
+    else
+        print_error "Database migrations failed"
+        print_status "Checking migration logs..."
+        docker compose -f "$COMPOSE_FILE" logs --tail 20 api
+        return 1
+    fi
+}
+
 # Perform health checks
 health_check() {
     print_header "Performing Health Checks"
@@ -534,6 +551,7 @@ main() {
     stop_containers
     deploy_containers
     wait_for_services
+    run_database_migrations
     health_check
     configure_nginx
     setup_ssl
