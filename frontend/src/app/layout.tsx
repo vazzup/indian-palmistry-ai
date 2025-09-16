@@ -53,10 +53,10 @@ export const metadata: Metadata = {
     url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
     images: [
       {
-        url: "/og-image.png",
+        url: "/Logo & Name.png",
         width: 1200,
         height: 630,
-        alt: "PalmistTalk - Palm Reading with AI",
+        alt: "PalmistTalk - Traditional Palm Reading with AI",
       },
     ],
   },
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "PalmistTalk - Traditional Palm Reading with AI | PalmistTalk.com",
     description: "Get authentic Indian palmistry readings powered by AI at PalmistTalk.com. Upload your palm images for instant insights based on traditional Hast Rekha Shastra principles.",
-    images: ["/og-image.png"],
+    images: ["/Logo & Name.png"],
   },
   manifest: "/manifest.json",
   icons: {
