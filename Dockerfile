@@ -29,9 +29,9 @@ RUN pip install --no-cache-dir -e .[dev]
 # Copy application code
 COPY app/ ./app/
 
-# Copy alembic configuration if it exists
-COPY alembic.ini ./ 
-RUN mkdir -p ./alembic
+# Copy alembic configuration and migrations
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
 
 # Create data directory
 RUN mkdir -p /app/data/images && chown -R app:app /app
