@@ -371,7 +371,7 @@ server {
     # General API endpoints with generous rate limiting for polling
     location /api/ {
         limit_req zone=api burst=60 nodelay;
-        proxy_pass http://localhost:8000/;
+        proxy_pass http://localhost:8000/api/;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -385,7 +385,7 @@ server {
 
     # Health check endpoint (no rate limiting)
     location /api/healthz {
-        proxy_pass http://localhost:8000/healthz;
+        proxy_pass http://localhost:8000/api/healthz;
         proxy_set_header Host \$host;
         access_log off;
     }
