@@ -1,0 +1,143 @@
+version: '3.8'
+
+# PalmistTalk Production Docker Compose Configuration
+# This is a standalone production configuration
+# Use with: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  # Redis cache and message broker
+  redis:
+    image: redis:7-alpine
+    container_name: palmisttalk-redis-prod
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - "127.0.0.1:6379:6379"  # Only bind to localhost for security
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - palmisttalk-network
+
+  # FastAPI backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: palmisttalk-api-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      # Override specific production settings
+      - DATABASE_URL=sqlite+aiosqlite:///./data/production.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - FILE_STORAGE_ROOT=./data/images
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:8000:8000"  # Only bind to localhost, nginx will proxy
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+    networks:
+      - palmisttalk-network
+
+  # Celery worker for background tasks
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: palmisttalk-worker-prod
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      # Override specific production settings
+      - DATABASE_URL=sqlite+aiosqlite:///./data/production.db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - FILE_STORAGE_ROOT=./data/images
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.core.celery_app", "inspect", "ping"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    command: ["celery", "-A", "app.core.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+    networks:
+      - palmisttalk-network
+
+  # Next.js frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        # Build-time environment variables
+        - NODE_ENV=production
+    container_name: palmisttalk-frontend-prod
+    restart: unless-stopped
+    environment:
+      # Runtime environment variables (these override build-time vars)
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      # API URL will be set by deploy.sh based on DOMAIN in .env.production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://localhost}
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://localhost}
+      - NEXT_PUBLIC_ENABLE_ANALYTICS=false
+      - NEXT_PUBLIC_ENABLE_PUSH=false
+    ports:
+      - "127.0.0.1:3000:3000"  # Only bind to localhost, nginx will proxy
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s  # Frontend takes longer to start
+    networks:
+      - palmisttalk-network
+
+# Network configuration
+networks:
+  palmisttalk-network:
+    driver: bridge
+    name: palmisttalk-production
+
+# Volume configuration for persistence
+volumes:
+  redis_data:
+    driver: local
+  app_data:
+    driver: local

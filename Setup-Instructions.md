@@ -1,215 +1,98 @@
-# PalmistTalk VPS Production Deployment Instructions
+# PalmistTalk Production Deployment Guide
 
 ## Overview
-This guide will help you deploy PalmistTalk on a VPS for production use with Docker, using SQLite as the database.
+This guide provides a **simplified, automated approach** to deploy PalmistTalk on a production VPS. We've learned from common deployment issues and created two scripts that handle everything:
+
+- **`setup.sh`** - One-time server preparation (install Docker, nginx, create directories, etc.)
+- **`deploy.sh`** - Application deployment (can be run multiple times for updates)
 
 ## Prerequisites
 - VPS with Ubuntu 20.04+ (8GB RAM, 2 cores, 80GB SSD recommended)
-- Domain name pointing to your VPS IP
+- Domain name pointing to your VPS IP address
 - OpenAI API key
-- SSH access to your VPS
+- SSH access to your VPS with sudo privileges
 
----
+## Development vs Production
 
-## Phase 1: VPS System Setup
-
-### Step 1: Update System & Install Docker
+### For Local Development
+Use the existing development setup (no changes needed):
 ```bash
-# Update system packages
-sudo apt update && sudo apt upgrade -y
-
-# Install prerequisites
-sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
-
-# Add Docker GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-# Add Docker repository
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# Start and enable Docker
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Add your user to docker group
-sudo usermod -aG docker $USER
-
-# Log out and log back in, or run:
-newgrp docker
-
-# Verify Docker installation
-docker --version
-docker compose version
+./start.sh  # Runs at http://localhost:3000
 ```
 
-### Step 2: Install Nginx and UFW Firewall
+### For Production Deployment
+Use the new automated scripts:
 ```bash
-# Install nginx and firewall
-sudo apt install -y nginx ufw
-
-# Configure firewall
-sudo ufw allow ssh
-sudo ufw allow 'Nginx Full'
-sudo ufw --force enable
-
-# Start nginx
-sudo systemctl start nginx
-sudo systemctl enable nginx
-
-# Verify nginx is running
-sudo systemctl status nginx
+./setup.sh production    # One-time server setup
+./deploy.sh production   # Deploy application
 ```
 
 ---
 
-## Phase 2: Application Configuration
+## Quick Start (Automated Setup)
 
-### Step 3: Clone Repository and Setup Environment
+### Step 1: Initial Server Setup
 ```bash
-# Clone your repository (replace with your repo URL)
-git clone https://github.com/yourusername/indian-palmistry-ai.git
+# On your VPS, clone the repository
+git clone https://github.com/your-username/indian-palmistry-ai.git
 cd indian-palmistry-ai
 
-# Create production environment file
-cp .env.example .env
+# Run the automated server setup (one-time only)
+./setup.sh production
 ```
 
-### Step 4: Configure Production Environment
+This script automatically:
+- ✅ Installs Docker, nginx, Certbot, and dependencies
+- ✅ Creates application directories with proper permissions
+- ✅ Sets up SQLite database with correct ownership
+- ✅ Configures firewall and nginx rate limiting
+- ✅ Creates environment template
+
+### Step 2: Configure Your Environment
 ```bash
-# Edit the environment file
-nano .env
+# Copy the environment template
+cp .env.production.example .env.production
+
+# Edit with your actual values
+nano .env.production
 ```
 
-**Update with these production values:**
-```env
-# Database Configuration (SQLite for production)
-DATABASE_URL=sqlite+aiosqlite:///./data/production.db
+**Required changes in `.env.production`:**
+```bash
+# 1. Set your domain
+DOMAIN=yourdomain.com
 
-# Redis Configuration
-REDIS_URL=redis://redis:6379/0
+# 2. Add your OpenAI API key
+OPENAI_API_KEY=sk-your-actual-key-here
 
-# Celery Configuration
-CELERY_BROKER_URL=redis://redis:6379/1
-CELERY_RESULT_BACKEND=redis://redis:6379/1
+# 3. Generate secure keys
+openssl rand -hex 32  # Copy for SECRET_KEY
+openssl rand -hex 32  # Copy for JWT_SECRET
 
-# OpenAI Configuration (⚠️ ADD YOUR ACTUAL KEY HERE)
-OPENAI_API_KEY=sk-your-actual-openai-api-key-here
-
-# Security Configuration (⚠️ GENERATE SECURE KEYS - see next step)
-SECRET_KEY=your-very-secure-secret-key-here-32chars
-JWT_SECRET=your-very-secure-jwt-secret-here-32chars
-
-# CORS Configuration (⚠️ REPLACE WITH YOUR DOMAIN)
+# 4. Update CORS origins
 ALLOWED_ORIGINS=https://yourdomain.com
-
-# File Storage Configuration
-FILE_STORAGE_ROOT=./data/images
-
-# Application Configuration
-DEBUG=false
-LOG_LEVEL=INFO
-ENVIRONMENT=production
-
-# Session Configuration
-SESSION_EXPIRE_SECONDS=604800
-SESSION_COOKIE_NAME=palmistry_session
-SESSION_COOKIE_SECURE=true
-SESSION_COOKIE_SAMESITE=Strict
 ```
 
-### Step 5: Generate Secure Keys
+### Step 3: Deploy Application
 ```bash
-# Generate SECRET_KEY (copy the output)
-openssl rand -hex 32
-
-# Generate JWT_SECRET (copy the output)
-openssl rand -hex 32
-
-# Now edit .env again and replace the placeholder keys with the generated ones
-nano .env
+# Deploy the application
+./deploy.sh production
 ```
 
-### Step 6: Create Production Docker Compose Override
-```bash
-nano docker-compose.prod.yml
-```
+This script automatically:
+- ✅ Creates backups of existing data
+- ✅ Cleans up port conflicts
+- ✅ Builds and starts all containers
+- ✅ Configures nginx with your domain
+- ✅ Sets up SSL certificates with Let's Encrypt
+- ✅ Performs health checks
+- ✅ Shows deployment status
 
-**Add this content:**
-```yaml
-# Production overrides for docker-compose.yml
-services:
-  redis:
-    restart: unless-stopped
-    volumes:
-      - ./data/redis:/data
+**That's it!** Your application should now be running at `https://yourdomain.com`
 
-  api:
-    build:
-      context: .
-      target: base
-    environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/production.db
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/1
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - DEBUG=false
-      - ENVIRONMENT=production
-      - ALLOWED_ORIGINS=https://yourdomain.com  # ⚠️ Replace with your domain
-      - FILE_STORAGE_ROOT=./data/images
-    volumes:
-      - ./data:/app/data
-    restart: unless-stopped
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+---
 
-  worker:
-    environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/production.db
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/1
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
-      - DEBUG=false
-      - ENVIRONMENT=production
-      - FILE_STORAGE_ROOT=./data/images
-    volumes:
-      - ./data:/app/data
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: production
-      args:
-        - NEXT_PUBLIC_API_URL=https://yourdomain.com/api  # ⚠️ Replace with your domain
-        - NEXT_PUBLIC_ENABLE_ANALYTICS=false
-        - NEXT_PUBLIC_SITE_URL=https://yourdomain.com  # ⚠️ Replace with your domain
-    environment:
-      - NEXT_PUBLIC_API_URL=https://yourdomain.com/api  # ⚠️ Replace with your domain
-      - NEXT_PUBLIC_SITE_URL=https://yourdomain.com  # ⚠️ Replace with your domain
-      - NODE_ENV=production
-    restart: unless-stopped
-
-  # Remove flower service for production
-  flower:
-    profiles:
-      - monitoring
-```
-
-### Step 7: Create Required Directories
-```bash
-# Create data directories
-mkdir -p data/images data/redis
-
-# Set proper permissions
-chmod 755 data/images data/redis
-
-# Create .gitkeep files to preserve directory structure
-touch data/images/.gitkeep data/redis/.gitkeep
-```
+## Manual Steps (Alternative)
 
 ---
 
@@ -525,50 +408,34 @@ source ~/.bashrc
 
 ---
 
-## Final Checklist
+## Management & Monitoring
 
-### ✅ Before Going Live:
-
-1. **Replace all placeholders:**
-   - [ ] `yourdomain.com` → Your actual domain in all files
-   - [ ] `OPENAI_API_KEY` → Your real OpenAI API key
-   - [ ] `SECRET_KEY` → Generated secure key (32 characters)
-   - [ ] `JWT_SECRET` → Generated secure key (32 characters)
-
-2. **DNS Configuration:**
-   - [ ] Point your domain's A record to your VPS IP address
-   - [ ] Wait for DNS propagation (can take 24-48 hours)
-
-3. **SSL Certificate:**
-   - [ ] SSL certificate installed successfully
-   - [ ] Auto-renewal configured and tested
-
-4. **Application Tests:**
-   - [ ] Frontend loads at `https://yourdomain.com`
-   - [ ] API responds at `https://yourdomain.com/api/healthz`
-   - [ ] Upload and palm reading functionality works
-   - [ ] All services are running (`palmist-status`)
-
-### 🔧 Common Management Commands:
+### 🔧 Common Commands:
 
 ```bash
 # Check application status
-palmist-status
+docker compose -f docker-compose.prod.yml ps
 
 # View real-time logs
-palmist-logs
+docker compose -f docker-compose.prod.yml logs -f
 
-# Restart all services
-palmist-restart
+# View specific service logs
+docker compose -f docker-compose.prod.yml logs -f api
+docker compose -f docker-compose.prod.yml logs -f frontend
+docker compose -f docker-compose.prod.yml logs -f worker
+
+# Restart specific service
+docker compose -f docker-compose.prod.yml restart api
+
+# Update application (after git pull)
+./deploy.sh production
 
 # Stop application
-palmist-stop
-
-# Start application
-palmist-start
+docker compose -f docker-compose.prod.yml down
 
 # Manual backup
-~/backup-palmisttalk.sh
+mkdir -p backups
+cp data/production.db backups/backup_$(date +%Y%m%d_%H%M%S).db
 
 # Check SSL certificate expiry
 sudo certbot certificates
@@ -577,19 +444,97 @@ sudo certbot certificates
 sudo certbot renew
 ```
 
+### 📊 Health Checks:
+
+```bash
+# Check API health
+curl https://yourdomain.com/api/healthz
+
+# Check if all containers are running
+docker compose -f docker-compose.prod.yml ps
+
+# Check system resources
+htop
+df -h
+docker stats
+```
+
+### ✅ Pre-Launch Checklist:
+
+1. **DNS Configuration:**
+   - [ ] Domain A record points to your VPS IP
+   - [ ] DNS propagation completed (check with: `dig yourdomain.com`)
+
+2. **Environment Configuration:**
+   - [ ] `.env.production` created with actual values
+   - [ ] OpenAI API key added and working
+   - [ ] Secure keys generated (32+ characters)
+   - [ ] Domain set correctly
+
+3. **Application Tests:**
+   - [ ] Frontend loads: `https://yourdomain.com`
+   - [ ] API responds: `https://yourdomain.com/api/healthz`
+   - [ ] Upload functionality works
+   - [ ] Palm reading analysis completes
+   - [ ] All containers healthy: `docker compose -f docker-compose.prod.yml ps`
+
+4. **SSL & Security:**
+   - [ ] SSL certificate installed and valid
+   - [ ] Auto-renewal configured: `sudo certbot renew --dry-run`
+   - [ ] HTTPS redirect working
+   - [ ] Rate limiting configured
+
 ### 🚨 Troubleshooting:
 
-#### If services won't start:
+#### Common Issues We've Solved:
+
+**1. Port 3000 Already in Use:**
+```bash
+# The deploy.sh script handles this automatically, but if needed:
+sudo lsof -ti :3000 | xargs -r kill -9
+```
+
+**2. Frontend Build Fails (clientReferenceManifest error):**
+- ✅ Fixed: Added `export const dynamic = 'force-dynamic'` to disable prerendering
+- ✅ Fixed: Removed PWA and bundle analyzer plugins
+- ✅ Fixed: Added proper browser API guards
+
+**3. Database Permission Errors:**
+```bash
+# Fixed automatically by setup.sh, but if needed:
+sudo chown -R 1000:1000 ./data
+chmod 664 ./data/production.db
+```
+
+**4. Mixed Content Errors (HTTP/HTTPS):**
+- ✅ Fixed: deploy.sh automatically configures frontend URLs based on domain
+- ✅ Fixed: All services use HTTPS in production
+
+**5. API Connection Refused:**
+```bash
+# Check if API is running
+curl http://localhost:8000/healthz
+
+# Check API logs
+docker compose -f docker-compose.prod.yml logs api
+```
+
+#### General Troubleshooting:
+
+**Services won't start:**
 ```bash
 # Check Docker daemon
 sudo systemctl status docker
 
-# Check logs for errors
-palmist-logs api
-palmist-logs frontend
+# Check logs for specific service
+docker compose -f docker-compose.prod.yml logs api
+docker compose -f docker-compose.prod.yml logs frontend
+
+# Restart specific service
+docker compose -f docker-compose.prod.yml restart api
 ```
 
-#### If SSL certificate fails:
+**SSL certificate issues:**
 ```bash
 # Check if domain points to your server
 dig yourdomain.com
@@ -599,9 +544,12 @@ sudo nginx -t
 
 # Check certbot logs
 sudo tail -f /var/log/letsencrypt/letsencrypt.log
+
+# Manually run certbot
+sudo certbot --nginx -d yourdomain.com
 ```
 
-#### If application is slow:
+**Application is slow:**
 ```bash
 # Check server resources
 htop
@@ -609,6 +557,17 @@ df -h
 
 # Check Docker container resources
 docker stats
+
+# Check database size
+ls -lh data/production.db
+```
+
+**Need to rollback:**
+```bash
+# deploy.sh includes automatic rollback on failure
+# Or manually restore from backup:
+cp backups/production_db_TIMESTAMP.db data/production.db
+./deploy.sh production
 ```
 
 ### 📱 Your Production URLs:
@@ -618,17 +577,47 @@ docker stats
 
 ---
 
-## Security Notes
+## What We Learned
 
-1. **Regular Updates**: Update your system and Docker images regularly
-2. **Backup Verification**: Test your backups periodically
-3. **Monitor Logs**: Check application logs regularly for errors or suspicious activity
-4. **SSL Monitoring**: Ensure SSL certificates renew automatically
-5. **Firewall**: Keep UFW enabled and only necessary ports open
+This simplified deployment approach solves all the common issues encountered during manual setup:
 
-Your PalmistTalk application is now running in production! 🎉
+✅ **No More Port Conflicts**: Automated port cleanup
+✅ **No Environment Variable Confusion**: Single source of truth
+✅ **No Database Permission Issues**: Proper ownership setup
+✅ **No Mixed Content Errors**: Automatic HTTPS configuration
+✅ **No Build Failures**: Pre-configured Next.js optimizations
+✅ **Easy Updates**: Simple `./deploy.sh production` command
+✅ **Automatic Backups**: Built-in backup and rollback
+✅ **Health Monitoring**: Comprehensive health checks
+
+## Security & Maintenance
+
+1. **Automated Updates**:
+   ```bash
+   # Update application
+   git pull && ./deploy.sh production
+   ```
+
+2. **Regular Backups**: Automatically created before each deployment
+
+3. **SSL Monitoring**: Auto-renewal configured with Let's Encrypt
+
+4. **Rate Limiting**: Configured to prevent API abuse
+
+5. **Firewall**: UFW configured with minimal required ports
 
 ---
 
-*Created: January 2025*
-*For: PalmistTalk Production Deployment*
+## Support
+
+If you encounter issues not covered in the troubleshooting section:
+
+1. Check the logs: `docker compose -f docker-compose.prod.yml logs -f`
+2. Verify environment: `cat .env.production` (be careful not to expose secrets)
+3. Test health endpoints: `curl https://yourdomain.com/api/healthz`
+
+---
+
+**🎉 Your PalmistTalk application is now production-ready!**
+
+*Automated deployment approach - January 2025*
