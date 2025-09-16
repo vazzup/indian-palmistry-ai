@@ -102,19 +102,18 @@ services:
       dockerfile: Dockerfile
       target: production
       args:
-        # Build-time environment variables
+        # Build-time environment variables (these get baked into the Next.js build)
         - NODE_ENV=production
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://localhost}
+        - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://localhost}
+        - NEXT_PUBLIC_ENABLE_ANALYTICS=false
+        - NEXT_PUBLIC_ENABLE_PUSH=false
     container_name: palmisttalk-frontend-prod
     restart: unless-stopped
     environment:
-      # Runtime environment variables (these override build-time vars)
+      # Runtime environment variables
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
-      # API URL will be set by deploy.sh based on DOMAIN in .env.production
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://localhost}
-      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://localhost}
-      - NEXT_PUBLIC_ENABLE_ANALYTICS=false
-      - NEXT_PUBLIC_ENABLE_PUSH=false
     ports:
       - "127.0.0.1:3000:3000"  # Only bind to localhost, nginx will proxy
     depends_on:
