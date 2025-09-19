@@ -8,8 +8,9 @@ import { SecurityProvider } from "@/components/providers/SecurityProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { LegalNotice } from "@/components/legal/LegalNotice";
 
-// Homepage can now be prerendered - auth redirect handled by middleware
-// Only specific dynamic pages export dynamic = 'force-dynamic' as needed
+// Global dynamic setting - force dynamic for all pages by default
+// Homepage overrides this to enable prerendering
+export const dynamic = 'force-dynamic';
 
 const inter = Inter({
   variable: "--font-primary",
