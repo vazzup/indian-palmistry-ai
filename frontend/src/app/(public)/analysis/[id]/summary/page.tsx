@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Eye, Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { LoginGate } from '@/components/auth/LoginGate';
+import { AuthenticationModal } from '@/components/auth/AuthenticationModal';
 import { LoadingPage } from '@/components/ui/Spinner';
 import { analysisApi, handleApiError } from '@/lib/api';
 import { getRandomMessage } from '@/lib/cultural-theme';
@@ -28,7 +28,7 @@ export default function AnalysisSummaryPage() {
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [showLoginGate, setShowLoginGate] = React.useState(false);
+  const [showAuthModal, setShowAuthModal] = React.useState(false);
   const [successMessage] = React.useState(() => getRandomMessage('completion'));
 
   React.useEffect(() => {
@@ -184,9 +184,9 @@ export default function AnalysisSummaryPage() {
                   console.log('User is authenticated, redirecting to analyses page');
                   router.push(`/analyses/${analysisId}`);
                 } else {
-                  // User is not authenticated, show login gate
-                  console.log('User not authenticated, showing login gate');
-                  setShowLoginGate(true);
+                  // User is not authenticated, show authentication modal
+                  console.log('User not authenticated, showing authentication modal');
+                  setShowAuthModal(true);
                 }
               }}
               className="bg-white/50 rounded-lg p-3 border border-saffron-200 hover:bg-white/80 hover:border-saffron-300 transition-all duration-200 w-full text-left cursor-pointer active:bg-white/90"
@@ -225,24 +225,15 @@ export default function AnalysisSummaryPage() {
           </CardContent>
         </Card>
 
-        {/* Login Gate */}
-        {showLoginGate && (
-          <div className="space-y-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                This is just a glimpse of what your palms reveal...
-              </p>
-            </div>
-            
-            <LoginGate 
-              analysisId={parseInt(analysisId)}
-              showFullFeatures={true}
-            />
-          </div>
-        )}
+        {/* Authentication Modal */}
+        <AuthenticationModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          analysisId={parseInt(analysisId)}
+        />
 
-        {/* If login gate hasn't appeared yet, show a call-to-action */}
-        {!showLoginGate && (
+        {/* Call-to-action for authentication */}
+        {!showAuthModal && (
           <button
             onClick={() => {
               console.log('CTA button clicked!', { isAuthenticated, user });
@@ -250,8 +241,8 @@ export default function AnalysisSummaryPage() {
                 console.log('User is authenticated, redirecting to analyses page');
                 router.push(`/analyses/${analysisId}`);
               } else {
-                console.log('User not authenticated, showing login gate');
-                setShowLoginGate(true);
+                console.log('User not authenticated, showing authentication modal');
+                setShowAuthModal(true);
               }
             }}
             className="w-full"
