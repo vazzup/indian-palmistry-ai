@@ -25,6 +25,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { NewReadingModal } from '@/components/dashboard/NewReadingModal';
+import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
 import { useAnalysesList, formatAnalysisDate, getStatusColorClass } from '@/hooks/useDashboard';
 import { DataInconsistencyErrorBoundary } from '@/components/errors/DataInconsistencyErrorBoundary';
 import { analysisApi } from '@/lib/api';
@@ -41,6 +43,9 @@ export default function AnalysesPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [analysisToDelete, setAnalysisToDelete] = React.useState<string | null>(null);
+
+  // New reading modal state
+  const [showNewReadingModal, setShowNewReadingModal] = React.useState(false);
   
   // Debounce search query
   React.useEffect(() => {
@@ -278,7 +283,7 @@ export default function AnalysesPage() {
 
           {/* New Reading Button */}
           <Button
-            onClick={() => router.push('/')}
+            onClick={() => setShowNewReadingModal(true)}
             className="bg-saffron-600 hover:bg-saffron-700"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -309,7 +314,7 @@ export default function AnalysesPage() {
                 }
               </p>
               {!searchQuery && filterStatus === 'all' && (
-                <Button onClick={() => router.push('/')}>
+                <Button onClick={() => setShowNewReadingModal(true)}>
                   Get Your First Reading
                 </Button>
               )}
@@ -470,6 +475,20 @@ export default function AnalysesPage() {
         )}
       </div>
       </DataInconsistencyErrorBoundary>
+
+      {/* New Reading Modal */}
+      <NewReadingModal
+        isOpen={showNewReadingModal}
+        onClose={() => setShowNewReadingModal(false)}
+      />
+
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton
+        onClick={() => setShowNewReadingModal(true)}
+        icon={<Plus className="w-6 h-6" />}
+        label="New Reading"
+        className="md:hidden" // Only show on mobile
+      />
     </DashboardLayout>
   );
 }

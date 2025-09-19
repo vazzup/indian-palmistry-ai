@@ -16,11 +16,13 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { NewReadingModal } from '@/components/dashboard/NewReadingModal';
+import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
 import { useAuth } from '@/lib/auth';
 import { getRandomMessage } from '@/lib/cultural-theme';
-import { 
-  useDashboard, 
-  formatAnalysisDate, 
+import {
+  useDashboard,
+  formatAnalysisDate,
   calculateSuccessRate
 } from '@/hooks/useDashboard';
 import { DataInconsistencyErrorBoundary } from '@/components/errors/DataInconsistencyErrorBoundary';
@@ -29,6 +31,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [welcomeMessage] = React.useState(() => getRandomMessage('welcome'));
+  const [showNewReadingModal, setShowNewReadingModal] = React.useState(false);
   
   // Fetch dashboard data from API
   const { 
@@ -147,7 +150,7 @@ export default function DashboardPage() {
               </p>
             </div>
             <Button
-              onClick={() => router.push('/')}
+              onClick={() => setShowNewReadingModal(true)}
               className="bg-saffron-600 hover:bg-saffron-700"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -220,7 +223,7 @@ export default function DashboardPage() {
                 <p className="text-gray-600 mb-4">
                   Upload your first palm image to get started with AI-powered insights
                 </p>
-                <Button onClick={() => router.push('/')}>
+                <Button onClick={() => setShowNewReadingModal(true)}>
                   Get Your First Reading
                 </Button>
               </div>
@@ -309,6 +312,20 @@ export default function DashboardPage() {
         </Card>
       </div>
       </DataInconsistencyErrorBoundary>
+
+      {/* New Reading Modal */}
+      <NewReadingModal
+        isOpen={showNewReadingModal}
+        onClose={() => setShowNewReadingModal(false)}
+      />
+
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton
+        onClick={() => setShowNewReadingModal(true)}
+        icon={<Plus className="w-6 h-6" />}
+        label="New Reading"
+        className="md:hidden" // Only show on mobile
+      />
     </DashboardLayout>
   );
 }

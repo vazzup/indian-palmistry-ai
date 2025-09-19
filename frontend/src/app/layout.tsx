@@ -8,8 +8,8 @@ import { SecurityProvider } from "@/components/providers/SecurityProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { LegalNotice } from "@/components/legal/LegalNotice";
 
-// Disable prerendering for the entire app since PalmistTalk is fully dynamic
-export const dynamic = 'force-dynamic';
+// Homepage can now be prerendered - auth redirect handled by middleware
+// Only specific dynamic pages export dynamic = 'force-dynamic' as needed
 
 const inter = Inter({
   variable: "--font-primary",
