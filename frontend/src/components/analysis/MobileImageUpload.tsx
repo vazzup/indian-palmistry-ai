@@ -18,6 +18,8 @@ interface MobileImageUploadProps {
   maxSize?: number;
   /** Whether upload is in progress (disables interactions) */
   isUploading?: boolean;
+  /** Whether to disable the component entirely */
+  disabled?: boolean;
 }
 
 /**
@@ -54,14 +56,16 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
   maxFiles = 2,
   maxSize = 15,
   isUploading = false,
+  disabled = false,
 }) => {
   const [isDragging, setIsDragging] = React.useState(false);
-  const [previews, setPreviews] = React.useState<{ 
-    left?: { file: File; url: string }; 
-    right?: { file: File; url: string }; 
+  const [previews, setPreviews] = React.useState<{
+    left?: { file: File; url: string };
+    right?: { file: File; url: string };
   }>({});
   const [errors, setErrors] = React.useState<string[]>([]);
   const [isValidating, setIsValidating] = React.useState(false);
+  const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
@@ -130,7 +134,8 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
     // Create previews for valid files
     if (validFiles.length > 0) {
       const newPreviews: typeof previews = {};
-      
+      const newSelectedFiles = validFiles.map(({ file }) => file);
+
       validFiles.forEach(({ file }, index) => {
         const url = URL.createObjectURL(file);
         if (index === 0) {
@@ -139,16 +144,16 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
           newPreviews.right = { file, url };
         }
       });
-      
+
       // Clean up old previews
       Object.values(previews).forEach(preview => {
         if (preview) URL.revokeObjectURL(preview.url);
       });
-      
+
       setPreviews(newPreviews);
-      
-      // Call upload handler
-      onUpload(validFiles.map(({ file }) => file));
+      setSelectedFiles(newSelectedFiles);
+
+      // Don't call onUpload immediately - wait for user confirmation
     }
     
     setIsValidating(false);
@@ -157,21 +162,21 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
   const handleDrop = React.useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
-    if (isUploading) return;
-    
+
+    if (isUploading || disabled) return;
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       handleFiles(files);
     }
-  }, [isUploading]);
+  }, [isUploading, disabled]);
   
   const handleDragOver = React.useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    if (!isUploading) {
+    if (!isUploading && !disabled) {
       setIsDragging(true);
     }
-  }, [isUploading]);
+  }, [isUploading, disabled]);
   
   const handleDragLeave = React.useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -190,6 +195,9 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
     if (preview) {
       URL.revokeObjectURL(preview.url);
       setPreviews(prev => ({ ...prev, [position]: undefined }));
+
+      // Update selectedFiles array
+      setSelectedFiles(prev => prev.filter(file => file !== preview.file));
     }
   };
   
@@ -198,7 +206,14 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
       if (preview) URL.revokeObjectURL(preview.url);
     });
     setPreviews({});
+    setSelectedFiles([]);
     setErrors([]);
+  };
+
+  const handleConfirmUpload = () => {
+    if (selectedFiles.length > 0) {
+      onUpload(selectedFiles);
+    }
   };
   
   // Cleanup URLs on unmount
@@ -214,50 +229,52 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
   
   return (
     <div className="w-full max-w-md lg:max-w-none mx-auto lg:mx-0 space-y-4">
-      {/* Upload area */}
-      <Card className={`
-        border-2 border-dashed transition-all duration-200 cursor-pointer
-        ${isDragging 
-          ? 'border-saffron-500 bg-saffron-50 scale-[1.02]' 
-          : 'border-gray-300 hover:border-saffron-400'
-        }
-        ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
-      `}>
-        <CardContent 
-          className="p-6"
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onClick={() => !isUploading && fileInputRef.current?.click()}
-          style={{ touchAction: 'none' }} // Prevent scroll on mobile drag
-        >
-          <div className="text-center space-y-4">
-            {/* Cultural palm icon placeholder */}
-            <div className="mx-auto w-16 h-16 flex items-center justify-center bg-saffron-100 rounded-full">
-              <Upload className="w-8 h-8 text-saffron-600" />
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium text-gray-900">
-                Upload Your Palm Images
-              </h3>
-              <p className="text-sm text-gray-600">
-                Up to {maxFiles} images • JPEG, PNG, or HEIC • Max {maxSize}MB each
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Left palm, Right palm (optional)
-              </p>
-            </div>
-            
-            {isValidating && (
-              <div className="flex items-center justify-center gap-2">
-                <div className="cultural-spinner w-4 h-4" />
-                <span className="text-sm text-saffron-600">Validating images...</span>
+      {/* Upload area - only show when no files selected */}
+      {!hasFiles && (
+        <Card className={`
+          border-2 border-dashed transition-all duration-200 cursor-pointer
+          ${isDragging
+            ? 'border-saffron-500 bg-saffron-50 scale-[1.02]'
+            : 'border-gray-300 hover:border-saffron-400'
+          }
+          ${isUploading || disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        `}>
+          <CardContent
+            className="p-6"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onClick={() => !isUploading && !disabled && fileInputRef.current?.click()}
+            style={{ touchAction: 'none' }} // Prevent scroll on mobile drag
+          >
+            <div className="text-center space-y-4">
+              {/* Cultural palm icon placeholder */}
+              <div className="mx-auto w-16 h-16 flex items-center justify-center bg-saffron-100 rounded-full">
+                <Upload className="w-8 h-8 text-saffron-600" />
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Upload Your Palm Images
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Up to {maxFiles} images • JPEG, PNG, or HEIC • Max {maxSize}MB each
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Left palm, Right palm (optional)
+                </p>
+              </div>
+
+              {isValidating && (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="cultural-spinner w-4 h-4" />
+                  <span className="text-sm text-saffron-600">Validating images...</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Action buttons */}
       <div className="grid grid-cols-2 gap-3">
@@ -265,38 +282,38 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
           variant="outline"
           size="lg"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
+          disabled={isUploading || disabled}
           icon={<Upload className="w-4 h-4" />}
         >
           Choose Files
         </Button>
-        
+
         <Button
           variant="outline"
           size="lg"
           onClick={() => cameraInputRef.current?.click()}
-          disabled={isUploading}
+          disabled={isUploading || disabled}
           icon={<Camera className="w-4 h-4" />}
         >
           Take Photo
         </Button>
       </div>
       
-      {/* File previews */}
+      {/* File previews - show when files are selected */}
       {hasFiles && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium">Selected Images</h4>
+            <h4 className="text-sm font-medium">Selected Images ({selectedFiles.length}/{maxFiles})</h4>
             <Button
               variant="ghost"
               size="sm"
               onClick={clearAll}
-              disabled={isUploading}
+              disabled={isUploading || disabled}
             >
               Clear All
             </Button>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-3">
             {previews.left && (
               <div className="relative">
@@ -307,8 +324,8 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
                 />
                 <button
                   onClick={() => removePreview('left')}
-                  disabled={isUploading}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                  disabled={isUploading || disabled}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors disabled:opacity-50"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -317,7 +334,7 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
                 </span>
               </div>
             )}
-            
+
             {previews.right && (
               <div className="relative">
                 <img
@@ -327,8 +344,8 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
                 />
                 <button
                   onClick={() => removePreview('right')}
-                  disabled={isUploading}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                  disabled={isUploading || disabled}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors disabled:opacity-50"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -338,6 +355,26 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
               </div>
             )}
           </div>
+
+          {/* Upload confirmation button */}
+          <Button
+            onClick={handleConfirmUpload}
+            disabled={isUploading || disabled || selectedFiles.length === 0}
+            size="lg"
+            className="w-full bg-saffron-600 hover:bg-saffron-700"
+          >
+            {isUploading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4 mr-2" />
+                Upload {selectedFiles.length} Image{selectedFiles.length !== 1 ? 's' : ''}
+              </>
+            )}
+          </Button>
         </div>
       )}
       

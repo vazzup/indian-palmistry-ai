@@ -48,25 +48,44 @@ export function NewReadingModal({ isOpen, onClose }: NewReadingModalProps) {
       console.log('Authenticated user upload started with files:', files.map(f => ({ name: f.name, size: f.size })));
 
       // Create analysis for authenticated user
-      const analysisData = await analysisApi.uploadImages(files);
-      console.log('Authenticated analysis created:', analysisData);
+      const uploadedAnalysis = await analysisApi.uploadImages(files);
+      console.log('Authenticated analysis created:', uploadedAnalysis);
 
-      setAnalysis(analysisData);
-      setIsUploading(false); // Upload successful, now showing progress
+      setAnalysis(uploadedAnalysis);
+      // Keep isUploading true until we transition to progress view
+      // The progress view will handle the analysis state
 
     } catch (error) {
       console.error('Upload failed:', error);
       const errorMessage = handleApiError(error);
       setUploadError(errorMessage);
+      setAnalysis(null);
       setIsUploading(false);
     }
   };
 
-  const handleAnalysisComplete = (completedAnalysis: Analysis) => {
-    console.log('Analysis completed in modal, redirecting to dashboard analysis page');
-    onClose();
-    // Navigate to the dashboard analysis page (authenticated route)
-    router.push(`/analyses/${completedAnalysis.id}`);
+  const handleAnalysisComplete = React.useCallback((result: any) => {
+    console.log('handleAnalysisComplete called with:', result, 'analysis:', analysis);
+    if (analysis) {
+      // Navigate to the full analysis page
+      console.log('Navigating to analysis page:', `/analyses/${analysis.id}`);
+      onClose();
+      router.push(`/analyses/${analysis.id}`);
+    } else {
+      console.error('No analysis object found when trying to redirect');
+      // Fallback: try to get analysis ID from the result
+      if (result?.analysis_id) {
+        console.log('Using analysis ID from result:', result.analysis_id);
+        onClose();
+        router.push(`/analyses/${result.analysis_id}`);
+      }
+    }
+  }, [analysis, router, onClose]);
+
+  const handleAnalysisError = (error: string) => {
+    setUploadError(`Analysis failed: ${error}`);
+    setAnalysis(null);
+    setIsUploading(false);
   };
 
   const handleClose = () => {
@@ -83,19 +102,45 @@ export function NewReadingModal({ isOpen, onClose }: NewReadingModalProps) {
 
   if (!isOpen) return null;
 
-  // If analysis is created and processing, show progress
-  if (analysis && (analysis.status === 'processing' || analysis.status === 'pending')) {
+  // If analysis is created and no upload error, show progress
+  if (analysis && !uploadError) {
     return (
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={handleBackdropClick}
       >
         <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-          <div className="p-6">
+          <div className="p-6 space-y-6">
+            {/* Header */}
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Analyzing Your Palm
+              </h2>
+              <p className="text-gray-600">
+                Please wait while our AI reads your palm
+              </p>
+            </div>
+
+            {/* Progress Component */}
             <BackgroundJobProgress
               analysisId={analysis.id}
               onComplete={handleAnalysisComplete}
+              onError={handleAnalysisError}
             />
+
+            {/* Cancel option */}
+            <div className="text-center">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setAnalysis(null);
+                  setUploadError(null);
+                  setIsUploading(false);
+                }}
+              >
+                Upload Different Images
+              </Button>
+            </div>
           </div>
         </div>
       </div>
