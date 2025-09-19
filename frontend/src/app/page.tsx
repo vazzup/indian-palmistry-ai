@@ -10,8 +10,8 @@
 
 import { GuestHomepage } from '@/components/homepage/GuestHomepage';
 
-// Override global dynamic setting to enable prerendering for homepage only
-export const dynamic = 'auto';
+// Keep homepage dynamic like all other pages
+export const dynamic = 'force-dynamic';
 
 export default function HomePage() {
   return <GuestHomepage />;
