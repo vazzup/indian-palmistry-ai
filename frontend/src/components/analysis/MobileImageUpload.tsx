@@ -107,47 +107,53 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
   
   const handleFiles = async (files: FileList) => {
     const fileArray = Array.from(files);
-    
-    if (fileArray.length > maxFiles) {
-      setErrors([`Maximum ${maxFiles} images allowed`]);
+
+    // Check if adding these files would exceed the limit
+    const currentFileCount = selectedFiles.length;
+    if (currentFileCount + fileArray.length > maxFiles) {
+      setErrors([`Maximum ${maxFiles} images allowed. You currently have ${currentFileCount} image(s).`]);
       return;
     }
-    
+
     setIsValidating(true);
     setErrors([]);
-    
+
     const validationResults = await Promise.all(
       fileArray.map(async (file) => ({
         file,
         validation: await validateFile(file),
       }))
     );
-    
+
     const validFiles = validationResults.filter(({ validation }) => validation.isValid);
     const invalidFiles = validationResults.filter(({ validation }) => !validation.isValid);
-    
+
     // Set errors for invalid files
     if (invalidFiles.length > 0) {
       setErrors(invalidFiles.map(({ validation }) => validation.error!));
     }
-    
-    // Create previews for valid files
+
+    // Add valid files to existing previews and selectedFiles
     if (validFiles.length > 0) {
-      const newPreviews: typeof previews = {};
-      const newSelectedFiles = validFiles.map(({ file }) => file);
+      const newPreviews = { ...previews }; // Start with existing previews
+      const newSelectedFiles = [...selectedFiles]; // Start with existing files
 
-      validFiles.forEach(({ file }, index) => {
+      validFiles.forEach(({ file }) => {
         const url = URL.createObjectURL(file);
-        if (index === 0) {
-          newPreviews.left = { file, url };
-        } else if (index === 1) {
-          newPreviews.right = { file, url };
-        }
-      });
 
-      // Clean up old previews
-      Object.values(previews).forEach(preview => {
-        if (preview) URL.revokeObjectURL(preview.url);
+        // Add to the first available slot
+        if (!newPreviews.left) {
+          newPreviews.left = { file, url };
+        } else if (!newPreviews.right) {
+          newPreviews.right = { file, url };
+        } else {
+          // This shouldn't happen due to our check above, but handle it gracefully
+          URL.revokeObjectURL(url);
+          setErrors(prev => [...prev, 'All slots are occupied. Please remove an image first.']);
+          return;
+        }
+
+        newSelectedFiles.push(file);
       });
 
       setPreviews(newPreviews);
@@ -155,7 +161,7 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
 
       // Don't call onUpload immediately - wait for user confirmation
     }
-    
+
     setIsValidating(false);
   };
   
@@ -188,6 +194,8 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
     if (files && files.length > 0) {
       handleFiles(files);
     }
+    // Reset the input value so the same file can be selected again if needed
+    e.target.value = '';
   };
   
   const removePreview = (position: 'left' | 'right') => {
@@ -208,6 +216,10 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
     setPreviews({});
     setSelectedFiles([]);
     setErrors([]);
+
+    // Reset file input values
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const handleConfirmUpload = () => {
