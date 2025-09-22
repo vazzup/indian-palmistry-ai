@@ -3,8 +3,11 @@ Analysis API endpoints for palm reading functionality.
 """
 
 import logging
-from typing import Optional
+import json
+import asyncio
+from typing import Optional, AsyncGenerator
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Request, Query, status
+from fastapi.responses import StreamingResponse
 from app.schemas.analysis import (
     AnalysisResponse, 
     AnalysisStatusResponse, 
@@ -15,6 +18,7 @@ from app.services.analysis_service import AnalysisService
 from app.models.analysis import AnalysisStatus
 from app.models.user import User
 from app.dependencies.auth import get_current_user, get_current_user_optional
+from app.core.redis import redis_service
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +128,180 @@ async def get_analysis_status(analysis_id: int) -> AnalysisStatusResponse:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get analysis status"
         )
+
+
+@router.get("/{analysis_id}/stream-test")
+async def test_stream_endpoint(analysis_id: int):
+    """Simple test endpoint to verify route registration."""
+    return {"message": f"Stream endpoint working for analysis {analysis_id}"}
+
+
+@router.get("/{analysis_id}/stream")
+async def stream_analysis_status(analysis_id: int) -> StreamingResponse:
+    """Stream analysis status updates via Server-Sent Events.
+
+    This endpoint provides real-time updates for analysis progress,
+    eliminating the need for polling. Available to both authenticated
+    and anonymous users.
+
+    Returns SSE stream with analysis status updates.
+    """
+
+    async def event_generator() -> AsyncGenerator[str, None]:
+        """Generate SSE events for analysis status updates via Redis pub/sub."""
+        analysis_service = AnalysisService()
+
+        # Check if analysis exists first
+        analysis = await analysis_service.get_analysis_status(analysis_id)
+        if not analysis:
+            yield f"event: error\ndata: {json.dumps({'error': 'Analysis not found'})}\n\n"
+            return
+
+        # Send initial status
+        yield f"event: status\ndata: {json.dumps(_format_analysis_status(analysis))}\n\n"
+
+        # If analysis is already complete, close the stream
+        if analysis.status in [AnalysisStatus.COMPLETED, AnalysisStatus.FAILED]:
+            yield f"event: close\ndata: {json.dumps({'message': 'Analysis finished'})}\n\n"
+            return
+
+        # Subscribe to Redis channel for this analysis
+        channel = f"analysis_updates:{analysis_id}"
+        pubsub = await redis_service.subscribe(channel)
+
+        if not pubsub:
+            # Fallback to polling if Redis pub/sub fails
+            logger.warning(f"Redis pub/sub failed for analysis {analysis_id}, falling back to polling")
+            yield f"event: info\ndata: {json.dumps({'message': 'Using fallback polling mode'})}\n\n"
+
+            # Fallback polling logic
+            max_duration = 300  # 5 minutes timeout
+            elapsed = 0
+            poll_interval = 3
+
+            while elapsed < max_duration:
+                await asyncio.sleep(poll_interval)
+                elapsed += poll_interval
+
+                try:
+                    updated_analysis = await analysis_service.get_analysis_status(analysis_id)
+                    if not updated_analysis:
+                        yield f"event: error\ndata: {json.dumps({'error': 'Analysis not found'})}\n\n"
+                        break
+
+                    # Send status update
+                    yield f"event: status\ndata: {json.dumps(_format_analysis_status(updated_analysis))}\n\n"
+
+                    # Check if analysis is complete
+                    if updated_analysis.status in [AnalysisStatus.COMPLETED, AnalysisStatus.FAILED]:
+                        yield f"event: complete\ndata: {json.dumps(_format_analysis_status(updated_analysis))}\n\n"
+                        break
+
+                except Exception as e:
+                    logger.error(f"Error polling analysis status {analysis_id}: {e}")
+                    yield f"event: error\ndata: {json.dumps({'error': 'Failed to get status update'})}\n\n"
+                    break
+            return
+
+        try:
+            # Listen for Redis events with timeout
+            timeout_seconds = 300  # 5 minutes timeout
+            start_time = asyncio.get_event_loop().time()
+
+            while True:
+                current_time = asyncio.get_event_loop().time()
+                if current_time - start_time > timeout_seconds:
+                    yield f"event: timeout\ndata: {json.dumps({'message': 'Stream timeout reached'})}\n\n"
+                    break
+
+                try:
+                    # Listen for messages with a timeout
+                    message = await asyncio.wait_for(pubsub.get_message(ignore_subscribe_messages=True), timeout=5.0)
+
+                    if message and message['type'] == 'message':
+                        try:
+                            event_data = json.loads(message['data'])
+                            event_type = event_data.get('event', 'status_update')
+
+                            # Forward the event to the client
+                            yield f"event: {event_type}\ndata: {json.dumps(event_data)}\n\n"
+
+                            # Close stream if analysis is complete or failed
+                            if event_data.get('status') in ['completed', 'failed']:
+                                yield f"event: close\ndata: {json.dumps({'message': 'Analysis finished'})}\n\n"
+                                break
+
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Invalid JSON in Redis message: {e}")
+                            continue
+
+                except asyncio.TimeoutError:
+                    # Send heartbeat to keep connection alive
+                    yield f"event: heartbeat\ndata: {json.dumps({'timestamp': asyncio.get_event_loop().time()})}\n\n"
+                    continue
+
+        except Exception as e:
+            logger.error(f"Error in Redis pub/sub for analysis {analysis_id}: {e}")
+            yield f"event: error\ndata: {json.dumps({'error': 'Stream connection failed'})}\n\n"
+        finally:
+            # Clean up Redis subscription
+            try:
+                await pubsub.unsubscribe(channel)
+                await pubsub.close()
+            except Exception as e:
+                logger.error(f"Error closing Redis subscription: {e}")
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",  # TODO: Restrict to your domain in production
+            "Access-Control-Allow-Headers": "Cache-Control",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering for SSE
+        }
+    )
+
+
+def _format_analysis_status(analysis) -> dict:
+    """Format analysis status for SSE events."""
+    # Calculate progress percentage
+    progress_map = {
+        AnalysisStatus.QUEUED: 10,
+        AnalysisStatus.PROCESSING: 50,
+        AnalysisStatus.COMPLETED: 100,
+        AnalysisStatus.FAILED: 0
+    }
+    progress = progress_map.get(analysis.status, 0)
+
+    # Generate human-readable message
+    message_map = {
+        AnalysisStatus.QUEUED: "Analysis is queued for processing",
+        AnalysisStatus.PROCESSING: "Analyzing palm images...",
+        AnalysisStatus.COMPLETED: "Analysis completed successfully",
+        AnalysisStatus.FAILED: "Analysis failed"
+    }
+    message = message_map.get(analysis.status, "Unknown status")
+
+    # Include analysis result when completed
+    result = None
+    if analysis.status == AnalysisStatus.COMPLETED and analysis.summary:
+        result = {
+            "analysis_id": analysis.id,
+            "summary": analysis.summary,
+            "status": analysis.status.value
+        }
+
+    return {
+        "analysis_id": analysis.id,
+        "status": analysis.status.value,
+        "progress": progress,
+        "error_message": analysis.error_message,
+        "message": message,
+        "result": result,
+        "timestamp": analysis.updated_at.isoformat() if hasattr(analysis, 'updated_at') and analysis.updated_at else None
+    }
 
 
 @router.get("/{analysis_id}/summary", response_model=AnalysisSummaryResponse)

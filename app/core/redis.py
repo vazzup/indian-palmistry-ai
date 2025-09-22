@@ -226,20 +226,61 @@ class RedisService:
     async def ttl(self, key: str) -> int:
         """
         Get time to live for a key.
-        
+
         Args:
             key: Redis key
-            
+
         Returns:
             int: TTL in seconds, -1 if no expiry, -2 if key doesn't exist
         """
         try:
             client = await self.get_client()
             return await client.ttl(key)
-            
+
         except Exception as e:
             logger.error(f"Redis TTL failed for key {key}: {e}")
             return -2
+
+    async def publish(self, channel: str, message: Any) -> bool:
+        """
+        Publish a message to a Redis channel.
+
+        Args:
+            channel: Redis channel name
+            message: Message to publish (will be JSON serialized)
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            client = await self.get_client()
+            serialized_message = json.dumps(message, default=str)
+            result = await client.publish(channel, serialized_message)
+            return bool(result)
+
+        except Exception as e:
+            logger.error(f"Redis PUBLISH failed for channel {channel}: {e}")
+            return False
+
+    async def subscribe(self, *channels: str):
+        """
+        Subscribe to Redis channels.
+
+        Args:
+            channels: Channel names to subscribe to
+
+        Returns:
+            Redis pubsub object
+        """
+        try:
+            client = await self.get_client()
+            pubsub = client.pubsub()
+            await pubsub.subscribe(*channels)
+            return pubsub
+
+        except Exception as e:
+            logger.error(f"Redis SUBSCRIBE failed for channels {channels}: {e}")
+            return None
 
 
 class SessionManager:

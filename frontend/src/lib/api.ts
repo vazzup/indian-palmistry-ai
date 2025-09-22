@@ -143,9 +143,7 @@ export const analysisApi = {
    */
   async deleteAnalysis(id: string): Promise<{ message: string }> {
     try {
-      console.log(`Making DELETE request to /api/v1/analyses/${id}`);
       const response = await api.delete(`/api/v1/analyses/${id}`);
-      console.log('Delete API response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Delete analysis failed:', error);
@@ -161,9 +159,7 @@ export const analysisApi = {
    */
   async associateAnalysis(id: string): Promise<{ message: string }> {
     try {
-      console.log(`Making PUT request to /api/v1/analyses/${id}/associate`);
       const response = await api.put(`/api/v1/analyses/${id}/associate`);
-      console.log('Associate API response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Associate analysis failed:', error);
@@ -188,15 +184,12 @@ export const authApi = {
       });
       
       // Log the raw API response for debugging
-      console.log('authApi.register: Raw API response:', response.data);
       
       // Extract user from the AuthResponse structure
       // Backend returns: { success, message, user: {...}, csrf_token }
       if (response.data && response.data.user) {
-        console.log('authApi.register: Extracted user data:', response.data.user);
         return response.data.user;
       } else {
-        console.error('authApi.register: No user data in response:', response.data);
         throw new Error('Invalid response format: missing user data');
       }
     } catch (error) {
@@ -216,15 +209,12 @@ export const authApi = {
       });
       
       // Log the raw API response for debugging
-      console.log('authApi.login: Raw API response:', response.data);
       
       // Extract user from the LoginResponse structure
       // Backend returns: { success, message, user: {...}, csrf_token, session_expires }
       if (response.data && response.data.user) {
-        console.log('authApi.login: Extracted user data:', response.data.user);
         return response.data.user;
       } else {
-        console.error('authApi.login: No user data in response:', response.data);
         throw new Error('Invalid response format: missing user data');
       }
     } catch (error) {
@@ -253,14 +243,12 @@ export const authApi = {
       const response = await api.get('/api/v1/auth/me');
       
       // Log the response for debugging
-      console.log('authApi.getCurrentUser: API response:', response.data);
       
       // /me endpoint returns UserResponse directly (not wrapped)
       return response.data;
     } catch (error: any) {
       // Handle 401 gracefully - user is not authenticated
       if (error.response?.status === 401) {
-        console.log('authApi.getCurrentUser: User not authenticated (401)');
         // Return null to indicate no authenticated user, but don't throw
         // This allows checkAuth to handle the null return gracefully
         return null;

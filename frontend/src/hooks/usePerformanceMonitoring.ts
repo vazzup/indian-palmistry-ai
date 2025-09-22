@@ -27,10 +27,6 @@ export const usePerformanceMonitoring = () => {
         });
       }
 
-      // Log to console in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Performance Metric:', metric);
-      }
     };
 
     const getRating = (name: string, value: number): 'good' | 'needs-improvement' | 'poor' => {

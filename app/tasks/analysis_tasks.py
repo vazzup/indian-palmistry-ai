@@ -88,6 +88,19 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
             },
             expire_seconds=3600
         ))
+
+        # Publish SSE event for analysis status change
+        asyncio.run(redis_service.publish(
+            f"analysis_updates:{analysis_id}",
+            {
+                "event": "status_update",
+                "analysis_id": analysis_id,
+                "status": "processing",
+                "progress": 20,
+                "message": "Analysis is being processed...",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        ))
         
         logger.info(
             f"Starting palm analysis processing for analysis {analysis_id}, "
@@ -108,12 +121,25 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
             asyncio.run(redis_service.set(
                 f"job_status:{task_id}",
                 {
-                    "status": "processing", 
+                    "status": "processing",
                     "progress": 80,
                     "analysis_id": analysis_id,
                     "message": "Processing OpenAI response"
                 },
                 expire_seconds=3600
+            ))
+
+            # Publish SSE event for progress update
+            asyncio.run(redis_service.publish(
+                f"analysis_updates:{analysis_id}",
+                {
+                    "event": "progress_update",
+                    "analysis_id": analysis_id,
+                    "status": "processing",
+                    "progress": 80,
+                    "message": "Processing OpenAI response...",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
             ))
             
             # Save results to database and invalidate cache
@@ -164,6 +190,25 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
                     "cost": result.get("cost", 0.0)
                 },
                 expire_seconds=3600
+            ))
+
+            # Publish SSE event for completion
+            asyncio.run(redis_service.publish(
+                f"analysis_updates:{analysis_id}",
+                {
+                    "event": "analysis_complete",
+                    "analysis_id": analysis_id,
+                    "status": "completed",
+                    "progress": 100,
+                    "message": "Analysis completed successfully",
+                    "result": {
+                        "analysis_id": analysis_id,
+                        "summary": result["summary"],
+                        "tokens_used": result.get("tokens_used", 0),
+                        "cost": result.get("cost", 0.0)
+                    },
+                    "timestamp": datetime.utcnow().isoformat()
+                }
             ))
             
             logger.info(
@@ -236,6 +281,20 @@ def process_palm_analysis(self, analysis_id: int) -> Dict[str, Any]:
                 "failed_at": datetime.utcnow().isoformat()
             },
             expire_seconds=3600
+        ))
+
+        # Publish SSE event for failure
+        asyncio.run(redis_service.publish(
+            f"analysis_updates:{analysis_id}",
+            {
+                "event": "analysis_failed",
+                "analysis_id": analysis_id,
+                "status": "failed",
+                "progress": 0,
+                "message": "Analysis failed",
+                "error_message": str(exc),
+                "timestamp": datetime.utcnow().isoformat()
+            }
         ))
         
         # Retry if we haven't exceeded max retries

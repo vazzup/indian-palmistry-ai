@@ -5,7 +5,7 @@ import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { getRandomMessage } from '@/lib/cultural-theme';
-import { useAnalysisJobPolling } from '@/lib/redis-jobs';
+import { useAnalysisEventStream } from '@/lib/redis-jobs';
 import type { JobStatus } from '@/types';
 
 interface BackgroundJobProgressProps {
@@ -19,10 +19,11 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
   onComplete,
   onError,
 }) => {
-  const { status, isPolling, stopPolling } = useAnalysisJobPolling({
+  const { status, isStreaming, connectionState, disconnect } = useAnalysisEventStream({
     analysisId,
     onComplete,
     onError,
+    enableFallback: true, // Enable automatic fallback to polling for reliability
   });
   const [messages, setMessages] = React.useState({
     queued: 'Queuing your analysis...',
@@ -85,7 +86,7 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
   
   const isComplete = status?.status === 'completed';
   const isFailed = status?.status === 'failed';
-  const isActive = isPolling && !isComplete && !isFailed;
+  const isActive = isStreaming && !isComplete && !isFailed;
   
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -131,6 +132,24 @@ export const BackgroundJobProgress: React.FC<BackgroundJobProgressProps> = ({
           {status && (
             <div className="text-xs text-gray-400 space-y-1">
               <div>Status: {status.status.toUpperCase()}</div>
+              {connectionState && (
+                <div className="flex items-center justify-center gap-2">
+                  <span className={`inline-block w-2 h-2 rounded-full ${
+                    connectionState === 'connected' ? 'bg-green-400' :
+                    connectionState === 'fallback' ? 'bg-yellow-400' :
+                    connectionState === 'connecting' ? 'bg-blue-400' :
+                    connectionState === 'reconnecting' ? 'bg-orange-400 animate-pulse' :
+                    'bg-gray-400'
+                  }`} />
+                  <span>
+                    {connectionState === 'connected' ? 'Real-time' :
+                     connectionState === 'fallback' ? 'Polling mode' :
+                     connectionState === 'connecting' ? 'Connecting...' :
+                     connectionState === 'reconnecting' ? 'Reconnecting...' :
+                     'Disconnected'}
+                  </span>
+                </div>
+              )}
               {isActive && (
                 <div className="flex items-center justify-center gap-1">
                   <div className="w-1 h-1 bg-orange-400 rounded-full animate-bounce" />
