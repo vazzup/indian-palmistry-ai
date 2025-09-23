@@ -33,7 +33,7 @@ interface AuthState {
 
   // Actions
   login: (email: string, password: string) => Promise<User>;
-  register: (email: string, password: string, name: string) => Promise<User>;
+  register: (email: string, password: string, name: string, age: number, gender: string) => Promise<User>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<User | null>;
   clearError: () => void;
