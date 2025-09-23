@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { User, CheckCircle } from 'lucide-react';
+import { User as UserIcon, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
-import type { ProfileCompleteRequest } from '@/types';
+import type { ProfileCompleteRequest, User } from '@/types';
 
 const profileSchema = z.object({
   age: z
@@ -114,7 +114,7 @@ export default function CompleteProfilePage() {
         <Card className="shadow-lg">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-saffron-100 rounded-full flex items-center justify-center">
-              <User className="w-8 h-8 text-saffron-600" />
+              <UserIcon className="w-8 h-8 text-saffron-600" />
             </div>
             <div>
               <CardTitle className="text-2xl font-bold text-gray-900">
