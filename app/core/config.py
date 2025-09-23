@@ -62,6 +62,28 @@ class Settings(BaseSettings):
         default="change-this-to-a-secure-jwt-secret-in-production",
         description="JWT secret key"
     )
+
+    # OAuth Configuration
+    # Google OAuth
+    google_client_id: Optional[str] = Field(
+        default=None,
+        description="Google OAuth client ID"
+    )
+    google_client_secret: Optional[str] = Field(
+        default=None,
+        description="Google OAuth client secret"
+    )
+
+
+    # OAuth URLs
+    oauth_redirect_url: str = Field(
+        default="http://localhost:8000/auth/oauth/{provider}/callback",
+        description="OAuth callback URL template"
+    )
+    frontend_success_url: str = Field(
+        default="http://localhost:3000/dashboard",
+        description="Frontend URL to redirect after successful OAuth login"
+    )
     
     # CORS Configuration
     allowed_origins_str: str = Field(

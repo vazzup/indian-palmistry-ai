@@ -5,6 +5,10 @@ export interface User {
   email: string;
   name: string;
   picture?: string;
+  age?: number;
+  gender?: string;
+  oauth_provider?: string;
+  oauth_email_verified?: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -107,6 +111,13 @@ export interface RegisterRequest {
   email: string;
   password: string;
   name: string;
+  age: number;
+  gender: string;
+}
+
+export interface ProfileCompleteRequest {
+  age: number;
+  gender: string;
 }
 
 export interface AuthResponse {

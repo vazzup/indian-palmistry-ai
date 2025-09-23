@@ -9,6 +9,7 @@ import { Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { OAuthButtons } from '@/components/auth/OAuthButtons';
 import { useAuth } from '@/lib/auth';
 import type { LoginRequest } from '@/types';
 
@@ -86,6 +87,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       </CardHeader>
       
       <CardContent>
+        {/* OAuth Buttons */}
+        <OAuthButtons className="mb-6" />
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Global error */}
           {error && (

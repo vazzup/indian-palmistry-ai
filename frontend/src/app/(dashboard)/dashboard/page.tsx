@@ -29,17 +29,46 @@ import { DataInconsistencyErrorBoundary } from '@/components/errors/DataInconsis
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, associateAnalysisIfNeeded } = useAuth();
   const [welcomeMessage] = React.useState(() => getRandomMessage('welcome'));
   const [showNewReadingModal, setShowNewReadingModal] = React.useState(false);
   
   // Fetch dashboard data from API
-  const { 
-    data: dashboardData, 
-    loading, 
-    error, 
+  const {
+    data: dashboardData,
+    loading,
+    error,
     refetch
   } = useDashboard();
+
+  // Associate any pending guest analysis when component mounts (for OAuth users)
+  // Also check if user profile is complete (for existing users)
+  React.useEffect(() => {
+    const handleOnboarding = async () => {
+      if (!user) return;
+
+      // Check if profile is incomplete (existing user who needs to complete profile)
+      if (!user.age || !user.gender) {
+        console.log('User profile incomplete, redirecting to complete-profile');
+        router.push('/complete-profile');
+        return;
+      }
+
+      // If profile is complete, proceed with analysis association
+      try {
+        const associatedAnalysisId = await associateAnalysisIfNeeded();
+        if (associatedAnalysisId) {
+          console.log(`OAuth user: Successfully associated analysis ${associatedAnalysisId}`);
+          // Redirect to the analysis page to show the reading
+          router.push(`/analyses/${associatedAnalysisId}`);
+        }
+      } catch (error) {
+        console.error('Failed to associate analysis for OAuth user:', error);
+      }
+    };
+
+    handleOnboarding();
+  }, [user, associateAnalysisIfNeeded, router]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();

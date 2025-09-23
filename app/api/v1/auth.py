@@ -7,12 +7,13 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Request, Response, Depends, status
 from app.schemas.auth import (
     UserRegisterRequest,
-    UserLoginRequest, 
+    UserLoginRequest,
     AuthResponse,
     LoginResponse,
     LogoutResponse,
     UserResponse,
-    UserProfileUpdateRequest
+    UserProfileUpdateRequest,
+    ProfileCompleteRequest
 )
 from app.services.user_service import UserService
 from app.core.redis import session_manager
@@ -48,7 +49,9 @@ async def register_user(
         user = await user_service.create_user(
             email=user_data.email,
             password=user_data.password,
-            name=user_data.name
+            name=user_data.name,
+            age=user_data.age,
+            gender=user_data.gender
         )
         
         if not user:
@@ -239,10 +242,49 @@ async def get_current_user_info(
     current_user: User = Depends(get_current_user)
 ) -> UserResponse:
     """Get current user information.
-    
+
     Returns the profile information of the currently authenticated user.
     """
     return UserResponse.model_validate(current_user)
+
+
+@router.post("/complete-profile", response_model=UserResponse)
+async def complete_profile(
+    profile_data: ProfileCompleteRequest,
+    current_user: User = Depends(get_current_user)
+) -> UserResponse:
+    """Complete user profile with age and gender (for OAuth users).
+
+    This endpoint is used to collect required profile information from OAuth users
+    who didn't provide age and gender during their initial authentication.
+    """
+    try:
+        user_service = UserService()
+
+        # Complete the user profile
+        updated_user = await user_service.complete_user_profile(
+            user_id=current_user.id,
+            age=profile_data.age,
+            gender=profile_data.gender
+        )
+
+        if not updated_user:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update user profile"
+            )
+
+        logger.info(f"Profile completed for user: {updated_user.id}")
+        return UserResponse.model_validate(updated_user)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error completing profile: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to complete profile"
+        )
 
 
 @router.put("/profile", response_model=UserResponse, dependencies=[Depends(verify_csrf_token)])

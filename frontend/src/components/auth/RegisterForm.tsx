@@ -9,6 +9,7 @@ import { Mail, Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { OAuthButtons } from '@/components/auth/OAuthButtons';
 import { useAuth } from '@/lib/auth';
 import type { RegisterRequest } from '@/types';
 
@@ -33,6 +34,16 @@ const registerSchema = z.object({
   confirmPassword: z
     .string()
     .min(1, 'Please confirm your password'),
+  age: z
+    .number()
+    .min(13, 'You must be at least 13 years old')
+    .max(120, 'Please enter a valid age'),
+  gender: z
+    .string()
+    .min(1, 'Please select your gender')
+    .refine(val => ['Male', 'Female'].includes(val), {
+      message: 'Please select a valid gender option'
+    }),
   acceptTerms: z
     .boolean()
     .refine(val => val === true, {
@@ -90,10 +101,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         name: data.name,
         email: data.email,
         password: data.password,
+        age: data.age,
+        gender: data.gender,
       };
-      
+
       console.log('Calling registerUser...');
-      await registerUser(data.email, data.password, data.name);
+      await registerUser(data.email, data.password, data.name, data.age, data.gender);
       console.log('Registration successful');
       
       // Try to associate any pending anonymous analysis
@@ -127,6 +140,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       </CardHeader>
       
       <CardContent>
+        {/* OAuth Buttons */}
+        <OAuthButtons className="mb-6" />
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Global error */}
           {error && (
@@ -159,7 +175,41 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             disabled={isLoading || isSubmitting}
             autoComplete="email"
           />
-          
+
+          {/* Age and Gender fields side by side */}
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              {...register('age', { valueAsNumber: true })}
+              type="number"
+              label="Age"
+              placeholder="Age"
+              error={errors.age?.message}
+              disabled={isLoading || isSubmitting}
+              min={13}
+              max={120}
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Gender
+              </label>
+              <select
+                {...register('gender')}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-saffron-500 focus:border-saffron-500 disabled:bg-gray-50 disabled:text-gray-500 ${
+                  errors.gender ? 'border-red-300' : 'border-gray-300'
+                }`}
+                disabled={isLoading || isSubmitting}
+              >
+                <option value="">Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+              {errors.gender && (
+                <p className="mt-1 text-sm text-red-600">{errors.gender.message}</p>
+              )}
+            </div>
+          </div>
+
           {/* Password field */}
           <Input
             {...register('password')}

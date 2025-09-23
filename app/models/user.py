@@ -18,12 +18,19 @@ class User(Base):
     
     # Authentication fields
     email = Column(String(255), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)  # bcrypt hash
+    password_hash = Column(String(255), nullable=True)  # bcrypt hash (nullable for OAuth-only users)
+
+    # OAuth fields
+    oauth_provider = Column(String(50), nullable=True)  # google, apple, instagram
+    oauth_id = Column(String(255), nullable=True)  # provider's user ID
+    oauth_email_verified = Column(Boolean, default=False, nullable=False)
     
     # Profile fields
     name = Column(String(255), nullable=True)
     picture = Column(String(500), nullable=True)  # URL to profile picture
-    
+    age = Column(Integer, nullable=True)  # User age
+    gender = Column(String(50), nullable=True)  # User gender (Male, Female, Non-binary, Other, Prefer not to say)
+
     # Account status
     is_active = Column(Boolean, default=True, nullable=False)
     

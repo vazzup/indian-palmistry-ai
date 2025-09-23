@@ -12,7 +12,7 @@ export function middleware(request: NextRequest) {
   // Only apply to the homepage
   if (request.nextUrl.pathname === '/') {
     // Check for the session cookie (set by backend)
-    const sessionCookie = request.cookies.get('palmistry_session')
+    const sessionCookie = request.cookies.get('session_id')
 
     if (sessionCookie) {
       // User has a session cookie, redirect to dashboard

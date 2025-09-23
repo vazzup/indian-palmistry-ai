@@ -25,6 +25,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.config import settings
 from app.core.database import init_sqlite_pragmas, check_database_connection
@@ -103,6 +104,15 @@ app = FastAPI(
 # Add rate limiting and security middleware (disabled for development)
 # from app.middleware.rate_limiting import RateLimitMiddleware
 # app.add_middleware(RateLimitMiddleware, enable_security_monitoring=True)
+
+# Session middleware for OAuth state management
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.secret_key,
+    max_age=settings.session_expire_seconds,
+    same_site="lax",
+    https_only=settings.is_production,
+)
 
 # CORS middleware
 app.add_middleware(
@@ -221,6 +231,7 @@ async def root():
 # API v1 routers
 from fastapi import APIRouter
 from app.api.v1.auth import router as auth_router
+from app.api.v1.oauth import router as oauth_router
 from app.api.v1.analyses import router as analyses_router
 from app.api.v1.conversations import router as conversations_router
 from app.api.v1.enhanced_endpoints import router as enhanced_router
@@ -238,6 +249,7 @@ async def api_health():
 
 # Include sub-routers
 api_v1_router.include_router(auth_router)
+api_v1_router.include_router(oauth_router)
 api_v1_router.include_router(analyses_router)
 api_v1_router.include_router(conversations_router)
 api_v1_router.include_router(enhanced_router)

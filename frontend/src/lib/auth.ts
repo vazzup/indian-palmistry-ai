@@ -71,10 +71,10 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // Register action
-      register: async (email: string, password: string, name: string) => {
+      register: async (email: string, password: string, name: string, age: number, gender: string) => {
         set({ isLoading: true, error: null });
         try {
-          const user = await authApi.register({ email, password, name });
+          const user = await authApi.register({ email, password, name, age, gender });
           set({ 
             isAuthenticated: true, 
             user, 
@@ -229,6 +229,7 @@ export const useAuth = () => {
   }, [storedIsAuthenticated, user]);
   const checkAuth = useAuthStore(state => state.checkAuth);
   const clearError = useAuthStore(state => state.clearError);
+  const setUser = useAuthStore(state => state.setUser);
   const associateAnalysisIfNeeded = useAuthStore(state => state.associateAnalysisIfNeeded);
 
   return {
@@ -241,6 +242,7 @@ export const useAuth = () => {
     logout,
     checkAuth,
     clearError,
+    setUser,
     associateAnalysisIfNeeded,
   };
 };

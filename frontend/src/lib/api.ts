@@ -169,18 +169,25 @@ export const analysisApi = {
 };
 
 /**
+ * Export the base API client for direct use
+ */
+export { api };
+
+/**
  * Authentication API client for login, register, and user management
  */
 export const authApi = {
   /**
    * User registration
    */
-  async register(data: { email: string; password: string; name: string }): Promise<any> {
+  async register(data: { email: string; password: string; name: string; age: number; gender: string }): Promise<any> {
     try {
       const response = await api.post('/api/v1/auth/register', {
         email: data.email,
         password: data.password,
-        name: data.name
+        name: data.name,
+        age: data.age,
+        gender: data.gender
       });
       
       // Log the raw API response for debugging
@@ -276,6 +283,24 @@ export const authApi = {
       });
       // Return empty string if CSRF is not available
       return '';
+    }
+  },
+
+  /**
+   * Complete user profile with age and gender (for OAuth users)
+   */
+  async completeProfile(data: { age: number; gender: string }): Promise<any> {
+    try {
+      const response = await api.post('/api/v1/auth/complete-profile', {
+        age: data.age,
+        gender: data.gender
+      });
+
+      // Return the updated user data
+      return response.data;
+    } catch (error) {
+      console.error('Profile completion failed:', error);
+      throw new Error(handleApiError(error));
     }
   }
 };
