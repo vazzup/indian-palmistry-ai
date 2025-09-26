@@ -48,10 +48,6 @@ export const LazyDashboard = createLazyComponent(
   () => import('@/app/(dashboard)/dashboard/page')
 );
 
-export const LazyAnalysisDetail = createLazyComponent(
-  () => import('@/app/(dashboard)/analyses/[id]/page')
-);
-
 export const LazyConversationInterface = createLazyComponent(
   () => import('@/components/conversation/AnalysisConversations').then(module => ({ default: module.AnalysisConversations }))
 );
