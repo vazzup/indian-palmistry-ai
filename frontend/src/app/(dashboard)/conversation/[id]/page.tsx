@@ -404,7 +404,7 @@ export default function ConversationPage() {
                   disabled={!newMessage.trim() || isSending}
                   className="bg-saffron-600 hover:bg-saffron-700 text-white rounded-xl px-6 py-2 font-medium"
                 >
-                  {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
+                  {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
 
