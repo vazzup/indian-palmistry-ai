@@ -166,6 +166,42 @@ export const analysisApi = {
       throw error;
     }
   },
+
+  /**
+   * Get the current active reading for the authenticated user
+   * In the single reading model, each user has only one current reading
+   * @returns Promise resolving to Analysis object
+   * @throws Error if no current reading found or API error
+   */
+  async getCurrentReading(): Promise<Analysis> {
+    console.log('[DEBUG] Frontend: getCurrentReading called');
+    try {
+      console.log('[DEBUG] Frontend: Making GET request to /api/v1/analyses/current');
+      const response = await api.get('/api/v1/analyses/current');
+      console.log('[DEBUG] Frontend: Received response:', response.status, response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[DEBUG] Frontend: Request failed:', error.response?.status, error.response?.data);
+      console.error('Get current reading failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Claim a guest reading and set it as the user's current reading
+   * @param analysisId - The ID of the guest analysis to claim
+   * @returns Promise resolving to success response
+   * @throws Error if claiming fails
+   */
+  async claimReading(analysisId: string): Promise<any> {
+    try {
+      const response = await api.post(`/api/v1/analyses/${analysisId}/claim`);
+      return response.data;
+    } catch (error) {
+      console.error('Claim reading failed:', error);
+      throw new Error(handleApiError(error));
+    }
+  },
 };
 
 /**
@@ -462,7 +498,7 @@ export const conversationsApi = {
       if (params?.per_page) queryParams.append('per_page', params.per_page.toString());
       
       const queryString = queryParams.toString();
-      const url = `/api/v1/analyses/${analysisId}/conversations/${conversationId}/messages${queryString ? `?${queryString}` : ''}`;
+      const url = `/api/v1/conversations/${conversationId}/messages${queryString ? `?${queryString}` : ''}`;
 
       const response = await api.get(url);
       return response.data;
@@ -529,7 +565,7 @@ export const conversationsApi = {
       // Get CSRF token for security
       const csrfToken = await authApi.getCSRFToken();
       
-      const response = await api.post(`/api/v1/analyses/${analysisId}/conversations/${conversationId}/talk`, {
+      const response = await api.post(`/api/v1/conversations/${conversationId}/talk`, {
         message: content
       }, {
         headers: {
@@ -553,6 +589,32 @@ export const conversationsApi = {
       console.error('Delete conversation failed:', error);
       throw new Error(handleApiError(error));
     }
+  },
+
+  /**
+   * Get messages for a conversation (simplified, no analysis ID needed)
+   */
+  async getMessages(conversationId: string, params?: {
+    page?: number;
+    per_page?: number;
+  }): Promise<{
+    messages: any[];
+    total: number;
+    page: number;
+    per_page: number;
+    has_more: boolean;
+    conversation_id: number;
+  }> {
+    // Use the existing function with a dummy analysis ID since backend ignores it now
+    return this.getConversationMessages('1', conversationId, params);
+  },
+
+  /**
+   * Send a message (simplified, no analysis ID needed)
+   */
+  async sendMessageToConversation(conversationId: string, content: string): Promise<any> {
+    // Use the existing function with a dummy analysis ID since backend ignores it now
+    return this.sendMessage('1', conversationId, content);
   },
 };
 

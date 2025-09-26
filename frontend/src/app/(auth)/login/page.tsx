@@ -18,24 +18,39 @@ function LoginPageContent() {
   }, []);
   
   // Get redirect URL from query params
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  const redirectTo = searchParams.get('redirect') || '/reading';
   const analysisId = searchParams.get('analysis');
   
   const handleLoginSuccess = async () => {
-    // Check if we need to import auth for analysis association
-    const { useAuthStore } = await import('@/lib/auth');
-    const { associateAnalysisIfNeeded } = useAuthStore.getState();
-    
-    // Try to associate any pending anonymous analysis
-    const associatedAnalysisId = await associateAnalysisIfNeeded();
-    
+    // Check if user is coming from reading-summary page and has a guest analysis to claim
+    const { getGuestAnalysisId, clearGuestAnalysisId, migrateFromReturnToAnalysis } = await import('@/lib/guest-analysis');
+    const { analysisApi } = await import('@/lib/api');
+
+    // Migrate from old returnToAnalysis key if needed (backward compatibility)
+    migrateFromReturnToAnalysis();
+
+    const guestAnalysisId = getGuestAnalysisId();
+
+    if (guestAnalysisId && (redirectTo === 'reading-summary' || searchParams.get('redirect') === 'reading-summary')) {
+      try {
+        console.log(`Claiming guest reading ${guestAnalysisId} after login`);
+        await analysisApi.claimReading(guestAnalysisId);
+        clearGuestAnalysisId();
+        console.log('Guest reading claimed successfully, redirecting to /reading');
+        router.push('/reading');
+        return;
+      } catch (error) {
+        console.error('Failed to claim guest reading:', error);
+        // If claiming fails, clear the ID and continue with normal flow
+        clearGuestAnalysisId();
+      }
+    }
+
+    // Legacy support for old analysis association flow
     if (analysisId) {
       // Redirect to specific analysis if coming from login gate (URL parameter)
-      router.push(`/analyses/${analysisId}`);
-    } else if (associatedAnalysisId) {
-      // Redirect to associated analysis if we just claimed one from sessionStorage
-      console.log(`Login success - redirecting to associated analysis ${associatedAnalysisId}`);
-      router.push(`/analyses/${associatedAnalysisId}`);
+      // In the new model, this should redirect to /reading instead
+      router.push('/reading');
     } else {
       // Default redirect
       router.push(redirectTo);

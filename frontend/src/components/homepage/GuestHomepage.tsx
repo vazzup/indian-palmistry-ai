@@ -16,8 +16,10 @@ import { Button } from '@/components/ui/Button';
 import { HeaderAuth } from '@/components/auth/HeaderAuth';
 import { ValuePropCard } from '@/components/auth/ValuePropCard';
 import { ExperienceChoice } from '@/components/auth/ExperienceChoice';
+import { LoadingPage } from '@/components/ui/Spinner';
 import { analysisApi, handleApiError } from '@/lib/api';
 import { getRandomMessage } from '@/lib/cultural-theme';
+import { useAuth } from '@/lib/auth';
 import type { Analysis } from '@/types';
 
 /**
@@ -26,17 +28,63 @@ import type { Analysis } from '@/types';
  */
 export function GuestHomepage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [welcomeMessage, setWelcomeMessage] = React.useState('Experience the timeless wisdom of Indian palm reading');
   const [showExperienceChoice, setShowExperienceChoice] = React.useState(false);
 
+  // Client-side auth guard: redirect authenticated users to reading page
+  React.useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      console.log('[GuestHomepage] Authenticated user detected, redirecting to reading');
+      router.push('/reading');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
   // Set random message on client side to avoid hydration mismatch
   React.useEffect(() => {
     setWelcomeMessage(getRandomMessage('welcome'));
   }, []);
 
+  // Define all callbacks before any conditional returns
+  const handleAnalysisComplete = React.useCallback((result: any) => {
+    console.log('handleAnalysisComplete called with:', result, 'analysis:', analysis);
+
+    let analysisId = null;
+
+    if (analysis) {
+      analysisId = analysis.id;
+    } else if (result?.analysis_id) {
+      analysisId = result.analysis_id;
+    }
+
+    if (analysisId) {
+      // Store analysis ID in session storage for claiming later
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('guestAnalysisId', analysisId.toString());
+      }
+
+      // Navigate to the clean summary page without analysis ID in URL
+      console.log('Storing analysis ID in session and navigating to reading-summary');
+      router.push('/reading-summary');
+    } else {
+      console.error('No analysis ID found to store');
+    }
+  }, [analysis, router]);
+
+  const handleAnalysisError = (error: string) => {
+    setUploadError(`Analysis failed: ${error}`);
+    setAnalysis(null);
+  };
+
+  // Show loading while checking auth to prevent flash of content
+  if (authLoading) {
+    return <LoadingPage message="Loading..." />;
+  }
+
+  // Define all callbacks first (before any conditional returns)
   const handleUpload = async (files: File[]) => {
     try {
       setIsUploading(true);
@@ -69,26 +117,10 @@ export function GuestHomepage() {
     router.push('/register');
   };
 
-  const handleAnalysisComplete = React.useCallback((result: any) => {
-    console.log('handleAnalysisComplete called with:', result, 'analysis:', analysis);
-    if (analysis) {
-      // Navigate to the summary page
-      console.log('Navigating to summary page:', `/analysis/${analysis.id}/summary`);
-      router.push(`/analysis/${analysis.id}/summary`);
-    } else {
-      console.error('No analysis object found when trying to redirect');
-      // Fallback: try to get analysis ID from the result
-      if (result?.analysis_id) {
-        console.log('Using analysis ID from result:', result.analysis_id);
-        router.push(`/analysis/${result.analysis_id}/summary`);
-      }
-    }
-  }, [analysis, router]);
-
-  const handleAnalysisError = (error: string) => {
-    setUploadError(`Analysis failed: ${error}`);
-    setAnalysis(null);
-  };
+  // Don't render homepage if user is authenticated (should have been redirected)
+  if (isAuthenticated) {
+    return <LoadingPage message="Redirecting..." />;
+  }
 
   if (analysis && !uploadError) {
     return (

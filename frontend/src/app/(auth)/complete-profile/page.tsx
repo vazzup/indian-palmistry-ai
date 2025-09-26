@@ -51,13 +51,8 @@ export default function CompleteProfilePage() {
 
     // Check if profile is already complete
     if (user.age && user.gender) {
-      // Check for pending analysis association
-      const analysisId = sessionStorage.getItem('returnToAnalysis');
-      if (analysisId) {
-        router.push(`/analyses/${analysisId}`);
-      } else {
-        router.push('/dashboard');
-      }
+      // In the single reading model, redirect to reading page
+      router.push('/reading');
     }
   }, [user, router]);
 
@@ -81,14 +76,31 @@ export default function CompleteProfilePage() {
 
       console.log('Profile completed successfully');
 
-      // Check for pending analysis association and redirect accordingly
-      const analysisId = sessionStorage.getItem('returnToAnalysis');
-      if (analysisId) {
-        console.log(`Redirecting to analysis ${analysisId} after profile completion`);
-        router.push(`/analyses/${analysisId}`);
+      // Check if user has a guest analysis to claim
+      const { getGuestAnalysisId, clearGuestAnalysisId, migrateFromReturnToAnalysis } = await import('@/lib/guest-analysis');
+      const { analysisApi } = await import('@/lib/api');
+
+      // Migrate from old returnToAnalysis key if needed (backward compatibility)
+      migrateFromReturnToAnalysis();
+
+      const guestAnalysisId = getGuestAnalysisId();
+
+      if (guestAnalysisId) {
+        try {
+          console.log(`Claiming guest reading ${guestAnalysisId} after profile completion`);
+          await analysisApi.claimReading(guestAnalysisId);
+          clearGuestAnalysisId();
+          console.log('Guest reading claimed successfully, redirecting to /reading');
+          router.push('/reading');
+        } catch (error) {
+          console.error('Failed to claim guest reading:', error);
+          clearGuestAnalysisId();
+          // If claiming fails, still redirect to reading page
+          router.push('/reading');
+        }
       } else {
-        console.log('Redirecting to dashboard after profile completion');
-        router.push('/dashboard');
+        console.log('No guest reading to claim, redirecting to /reading');
+        router.push('/reading');
       }
     } catch (error: any) {
       console.error('Profile completion failed:', error);

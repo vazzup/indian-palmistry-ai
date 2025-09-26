@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Hand, Sparkles } from 'lucide-react';
+import { X, Hand, Sparkles, AlertTriangle, MessageCircle } from 'lucide-react';
 import { MobileImageUpload } from '@/components/analysis/MobileImageUpload';
 import { BackgroundJobProgress } from '@/components/analysis/BackgroundJobProgress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -20,16 +20,23 @@ import type { Analysis } from '@/types';
 interface NewReadingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onComplete?: () => void;
 }
 
-export function NewReadingModal({ isOpen, onClose }: NewReadingModalProps) {
+export function NewReadingModal({ isOpen, onClose, onComplete }: NewReadingModalProps) {
   const router = useRouter();
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [welcomeMessage, setWelcomeMessage] = React.useState('Start your next palm reading');
 
-  // Set random message for variety
+  // Warning state
+  const [currentReading, setCurrentReading] = React.useState<Analysis | null>(null);
+  const [showWarning, setShowWarning] = React.useState(false);
+  const [warningConfirmed, setWarningConfirmed] = React.useState(false);
+  const [loadingCurrentReading, setLoadingCurrentReading] = React.useState(false);
+
+  // Fetch current reading and show warning if needed
   React.useEffect(() => {
     if (isOpen) {
       setWelcomeMessage(getRandomMessage('welcome'));
@@ -37,17 +44,45 @@ export function NewReadingModal({ isOpen, onClose }: NewReadingModalProps) {
       setAnalysis(null);
       setUploadError(null);
       setIsUploading(false);
+      setShowWarning(false);
+      setWarningConfirmed(false);
+
+      // Check if user has a current reading
+      fetchCurrentReading();
     }
   }, [isOpen]);
 
+  const fetchCurrentReading = async () => {
+    try {
+      setLoadingCurrentReading(true);
+      const reading = await analysisApi.getCurrentReading();
+      setCurrentReading(reading);
+
+      // In the single reading model, show warning if they have an existing reading
+      if (reading) {
+        setShowWarning(true);
+      }
+    } catch (error) {
+      // No current reading or error - no warning needed
+      setCurrentReading(null);
+    } finally {
+      setLoadingCurrentReading(false);
+    }
+  };
+
   const handleUpload = async (files: File[]) => {
+    // If we need to show a warning and it hasn't been confirmed, don't proceed
+    if (showWarning && !warningConfirmed) {
+      return;
+    }
+
     try {
       setIsUploading(true);
       setUploadError(null);
 
       console.log('Authenticated user upload started with files:', files.map(f => ({ name: f.name, size: f.size })));
 
-      // Create analysis for authenticated user
+      // Create analysis for authenticated user (this will replace the current reading)
       const uploadedAnalysis = await analysisApi.uploadImages(files);
       console.log('Authenticated analysis created:', uploadedAnalysis);
 
@@ -66,21 +101,17 @@ export function NewReadingModal({ isOpen, onClose }: NewReadingModalProps) {
 
   const handleAnalysisComplete = React.useCallback((result: any) => {
     console.log('handleAnalysisComplete called with:', result, 'analysis:', analysis);
-    if (analysis) {
-      // Navigate to the full analysis page
-      console.log('Navigating to analysis page:', `/analyses/${analysis.id}`);
-      onClose();
-      router.push(`/analyses/${analysis.id}`);
+
+    // For authenticated users, use onComplete callback if provided, otherwise redirect to /reading
+    if (onComplete) {
+      console.log('Analysis complete - calling onComplete callback');
+      onComplete();
     } else {
-      console.error('No analysis object found when trying to redirect');
-      // Fallback: try to get analysis ID from the result
-      if (result?.analysis_id) {
-        console.log('Using analysis ID from result:', result.analysis_id);
-        onClose();
-        router.push(`/analyses/${result.analysis_id}`);
-      }
+      console.log('Analysis complete - redirecting to /reading page');
+      onClose();
+      router.push('/reading');
     }
-  }, [analysis, router, onClose]);
+  }, [analysis, router, onClose, onComplete]);
 
   const handleAnalysisError = (error: string) => {
     setUploadError(`Analysis failed: ${error}`);
@@ -176,6 +207,49 @@ export function NewReadingModal({ isOpen, onClose }: NewReadingModalProps) {
 
         {/* Modal Content */}
         <div className="p-6 space-y-6">
+          {/* Warning Dialog */}
+          {showWarning && currentReading && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-amber-900 mb-2">
+                    Warning: You'll lose your conversations
+                  </h3>
+                  <p className="text-amber-800 mb-4">
+                    Creating a new reading will replace your current reading and delete all associated conversations.
+                    Your current reading and all associated conversations will be permanently lost.
+                  </p>
+                  <div className="flex items-center gap-4 text-sm text-amber-700 mb-4">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4" />
+                      <span>All conversations will be deleted</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <input
+                      type="checkbox"
+                      id="confirm-warning"
+                      checked={warningConfirmed}
+                      onChange={(e) => setWarningConfirmed(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 bg-white border-amber-300 rounded focus:ring-amber-500"
+                    />
+                    <label htmlFor="confirm-warning" className="text-sm text-amber-800">
+                      I understand I will lose all my conversations and want to proceed
+                    </label>
+                  </div>
+                  {!warningConfirmed && (
+                    <p className="text-sm text-amber-700 italic">
+                      Please confirm you understand the consequences before uploading new images.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Welcome Message */}
           <div className="text-center">
             <div className="flex items-center justify-center mb-4">
@@ -209,7 +283,7 @@ export function NewReadingModal({ isOpen, onClose }: NewReadingModalProps) {
               <MobileImageUpload
                 onUpload={handleUpload}
                 isUploading={isUploading}
-                disabled={isUploading}
+                disabled={isUploading || (showWarning && !warningConfirmed)}
               />
             </CardContent>
           </Card>
