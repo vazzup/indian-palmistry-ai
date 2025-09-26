@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, status
 from app.schemas.conversation import (
     ConversationCreateRequest,
     ConversationResponse,
+    ConversationListResponse,
     MessageResponse,
     MessageListResponse,
     TalkRequest,
@@ -30,13 +31,12 @@ async def start_conversation(
     request: InitialConversationRequest,
     current_user: User = Depends(get_current_user)
 ) -> InitialConversationResponse:
-    """Start conversation with initial AI reading message + user's first question.
-    
+    """Start conversation with user's first question.
+
     Creates a conversation with:
-    1. Initial AI message containing the analysis summary
-    2. User's first question
-    3. AI response to the first question with full analysis context
-    
+    1. User's first question
+    2. AI response to the first question with full analysis context
+
     This transforms the analysis from 'analysis' mode to 'chat' mode permanently.
     """
     try:
@@ -52,7 +52,6 @@ async def start_conversation(
         
         return InitialConversationResponse(
             conversation=ConversationResponse.from_conversation(result["conversation"], current_user.id),
-            initial_message=MessageResponse.model_validate(result["initial_message"]),
             user_message=MessageResponse.model_validate(result["user_message"]),
             assistant_message=MessageResponse.model_validate(result["assistant_message"]),
             tokens_used=result.get("tokens_used", 0),
@@ -109,39 +108,40 @@ async def create_conversation(
         )
 
 
-@router.get("/", response_model=ConversationResponse)
-async def get_analysis_conversation(
+@router.get("/", response_model=ConversationListResponse)
+async def get_analysis_conversations(
     analysis_id: int,
     current_user: User = Depends(get_current_user)
-) -> ConversationResponse:
-    """Get the conversation for an analysis.
-    
-    Returns the single conversation associated with the analysis.
-    Only the analysis owner can view the conversation.
+) -> ConversationListResponse:
+    """Get all conversations for an analysis.
+
+    Returns all conversations associated with the analysis in the single reading model.
+    Only the analysis owner can view the conversations.
     """
     try:
         conversation_service = ConversationService()
-        
-        conversation = await conversation_service.get_analysis_conversation(
+
+        conversations = await conversation_service.get_conversations_for_analysis(
             analysis_id=analysis_id,
             user_id=current_user.id
         )
-        
-        if not conversation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Conversation not found for this analysis"
-            )
-        
-        return ConversationResponse.from_conversation(conversation, current_user.id)
-        
-    except HTTPException:
-        raise
+
+        # Convert to response objects
+        conversation_responses = [
+            ConversationResponse.from_conversation(conv, current_user.id)
+            for conv in conversations
+        ]
+
+        return ConversationListResponse(
+            conversations=conversation_responses,
+            total=len(conversation_responses)
+        )
+
     except Exception as e:
-        logger.error(f"Error getting conversation for analysis {analysis_id}: {e}")
+        logger.error(f"Error getting conversations for analysis {analysis_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get conversation"
+            detail="Failed to get conversations"
         )
 
 

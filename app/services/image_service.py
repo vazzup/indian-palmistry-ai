@@ -362,3 +362,75 @@ class ImageService:
             # For authenticated users, this would check DB for daily usage
             # For now, we'll allow it
             pass
+
+    async def delete_local_file(self, file_path: str) -> bool:
+        """Delete a local file from storage.
+
+        Args:
+            file_path: Path to the file relative to storage root
+
+        Returns:
+            True if file was deleted successfully, False otherwise
+        """
+        try:
+            full_path = self.storage_root / file_path
+            if full_path.exists():
+                full_path.unlink()
+                logger.info(f"Deleted local file: {file_path}")
+                return True
+            else:
+                logger.info(f"Local file not found (already deleted?): {file_path}")
+                return True  # Consider this a success since the file doesn't exist
+        except Exception as e:
+            logger.error(f"Error deleting local file {file_path}: {e}")
+            return False
+
+    async def delete_analysis_images(
+        self,
+        left_image_path: Optional[str] = None,
+        right_image_path: Optional[str] = None,
+        left_thumbnail_path: Optional[str] = None,
+        right_thumbnail_path: Optional[str] = None,
+        left_file_id: Optional[str] = None,
+        right_file_id: Optional[str] = None
+    ) -> dict:
+        """Delete all images associated with an analysis.
+
+        Args:
+            left_image_path: Path to left palm image
+            right_image_path: Path to right palm image
+            left_thumbnail_path: Path to left thumbnail
+            right_thumbnail_path: Path to right thumbnail
+            left_file_id: OpenAI file ID for left palm
+            right_file_id: OpenAI file ID for right palm
+
+        Returns:
+            Dictionary with deletion results
+        """
+        results = {
+            "local_files_deleted": 0,
+            "openai_files_deleted": 0,
+            "errors": []
+        }
+
+        # Delete local files
+        local_files = [left_image_path, right_image_path, left_thumbnail_path, right_thumbnail_path]
+        for file_path in local_files:
+            if file_path:
+                try:
+                    if await self.delete_local_file(file_path):
+                        results["local_files_deleted"] += 1
+                except Exception as e:
+                    results["errors"].append(f"Error deleting {file_path}: {str(e)}")
+
+        # Delete OpenAI files
+        openai_files = [left_file_id, right_file_id]
+        for file_id in openai_files:
+            if file_id:
+                try:
+                    if await self.openai_service.delete_file(file_id):
+                        results["openai_files_deleted"] += 1
+                except Exception as e:
+                    results["errors"].append(f"Error deleting OpenAI file {file_id}: {str(e)}")
+
+        return results

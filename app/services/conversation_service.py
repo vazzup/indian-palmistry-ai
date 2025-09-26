@@ -34,20 +34,24 @@ class ConversationService:
         self,
         analysis_id: int,
         user_id: int,
-        title: Optional[str] = None
+        title: Optional[str] = None,
+        auto_generate_title: bool = False,
+        first_message: Optional[str] = None
     ) -> Conversation:
-        """Create a new conversation for an analysis or return existing one.
-        
-        Since we now have a one-to-one relationship, this method will return
-        the existing conversation if one already exists for this analysis.
-        
+        """Create a new conversation for an analysis.
+
+        Now supports multiple conversations per analysis. Optionally auto-generates
+        titles from the first message using OpenAI.
+
         Args:
             analysis_id: ID of the analysis
             user_id: ID of the user creating the conversation
             title: Optional title for the conversation
-            
+            auto_generate_title: Whether to auto-generate title from first message
+            first_message: First message content for title generation
+
         Returns:
-            Conversation instance (existing or newly created)
+            Conversation instance (newly created)
         """
         try:
             async with await self.get_session() as db:
@@ -61,18 +65,14 @@ class ConversationService:
                 if not analysis:
                     raise ValueError("Analysis not found or access denied")
                 
-                # Check if conversation already exists (one-to-one relationship)
-                existing_stmt = select(Conversation).where(Conversation.analysis_id == analysis_id)
-                existing_result = await db.execute(existing_stmt)
-                existing_conversation = existing_result.scalar_one_or_none()
-                
-                if existing_conversation:
-                    logger.info(f"Returning existing conversation {existing_conversation.id} for analysis {analysis_id}")
-                    return existing_conversation
-                
+                # Auto-generate title from first message if requested
+                if auto_generate_title and first_message and not title:
+                    title = await self._generate_conversation_title(first_message)
+
                 # Generate default title if not provided
                 if not title:
-                    title = f"Conversation about Palm Reading #{analysis_id}"
+                    conversation_count = await self._get_conversation_count_for_analysis(db, analysis_id)
+                    title = f"Conversation {conversation_count + 1}"
                 
                 conversation = Conversation(
                     analysis_id=analysis_id,
@@ -96,20 +96,19 @@ class ConversationService:
         user_id: int,
         first_question: str
     ) -> Dict[str, Any]:
-        """Initialize a conversation with reading summary and first Q&A.
-        
+        """Initialize a conversation with first Q&A.
+
         Creates conversation with:
-        1. Initial AI message containing analysis summary + full data for modal
-        2. User's first question  
-        3. AI response with full analysis context
-        
+        1. User's first question
+        2. AI response with full analysis context
+
         Args:
             analysis_id: ID of the analysis
             user_id: ID of the user
             first_question: User's first question
-            
+
         Returns:
-            Dictionary with conversation and all messages
+            Dictionary with conversation, user message and assistant response
         """
         try:
             async with await self.get_session() as db:
@@ -123,23 +122,14 @@ class ConversationService:
                 if not analysis:
                     raise ValueError("Analysis not found or access denied")
                 
-                # Check if conversation already exists
-                existing_stmt = select(Conversation).where(Conversation.analysis_id == analysis_id)
-                existing_result = await db.execute(existing_stmt)
-                existing_conversation = existing_result.scalar_one_or_none()
-                
-                if existing_conversation:
-                    # If conversation exists, just add the user question and get response
-                    return await self.add_message_and_respond(
-                        existing_conversation.id, user_id, first_question
-                    )
-                
-                # Create new conversation in CHAT mode
+                # Create new conversation with auto-generated title
+                title = await self._generate_conversation_title(first_question)
+
                 conversation = Conversation(
                     analysis_id=analysis_id,
-                    title=f"Questions about Palm Reading #{analysis_id}",
+                    title=title,
                     mode=ConversationMode.CHAT,
-                    has_initial_message=True
+                    has_initial_message=False
                 )
                 
                 db.add(conversation)
@@ -163,22 +153,6 @@ class ConversationService:
                     processing_time = (analysis.processing_completed_at - analysis.processing_started_at).total_seconds()
                     analysis_data["processing_time"] = processing_time
                 
-                # Create initial AI message with analysis summary
-                initial_message_content = f"""Welcome! Here's a summary of your palm reading analysis:
-
-{analysis.summary or 'Your palm analysis has been completed successfully.'}
-
-Feel free to ask me any questions about your reading, and I'll provide detailed insights based on your palm analysis."""
-                
-                initial_msg = Message(
-                    conversation_id=conversation.id,
-                    role=MessageRole.ASSISTANT,
-                    content=initial_message_content,
-                    message_type=MessageType.INITIAL_READING,
-                    analysis_data=analysis_data
-                )
-                db.add(initial_msg)
-                
                 # Add user's first question
                 user_msg = Message(
                     conversation_id=conversation.id,
@@ -189,7 +163,6 @@ Feel free to ask me any questions about your reading, and I'll provide detailed 
                 db.add(user_msg)
                 
                 await db.commit()
-                await db.refresh(initial_msg)
                 await db.refresh(user_msg)
                 
                 # Generate AI response to the first question with full context
@@ -216,7 +189,6 @@ Feel free to ask me any questions about your reading, and I'll provide detailed 
                 
                 return {
                     "conversation": conversation,
-                    "initial_message": initial_msg,
                     "user_message": user_msg,
                     "assistant_message": ai_msg,
                     "tokens_used": ai_response_data.get("tokens_used", 0),
@@ -588,3 +560,97 @@ Feel free to ask me any questions about your reading, and I'll provide detailed 
         except Exception as e:
             logger.error(f"Error deleting conversation {conversation_id}: {e}")
             return False
+
+    async def get_conversations_for_analysis(
+        self,
+        analysis_id: int,
+        user_id: int
+    ) -> List[Conversation]:
+        """Get all conversations for an analysis.
+
+        Args:
+            analysis_id: Analysis ID
+            user_id: User ID for access control
+
+        Returns:
+            List of conversations
+        """
+        try:
+            async with await self.get_session() as db:
+                # Join with Analysis to check ownership
+                stmt = (
+                    select(Conversation)
+                    .join(Analysis, Conversation.analysis_id == Analysis.id)
+                    .where(
+                        and_(
+                            Conversation.analysis_id == analysis_id,
+                            Analysis.user_id == user_id
+                        )
+                    )
+                    .order_by(desc(Conversation.created_at))
+                )
+                result = await db.execute(stmt)
+                conversations = result.scalars().all()
+
+                return list(conversations)
+
+        except Exception as e:
+            logger.error(f"Error getting conversations for analysis {analysis_id}: {e}")
+            return []
+
+    async def _generate_conversation_title(self, first_message: str) -> str:
+        """Generate a conversation title from the first message using OpenAI.
+
+        Args:
+            first_message: The first message content
+
+        Returns:
+            Generated title (fallback to default if generation fails)
+        """
+        try:
+            prompt = f"""Generate a short, descriptive title (2-4 words) for a palmistry conversation based on this question:
+
+"{first_message}"
+
+Examples:
+- "What does my palm say about love?" → "Love & Relationships"
+- "Will I be successful in business?" → "Business Success"
+- "When will I get married?" → "Marriage Timing"
+- "What's my career path?" → "Career Guidance"
+
+Return only the title, no quotes or explanations."""
+
+            title = await self.openai_service.generate_simple_completion(prompt, max_tokens=10)
+
+            # Clean up the response
+            title = title.strip().replace('"', '').replace("'", "")
+
+            # Validate length
+            if len(title) > 50:
+                title = title[:47] + "..."
+
+            return title or "General Questions"
+
+        except Exception as e:
+            logger.warning(f"Failed to generate conversation title: {e}")
+            return "General Questions"
+
+    async def _get_conversation_count_for_analysis(self, db: AsyncSession, analysis_id: int) -> int:
+        """Get the number of conversations for an analysis.
+
+        Args:
+            db: Database session
+            analysis_id: Analysis ID
+
+        Returns:
+            Number of conversations
+        """
+        try:
+            stmt = select(Conversation).where(Conversation.analysis_id == analysis_id)
+            result = await db.execute(stmt)
+            conversations = result.scalars().all()
+            return len(conversations)
+
+        except Exception as e:
+            logger.error(f"Error getting conversation count for analysis {analysis_id}: {e}")
+            return 0

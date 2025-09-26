@@ -51,10 +51,15 @@ class AnalysisService:
             self.image_service.validate_quota(user_id)
             
             async with await self.get_session() as db:
-                # Create analysis record first
+                # For authenticated users: mark previous analysis as inactive (single reading approach)
+                if user_id:
+                    await self._mark_previous_analyses_inactive(db, user_id)
+
+                # Create analysis record
                 analysis = Analysis(
                     user_id=user_id,
-                    status=AnalysisStatus.QUEUED
+                    status=AnalysisStatus.QUEUED,
+                    is_current=True
                 )
                 
                 db.add(analysis)
@@ -407,3 +412,98 @@ class AnalysisService:
         except Exception as e:
             logger.error(f"Error associating analysis {analysis_id} with user {user_id}: {e}")
             return False
+
+    async def get_current_analysis(self, user_id: int) -> Optional[Analysis]:
+        """Get the current active analysis for a user.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            Current Analysis instance if found, None otherwise
+        """
+        logger.info(f"[DEBUG] AnalysisService.get_current_analysis called for user {user_id}")
+        try:
+            logger.info(f"[DEBUG] Getting database session")
+            async with await self.get_session() as db:
+                logger.info(f"[DEBUG] Building query for current analysis")
+                stmt = select(Analysis).where(
+                    Analysis.user_id == user_id,
+                    Analysis.is_current == True
+                )
+                logger.info(f"[DEBUG] Executing query: {stmt}")
+                result = await db.execute(stmt)
+                analysis = result.scalar_one_or_none()
+                logger.info(f"[DEBUG] Query result: {analysis}")
+
+                return analysis
+
+        except Exception as e:
+            logger.error(f"[DEBUG] Exception in get_current_analysis: {type(e).__name__}: {e}")
+            logger.error(f"Error getting current analysis for user {user_id}: {e}")
+            return None
+
+    async def _mark_previous_analyses_inactive(self, db: AsyncSession, user_id: int) -> None:
+        """Mark all previous analyses for a user as inactive.
+
+        This supports the single reading model by ensuring only one analysis
+        is current at a time. Also handles cleanup of conversations and files.
+
+        Args:
+            db: Database session
+            user_id: User ID
+        """
+        try:
+            # Get all current analyses for the user
+            stmt = select(Analysis).where(
+                Analysis.user_id == user_id,
+                Analysis.is_current == True
+            )
+            result = await db.execute(stmt)
+            previous_analyses = result.scalars().all()
+
+            for analysis in previous_analyses:
+                # Mark as inactive
+                analysis.is_current = False
+
+                # Schedule file cleanup (OpenAI files and local images)
+                # Note: Files will be cleaned up by the scheduled cleanup job after 7 days
+                logger.info(f"Marked analysis {analysis.id} as inactive for cleanup")
+
+            if previous_analyses:
+                await db.commit()
+                logger.info(f"Marked {len(previous_analyses)} previous analyses as inactive for user {user_id}")
+
+        except Exception as e:
+            logger.error(f"Error marking previous analyses inactive for user {user_id}: {e}")
+            raise
+
+    async def get_conversation_count_for_analysis(self, analysis_id: int) -> int:
+        """Get the number of conversations for an analysis.
+
+        Args:
+            analysis_id: Analysis ID
+
+        Returns:
+            Number of conversations
+        """
+        logger.info(f"[DEBUG] AnalysisService.get_conversation_count_for_analysis called for analysis {analysis_id}")
+        try:
+            logger.info(f"[DEBUG] Getting database session for conversation count")
+            async with await self.get_session() as db:
+                logger.info(f"[DEBUG] Importing Conversation model")
+                from app.models.conversation import Conversation
+                logger.info(f"[DEBUG] Building conversation count query")
+                stmt = select(Conversation).where(Conversation.analysis_id == analysis_id)
+                logger.info(f"[DEBUG] Executing conversation count query: {stmt}")
+                result = await db.execute(stmt)
+                conversations = result.scalars().all()
+                count = len(conversations)
+                logger.info(f"[DEBUG] Found {count} conversations for analysis {analysis_id}")
+
+                return count
+
+        except Exception as e:
+            logger.error(f"[DEBUG] Exception in get_conversation_count_for_analysis: {type(e).__name__}: {e}")
+            logger.error(f"Error getting conversation count for analysis {analysis_id}: {e}")
+            return 0

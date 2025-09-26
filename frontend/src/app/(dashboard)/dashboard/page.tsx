@@ -32,6 +32,13 @@ export default function DashboardPage() {
   const { user, associateAnalysisIfNeeded } = useAuth();
   const [welcomeMessage] = React.useState(() => getRandomMessage('welcome'));
   const [showNewReadingModal, setShowNewReadingModal] = React.useState(false);
+
+  // Redirect authenticated users to their reading page
+  React.useEffect(() => {
+    if (user) {
+      router.replace('/reading');
+    }
+  }, [user, router]);
   
   // Fetch dashboard data from API
   const {

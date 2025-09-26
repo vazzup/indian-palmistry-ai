@@ -41,16 +41,16 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const navigation: NavItem[] = [
     {
-      label: 'Dashboard',
-      href: '/dashboard',
+      label: 'My Reading',
+      href: '/reading',
       icon: <Home className="w-5 h-5" />,
-      current: pathname === '/dashboard',
+      current: pathname === '/reading',
     },
     {
-      label: 'My Analyses',
-      href: '/analyses',
-      icon: <History className="w-5 h-5" />,
-      current: pathname === '/analyses',
+      label: 'Conversations',
+      href: '/conversations',
+      icon: <MessageCircle className="w-5 h-5" />,
+      current: pathname === '/conversations',
     },
     {
       label: 'Profile',
@@ -101,7 +101,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </div>
             <div>
               <h1 className="text-lg font-semibold text-foreground">
-                {title || 'Dashboard'}
+                {title || 'My Reading'}
               </h1>
               {description && (
                 <p className="text-xs text-muted-foreground">{description}</p>
@@ -233,7 +233,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
-                  {title || 'Dashboard'}
+                  {title || 'My Reading'}
                 </h1>
                 {description && (
                   <p className="text-sm text-gray-600 mt-1">{description}</p>

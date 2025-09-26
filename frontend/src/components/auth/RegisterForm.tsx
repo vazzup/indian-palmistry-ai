@@ -66,9 +66,9 @@ interface RegisterFormProps {
   onSuccess?: () => void;
 }
 
-export const RegisterForm: React.FC<RegisterFormProps> = ({ 
-  redirectTo = '/dashboard', 
-  onSuccess 
+export const RegisterForm: React.FC<RegisterFormProps> = ({
+  redirectTo = '/reading',
+  onSuccess
 }) => {
   const router = useRouter();
   const { register: registerUser, isLoading, error, clearError, associateAnalysisIfNeeded } = useAuth();

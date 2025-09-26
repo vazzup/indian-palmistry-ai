@@ -26,10 +26,7 @@ class ConversationResponse(BaseModel):
     title: str
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
-    class Config:
-        from_attributes = True
-    
+
     @classmethod
     def from_conversation(cls, conversation, user_id: int):
         """Create ConversationResponse from Conversation model with user_id."""
@@ -42,8 +39,20 @@ class ConversationResponse(BaseModel):
             updated_at=conversation.updated_at
         )
 
+    class Config:
+        from_attributes = True
+
 
 class ConversationListResponse(BaseModel):
+    """Response schema for listing conversations for an analysis."""
+    conversations: List[ConversationResponse] = Field(description="List of conversations for the analysis")
+    total: int = Field(description="Total number of conversations")
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationPaginatedResponse(BaseModel):
     """Response schema for paginated conversation list."""
     conversations: List[ConversationResponse]
     total: int
@@ -100,7 +109,6 @@ class InitialConversationRequest(BaseModel):
 class InitialConversationResponse(BaseModel):
     """Response schema for conversation initialization."""
     conversation: ConversationResponse
-    initial_message: MessageResponse  # AI message with analysis summary
     user_message: MessageResponse     # User's first question
     assistant_message: MessageResponse # AI response to first question
     tokens_used: int

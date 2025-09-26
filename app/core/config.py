@@ -81,7 +81,7 @@ class Settings(BaseSettings):
         description="OAuth callback URL template"
     )
     frontend_success_url: str = Field(
-        default="http://localhost:3000/dashboard",
+        default="http://localhost:3000/reading",
         description="Frontend URL to redirect after successful OAuth login"
     )
     

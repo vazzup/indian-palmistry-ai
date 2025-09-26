@@ -42,6 +42,7 @@ class AnalysisResponse(BaseModel):
     # Conversation state
     conversation_mode: Literal['analysis', 'chat'] = Field(default='analysis', description="Current view mode for this analysis")
     conversation_id: Optional[int] = Field(None, description="Associated conversation ID if exists")
+    conversation_count: Optional[int] = Field(None, description="Number of conversations for this analysis (for UX warnings)")
     
     @field_serializer('created_at', 'updated_at', 'processing_started_at', 'processing_completed_at')
     def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:

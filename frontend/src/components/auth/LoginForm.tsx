@@ -31,9 +31,9 @@ interface LoginFormProps {
   onSuccess?: () => void;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ 
-  redirectTo = '/dashboard', 
-  onSuccess 
+export const LoginForm: React.FC<LoginFormProps> = ({
+  redirectTo = '/reading',
+  onSuccess
 }) => {
   const router = useRouter();
   const { login, isLoading, error, clearError, associateAnalysisIfNeeded } = useAuth();

@@ -312,6 +312,10 @@ show_next_steps() {
     echo "4. Run the deployment script:"
     echo "   ${YELLOW}./deploy.sh production${NC}"
     echo ""
+    echo "5. (Optional) Set up automatic cleanup of inactive analyses:"
+    echo "   ${YELLOW}./scripts/setup_cleanup_cron.sh${NC}"
+    echo "   This will clean up old inactive analyses and their files daily"
+    echo ""
     echo -e "${GREEN}Your server is now ready for PalmistTalk deployment!${NC}"
 }
 

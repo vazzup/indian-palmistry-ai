@@ -28,21 +28,15 @@ export function AuthenticationModal({
   const router = useRouter();
 
   const handleLogin = () => {
-    // Store the current analysis ID to return after login
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('returnToAnalysis', analysisId.toString());
-    }
-    // Also pass via URL parameter for the login page
-    router.push(`/login?analysis=${analysisId}`);
+    // The analysis ID is already stored in sessionStorage as 'guestAnalysisId'
+    // Just redirect to login with a parameter indicating we're coming from reading-summary
+    router.push('/login?redirect=reading-summary');
   };
 
   const handleRegister = () => {
-    // Store the current analysis ID to return after registration
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('returnToAnalysis', analysisId.toString());
-    }
-    // Also pass via URL parameter for the register page
-    router.push(`/register?analysis=${analysisId}`);
+    // The analysis ID is already stored in sessionStorage as 'guestAnalysisId'
+    // Just redirect to register with a parameter indicating we're coming from reading-summary
+    router.push('/register?redirect=reading-summary');
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {

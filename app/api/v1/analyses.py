@@ -339,6 +339,61 @@ async def get_analysis_summary(analysis_id: int) -> AnalysisSummaryResponse:
         )
 
 
+@router.get("/current", response_model=AnalysisResponse)
+async def get_current_reading(
+    current_user: User = Depends(get_current_user)
+) -> AnalysisResponse:
+    """Get the current active reading for the user.
+
+    In the single reading model, each user has only one current reading.
+    This endpoint returns that reading with conversation count for UX warnings.
+    """
+    logger.info(f"[DEBUG] ENDPOINT CALLED: get_current_reading with user {current_user.id if current_user else 'None'}")
+    logger.info(f"[DEBUG] Starting get_current_reading for user {current_user.id}")
+
+    try:
+        logger.info(f"[DEBUG] Creating AnalysisService instance")
+        analysis_service = AnalysisService()
+
+        logger.info(f"[DEBUG] Calling get_current_analysis for user {current_user.id}")
+        analysis = await analysis_service.get_current_analysis(current_user.id)
+        logger.info(f"[DEBUG] get_current_analysis returned: {analysis}")
+
+        if not analysis:
+            logger.info(f"[DEBUG] No current analysis found for user {current_user.id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No current reading found. Please upload palm images to create a new reading."
+            )
+
+        logger.info(f"[DEBUG] Found analysis {analysis.id}, getting conversation count")
+        # Get conversation count for this analysis
+        conversation_count = await analysis_service.get_conversation_count_for_analysis(analysis.id)
+        logger.info(f"[DEBUG] Conversation count: {conversation_count}")
+
+        logger.info(f"[DEBUG] Converting analysis to response model using model_validate")
+        # Convert to response model and add conversation metadata
+        response = AnalysisResponse.model_validate(analysis)
+        logger.info(f"[DEBUG] model_validate successful, setting conversation metadata")
+        response.conversation_mode = 'analysis'  # Default mode for current reading
+        response.conversation_id = None  # No conversation yet
+        response.conversation_count = conversation_count
+
+        logger.info(f"[DEBUG] Returning response")
+        return response
+
+    except HTTPException:
+        logger.info(f"[DEBUG] HTTPException caught, re-raising")
+        raise
+    except Exception as e:
+        logger.error(f"[DEBUG] Exception caught: {type(e).__name__}: {e}")
+        logger.error(f"Error getting current reading for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get current reading"
+        )
+
+
 @router.get("/{analysis_id}", response_model=AnalysisResponse)
 async def get_analysis(
     analysis_id: int,
@@ -437,7 +492,7 @@ async def associate_analysis(
         
         logger.info(f"Associated analysis {analysis_id} with user {current_user.id}")
         return {"message": "Analysis associated successfully"}
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -445,6 +500,49 @@ async def associate_analysis(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to associate analysis"
+        )
+
+
+@router.post("/{analysis_id}/claim")
+async def claim_guest_reading(
+    analysis_id: int,
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    """Claim a guest reading and set it as the user's current reading.
+
+    This endpoint allows authenticated users to claim ownership of a guest analysis
+    and set it as their current reading in the single reading model.
+    The analysis must have user_id = null to be claimable.
+    """
+    try:
+        analysis_service = AnalysisService()
+
+        # Use the existing associate_analysis method which handles the logic
+        success = await analysis_service.associate_analysis(
+            analysis_id=analysis_id,
+            user_id=current_user.id
+        )
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Reading not found or already claimed by another user"
+            )
+
+        logger.info(f"User {current_user.id} claimed guest reading {analysis_id}")
+        return {
+            "message": "Reading claimed successfully",
+            "analysis_id": analysis_id,
+            "redirect_to": "/reading"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error claiming reading {analysis_id} for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to claim reading"
         )
 
 

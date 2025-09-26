@@ -5,23 +5,47 @@ import type { NextRequest } from 'next/server'
  * Middleware to handle authentication-based redirects
  *
  * This middleware runs on the server before pages are rendered,
- * allowing us to redirect authenticated users away from the homepage
- * without client-side authentication checks.
+ * redirecting users to the appropriate pages based on auth status.
+ * In the single reading model, authenticated users go directly to their reading.
  */
 export function middleware(request: NextRequest) {
-  // Only apply to the homepage
-  if (request.nextUrl.pathname === '/') {
-    // Check for the session cookie (set by backend)
-    const sessionCookie = request.cookies.get('session_id')
+  const pathname = request.nextUrl.pathname
 
-    if (sessionCookie) {
-      // User has a session cookie, redirect to dashboard
-      console.log('Middleware: Authenticated user accessing homepage, redirecting to dashboard')
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+  // Enhanced cookie detection with debug logging
+  const sessionCookie = request.cookies.get('palmistry_session')
+  const allCookies = request.cookies.getAll()
+  const isAuthenticated = !!sessionCookie?.value
+
+  console.log(`[Middleware] Path: ${pathname}`)
+  console.log(`[Middleware] Session cookie exists: ${!!sessionCookie}`)
+  console.log(`[Middleware] Session value: ${sessionCookie?.value ? '[REDACTED]' : 'none'}`)
+  console.log(`[Middleware] All cookies: ${allCookies.map(c => c.name).join(', ')}`)
+  console.log(`[Middleware] Is authenticated: ${isAuthenticated}`)
+
+  // Homepage: redirect authenticated users to their reading
+  if (pathname === '/') {
+    if (isAuthenticated) {
+      console.log('[Middleware] Authenticated user accessing homepage, redirecting to reading')
+      return NextResponse.redirect(new URL('/reading', request.url))
     }
+    console.log('[Middleware] Unauthenticated user, showing landing page')
+    return NextResponse.next()
+  }
 
-    // No session cookie, let them see the landing page
-    console.log('Middleware: Unauthenticated user, showing landing page')
+  // Dashboard: redirect authenticated users to reading (single reading model)
+  if (pathname === '/dashboard') {
+    if (isAuthenticated) {
+      console.log('[Middleware] Redirecting dashboard to reading page (single reading model)')
+      return NextResponse.redirect(new URL('/reading', request.url))
+    }
+    console.log('[Middleware] Unauthenticated user on dashboard - should redirect to login')
+    return NextResponse.next()
+  }
+
+  // Auth pages: redirect authenticated users away from login/register
+  if ((pathname === '/login' || pathname === '/register') && isAuthenticated) {
+    console.log(`[Middleware] Authenticated user accessing ${pathname}, redirecting to reading`)
+    return NextResponse.redirect(new URL('/reading', request.url))
   }
 
   // For all other routes, continue as normal
@@ -29,6 +53,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Only run middleware on the homepage
-  matcher: ['/']
+  // Run middleware on homepage, dashboard, and auth pages
+  matcher: ['/', '/dashboard', '/login', '/register']
 }

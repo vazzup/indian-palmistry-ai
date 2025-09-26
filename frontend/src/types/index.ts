@@ -72,7 +72,6 @@ export interface TalkResponse {
 
 export interface InitialConversationResponse {
   conversation: Conversation;
-  initial_message: Message;
   user_message: Message;
   assistant_message: Message;
   tokens_used: number;
