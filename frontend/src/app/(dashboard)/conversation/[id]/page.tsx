@@ -41,7 +41,7 @@ export default function ConversationPage() {
   // Auto-scroll to show the question near the top after getting AI response
   React.useEffect(() => {
     if (shouldScrollToQuestion && lastQuestionId && messagesContainerRef.current) {
-      const questionElement = messagesContainerRef.current.querySelector(`[data-message-id="${lastQuestionId}"]`);
+      const questionElement = messagesContainerRef.current.querySelector(`[data-message-id="${lastQuestionId}"]`) as HTMLElement;
       if (questionElement) {
         // Scroll so the question appears near the top with some margin
         const container = messagesContainerRef.current;
