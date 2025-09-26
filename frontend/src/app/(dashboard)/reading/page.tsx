@@ -37,6 +37,10 @@ export default function ReadingPage() {
   const [question, setQuestion] = React.useState('');
   const [isAsking, setIsAsking] = React.useState(false);
 
+  // Transition state for analysis-to-chat mode
+  const [isTransitioning, setIsTransitioning] = React.useState(false);
+  const [transitionMessage, setTransitionMessage] = React.useState('');
+
   // Fetch current reading
   const fetchCurrentReading = React.useCallback(async () => {
     console.log('[DEBUG] ReadingPage: fetchCurrentReading called, isAuthenticated:', isAuthenticated, 'authLoading:', authLoading);
@@ -131,10 +135,33 @@ export default function ReadingPage() {
   const handleAskQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!question.trim() || !analysis || isAsking) return;
+    if (!question.trim() || !analysis || isAsking || isTransitioning) return;
+
+    setIsAsking(true);
+    setQuestion(''); // Clear input immediately
+    let messageInterval: NodeJS.Timeout | null = null;
 
     try {
-      setIsAsking(true);
+      // Show interstitial loading screen for engaging UX
+      setIsTransitioning(true);
+
+      // Animate through different mystical messages to enhance UX
+      const messages = [
+        'Preparing your question...',
+        'Reading your palms again...',
+        'Connecting with ancient wisdom...',
+        'Thinking about your question...',
+        'Crafting your personalized response...'
+      ];
+
+      let messageIndex = 0;
+      setTransitionMessage(messages[0]);
+
+      // Cycle through messages every 1.2 seconds for visual engagement
+      messageInterval = setInterval(() => {
+        messageIndex = (messageIndex + 1) % messages.length;
+        setTransitionMessage(messages[messageIndex]);
+      }, 1200);
 
       // Start conversation with the question
       const response = await conversationsApi.startConversation(analysis.id.toString(), question.trim());
@@ -144,10 +171,15 @@ export default function ReadingPage() {
 
     } catch (err) {
       console.error('Error starting conversation:', err);
+      setQuestion(question); // Restore question on error
       // Handle error - maybe show a toast
     } finally {
+      // Clean up transition interval
+      if (messageInterval) {
+        clearInterval(messageInterval);
+      }
       setIsAsking(false);
-      setQuestion('');
+      setIsTransitioning(false);
     }
   };
 
@@ -236,6 +268,31 @@ export default function ReadingPage() {
       title="Your Reading"
       description="Your personalized palm reading analysis"
     >
+      {/* Interstitial Loading Screen */}
+      {isTransitioning && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
+            <div className="relative mb-6">
+              <div className="w-16 h-16 border-4 border-saffron-200 border-t-saffron-600 rounded-full animate-spin mx-auto"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Hand className="w-6 h-6 text-saffron-600" />
+              </div>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Pondering your question...
+            </h3>
+            <p className="text-gray-600 mb-4 min-h-[1.5rem]">
+              {transitionMessage}
+            </p>
+            <div className="flex justify-center space-x-1">
+              <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-6 pb-24"> {/* Extra padding for floating input */}
         {/* Reading Header */}
         <div className="flex items-center justify-between">
@@ -341,15 +398,15 @@ export default function ReadingPage() {
               placeholder="Ask about your reading..."
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              disabled={isAsking}
+              disabled={isAsking || isTransitioning}
               className="flex-1"
             />
             <Button
               type="submit"
-              disabled={!question.trim() || isAsking}
+              disabled={!question.trim() || isAsking || isTransitioning}
               className="px-6"
             >
-              {isAsking ? (
+              {isAsking || isTransitioning ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Send className="w-4 h-4" />
