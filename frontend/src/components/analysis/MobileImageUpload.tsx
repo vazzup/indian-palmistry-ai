@@ -383,7 +383,7 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
             ) : (
               <>
                 <Upload className="w-4 h-4 mr-2" />
-                Upload {selectedFiles.length} Image{selectedFiles.length !== 1 ? 's' : ''}
+                Get Your Palm Reading
               </>
             )}
           </Button>

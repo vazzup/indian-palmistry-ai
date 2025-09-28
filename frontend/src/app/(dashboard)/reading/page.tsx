@@ -389,29 +389,33 @@ export default function ReadingPage() {
         {/* TODO: Add conversation topics list here */}
       </div>
 
-      {/* Persistent Floating Input Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
-        <div className="max-w-4xl mx-auto p-4">
-          <form onSubmit={handleAskQuestion} className="flex gap-2">
-            <Input
-              type="text"
-              placeholder="Ask about your reading..."
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              disabled={isAsking || isTransitioning}
-              className="flex-1"
-            />
-            <Button
-              type="submit"
-              disabled={!question.trim() || isAsking || isTransitioning}
-              className="px-6"
-            >
-              {isAsking || isTransitioning ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </Button>
+      {/* Liquid Glass Floating Chat Input */}
+      <div className="fixed bottom-6 left-4 right-4 z-50">
+        <div className="max-w-2xl mx-auto">
+          <form onSubmit={handleAskQuestion}>
+            <div className="bg-white/80 backdrop-blur-xl border border-white/20 shadow-2xl shadow-black/10 rounded-2xl ring-1 ring-black/5 p-3">
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  placeholder="Ask about your palm reading..."
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  disabled={isAsking || isTransitioning}
+                  className="flex-1 rounded-full bg-gray-50/50 border-0 px-6 py-3 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-saffron-500/20 focus:bg-white/80 transition-all duration-200"
+                />
+                <button
+                  type="submit"
+                  disabled={!question.trim() || isAsking || isTransitioning}
+                  className="rounded-full w-10 h-10 p-0 bg-gradient-to-r from-saffron-500 to-saffron-600 text-white shadow-lg hover:shadow-xl hover:scale-105 focus:scale-105 disabled:opacity-50 disabled:hover:scale-100 transition-all duration-200 flex items-center justify-center"
+                >
+                  {isAsking || isTransitioning ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
           </form>
         </div>
       </div>
