@@ -638,7 +638,7 @@ export const cacheApi = {
     };
   }> {
     try {
-      const response = await api.get('/api/v1/cache/debug');
+      const response = await api.get('/api/v1/enhanced/cache/debug');
       return response.data;
     } catch (error) {
       console.error('Get cache debug failed:', error);
@@ -656,7 +656,7 @@ export const cacheApi = {
     message: string;
   }> {
     try {
-      const response = await api.post('/api/v1/cache/refresh');
+      const response = await api.post('/api/v1/enhanced/cache/refresh');
       return response.data;
     } catch (error) {
       console.error('Cache refresh failed:', error);
@@ -680,7 +680,7 @@ export const cacheApi = {
     recommendations: string[];
   }> {
     try {
-      const response = await api.get('/api/v1/cache/validate-consistency');
+      const response = await api.get('/api/v1/enhanced/cache/validate-consistency');
       return response.data;
     } catch (error) {
       console.error('Cache consistency validation failed:', error);
@@ -699,7 +699,7 @@ export const cacheApi = {
     message: string;
   }> {
     try {
-      const response = await api.post('/api/v1/cache/refresh', { pattern });
+      const response = await api.post('/api/v1/enhanced/cache/refresh', { pattern });
       return response.data;
     } catch (error) {
       console.error('Pattern cache refresh failed:', error);

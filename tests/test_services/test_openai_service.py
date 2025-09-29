@@ -230,59 +230,6 @@ class TestOpenAIService:
         expected = (700 * 0.00015/1000) + (300 * 0.0006/1000)
         assert abs(cost - expected) < 0.000001  # Allow for floating point precision
     
-    async def test_generate_conversation_response_no_client(self, openai_service_no_key):
-        """Test conversation response when no client is configured."""
-        with pytest.raises(ValueError, match="OpenAI API key not configured"):
-            await openai_service_no_key.generate_conversation_response(
-                "summary", "report", [], "question"
-            )
-    
-    async def test_generate_conversation_response_success(self, openai_service):
-        """Test successful conversation response generation."""
-        with patch.object(openai_service.client.chat.completions, 'create') as mock_create:
-            # Mock OpenAI response
-            mock_response = MagicMock()
-            mock_response.choices[0].message.content = "AI response to question"
-            mock_response.usage.total_tokens = 75
-            mock_create.return_value = mock_response
-            
-            result = await openai_service.generate_conversation_response(
-                analysis_summary="Test summary",
-                analysis_full_report="Test full report",
-                conversation_history=[
-                    {"role": "user", "content": "Previous question"},
-                    {"role": "assistant", "content": "Previous answer"}
-                ],
-                user_question="New question"
-            )
-            
-            # Verify result
-            assert result["response"] == "AI response to question"
-            assert result["tokens_used"] == 75
-            assert "cost" in result
-            
-            # Verify API call
-            mock_create.assert_called_once()
-            call_args = mock_create.call_args[1]
-            assert call_args["model"] == "gpt-4o-mini"
-            assert call_args["max_tokens"] == 800
-            assert call_args["temperature"] == 0.8
-            
-            # Verify message structure includes context and history
-            messages = call_args["messages"]
-            assert len(messages) >= 4  # system + context + history + question
-            assert messages[-1]["role"] == "user"
-            assert messages[-1]["content"] == "New question"
-    
-    async def test_generate_conversation_response_api_error(self, openai_service):
-        """Test conversation response when OpenAI API fails."""
-        with patch.object(openai_service.client.chat.completions, 'create') as mock_create:
-            mock_create.side_effect = Exception("API Error")
-            
-            with pytest.raises(Exception, match="API Error"):
-                await openai_service.generate_conversation_response(
-                    "summary", "report", [], "question"
-                )
 
     # Tests for Responses API
     async def test_analyze_palm_images_with_responses_no_client(self, openai_service_no_key):

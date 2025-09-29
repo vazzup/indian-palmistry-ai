@@ -216,17 +216,9 @@ class ConversationService:
             Dictionary with response and metadata
         """
         try:
-            # Use assistant thread if available for better context
-            if hasattr(analysis, 'thread_id') and analysis.thread_id:
-                return await self.openai_service.generate_conversation_response_with_assistant(
-                    thread_id=analysis.thread_id,
-                    user_question=user_question
-                )
-            else:
-                # CRITICAL FIX: Use OpenAI Responses API with full visual context
-                # This method includes palm images (via file_ids) along with complete analysis data
-                # Previously was calling non-existent method and falling back to text-only responses
-                return await self.openai_service.generate_conversation_response_with_images(
+            # Use OpenAI Responses API with full visual context
+            # This method includes palm images (via file_ids) along with complete analysis data
+            return await self.openai_service.generate_conversation_response_with_images(
                     analysis_summary=analysis.summary or "",
                     analysis_full_report=analysis.full_report or "",
                     key_features=json.loads(analysis.key_features) if analysis.key_features else [],
