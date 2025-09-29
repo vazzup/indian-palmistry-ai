@@ -21,6 +21,7 @@ import { LoadingPage } from '@/components/ui/Spinner';
 import type { Conversation, Message, TalkResponse } from '@/types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { QUESTION_PROMPTS } from '@/lib/question-prompts';
 
 export default function ConversationPage() {
   const params = useParams();
@@ -381,6 +382,37 @@ export default function ConversationPage() {
 
           {/* Message Input Area - Fixed at Bottom */}
           <div className="border-t border-saffron-100 bg-white/80 backdrop-blur-sm flex-shrink-0">
+            {/* Question Prompt Chips */}
+            <div className="px-4 pt-3 pb-2">
+              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+                {QUESTION_PROMPTS.map((prompt, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setNewMessage(prompt.fullQuestion);
+                      // Focus the input after setting the question
+                      setTimeout(() => {
+                        const input = document.querySelector('input[placeholder*="Ask another question"]') as HTMLInputElement;
+                        if (input) {
+                          input.focus();
+                          input.setSelectionRange(input.value.length, input.value.length);
+                        }
+                      }, 100);
+                    }}
+                    className={`
+                      flex-shrink-0 bg-white/75 backdrop-blur-md border border-saffron-200/60 text-saffron-700
+                      px-4 py-2 rounded-full text-xs font-medium shadow-md
+                      hover:bg-saffron-50/80 hover:border-saffron-300/70 hover:shadow-lg hover:scale-105
+                      focus:scale-105 focus:outline-none focus:ring-2 focus:ring-saffron-500/30
+                      active:scale-95 transition-all duration-300 ease-out whitespace-nowrap
+                    `}
+                  >
+                    {prompt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="p-4">
               <div className="flex space-x-3 items-end">
                 <div className="flex-1 relative">

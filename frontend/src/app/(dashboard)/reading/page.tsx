@@ -23,6 +23,7 @@ import { LoadingPage } from '@/components/ui/Spinner';
 import type { Analysis } from '@/types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { QUESTION_PROMPTS } from '@/lib/question-prompts';
 
 export default function ReadingPage() {
   const router = useRouter();
@@ -389,36 +390,103 @@ export default function ReadingPage() {
         {/* TODO: Add conversation topics list here */}
       </div>
 
-      {/* Liquid Glass Floating Chat Input */}
-      <div className="fixed bottom-6 left-4 right-4 z-50">
+      {/* Hide chat elements during transition */}
+      {!isTransitioning && (
+        <>
+          {/* Subtle Background Overlay for Visual Hierarchy */}
+          <div className="fixed inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent z-40 pointer-events-none"></div>
+
+          {/* Liquid Glass Floating Chat Input - Enhanced */}
+          <div className="fixed bottom-6 left-4 right-4 z-50">
         <div className="max-w-2xl mx-auto">
-          <form onSubmit={handleAskQuestion}>
-            <div className="bg-white/80 backdrop-blur-xl border border-white/20 shadow-2xl shadow-black/10 rounded-2xl ring-1 ring-black/5 p-3">
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  placeholder="Ask about your palm reading..."
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  disabled={isAsking || isTransitioning}
-                  className="flex-1 rounded-full bg-gray-50/50 border-0 px-6 py-3 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-saffron-500/20 focus:bg-white/80 transition-all duration-200"
-                />
+          {/* Call-to-Action Tooltip */}
+          <div className="flex justify-center mb-3">
+            <div className="bg-saffron-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg animate-bounce">
+              ✨ Ask me anything about your reading
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-saffron-500"></div>
+            </div>
+          </div>
+
+          {/* Question Prompt Chips */}
+          <div className="mb-4 px-2">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+              {QUESTION_PROMPTS.map((prompt, index) => (
                 <button
-                  type="submit"
-                  disabled={!question.trim() || isAsking || isTransitioning}
-                  className="rounded-full w-10 h-10 p-0 bg-gradient-to-r from-saffron-500 to-saffron-600 text-white shadow-lg hover:shadow-xl hover:scale-105 focus:scale-105 disabled:opacity-50 disabled:hover:scale-100 transition-all duration-200 flex items-center justify-center"
+                  key={index}
+                  onClick={() => {
+                    setQuestion(prompt.fullQuestion);
+                    // Focus the input after setting the question
+                    setTimeout(() => {
+                      const input = document.querySelector('input[placeholder*="Ask about your palm reading"]') as HTMLInputElement;
+                      if (input) {
+                        input.focus();
+                        input.setSelectionRange(input.value.length, input.value.length);
+                      }
+                    }, 100);
+                  }}
+                  className={`
+                    flex-shrink-0 bg-white/75 backdrop-blur-md border border-saffron-200/60 text-saffron-700
+                    px-5 py-2.5 rounded-full text-sm font-medium shadow-lg
+                    hover:bg-saffron-50/80 hover:border-saffron-300/70 hover:shadow-xl hover:scale-105
+                    focus:scale-105 focus:outline-none focus:ring-2 focus:ring-saffron-500/30
+                    active:scale-95 transition-all duration-300 ease-out whitespace-nowrap
+                    animate-fade-in-up
+                  `}
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  {isAsking || isTransitioning ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
+                  {prompt.label}
                 </button>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleAskQuestion}>
+            <div className="relative">
+              {/* Pulsing Glow Background */}
+              <div
+                className="absolute inset-0 rounded-2xl animate-pulse-glow"
+                style={{
+                  background: 'linear-gradient(45deg, rgba(245, 158, 11, 0.4), rgba(217, 119, 6, 0.4), rgba(245, 158, 11, 0.4))',
+                  filter: 'blur(8px)',
+                  transform: 'scale(1.02)',
+                  zIndex: -1
+                }}
+              />
+
+              {/* Main Container */}
+              <div className="bg-white/85 backdrop-blur-xl border border-white/30 shadow-2xl shadow-saffron-500/20 rounded-2xl ring-1 ring-saffron-100/50 p-4 hover:bg-white/90 hover:shadow-3xl hover:shadow-saffron-500/30 hover:scale-[1.02] transition-all duration-300 ease-out">
+                <div className="flex items-center gap-4">
+                  <input
+                    type="text"
+                    placeholder="Ask about your palm reading..."
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    disabled={isAsking || isTransitioning}
+                    className="flex-1 rounded-full bg-gradient-to-r from-gray-50/70 to-saffron-50/30 border-0 px-6 py-4 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-3 focus:ring-saffron-500/30 focus:bg-white/90 transition-all duration-300 text-base font-medium"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={!question.trim() || isAsking || isTransitioning}
+                    className="rounded-full w-12 h-12 p-0 bg-gradient-to-r from-saffron-500 via-amber-500 to-saffron-600 text-white shadow-xl hover:shadow-2xl hover:scale-110 focus:scale-110 disabled:opacity-50 disabled:hover:scale-100 transition-all duration-300 ease-out flex items-center justify-center group relative overflow-hidden"
+                  >
+                    {/* Button Shine Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 group-hover:animate-shine"></div>
+
+                    {isAsking || isTransitioning ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </form>
         </div>
       </div>
+        </>
+      )}
 
       {/* Modals */}
       <NewReadingModal
