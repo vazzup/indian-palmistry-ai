@@ -27,16 +27,26 @@ export interface User {
 export interface CurrentAnalysis {
   id: number;
   user_id?: number;  // Optional because guest users don't have user_id
-  status: string;
-  created_at: string;
-  updated_at: string;
+  left_image_path?: string;
+  right_image_path?: string;
+  left_thumbnail_path?: string;
+  right_thumbnail_path?: string;
   summary?: string;
   full_report?: string;
   key_features?: string[];
   strengths?: string[];
   guidance?: string[];
-  left_image_url?: string;
-  right_image_url?: string;
+  status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  job_id?: string;
+  error_message?: string;
+  processing_started_at?: string;
+  processing_completed_at?: string;
+  tokens_used?: number;
+  cost?: number;
+  created_at: string;
+  updated_at: string;
+  conversation_mode: 'analysis' | 'chat';
+  conversation_id?: number;
 }
 
 interface AuthState {
