@@ -394,40 +394,6 @@ async def get_current_reading(
         )
 
 
-@router.get("/{analysis_id}", response_model=AnalysisResponse)
-async def get_analysis(
-    analysis_id: int,
-    current_user: User = Depends(get_current_user)
-) -> AnalysisResponse:
-    """Get full analysis details with conversation mode (requires authentication).
-    
-    Returns complete analysis including the full report and conversation mode,
-    which is only available to authenticated users who own the analysis.
-    """
-    try:
-        analysis_service = AnalysisService()
-        analysis, conversation = await analysis_service.get_analysis_with_conversation_mode(
-            analysis_id, current_user.id
-        )
-        
-        if not analysis:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Analysis not found or you don't have permission to access it"
-            )
-        
-        return AnalysisResponse.from_analysis(analysis, conversation)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting analysis {analysis_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get analysis"
-        )
-
-
 @router.get("/", response_model=AnalysisListResponse)
 async def list_user_analyses(
     current_user: User = Depends(get_current_user),
@@ -552,7 +518,7 @@ async def delete_analysis(
     current_user: User = Depends(get_current_user)
 ) -> dict:
     """Delete an analysis and all associated data.
-    
+
     Only the owner of the analysis can delete it. This will remove the analysis,
     all associated images, conversations, and messages.
     """
@@ -562,15 +528,15 @@ async def delete_analysis(
             analysis_id=analysis_id,
             user_id=current_user.id
         )
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Analysis not found or you don't have permission to delete it"
             )
-        
+
         return {"message": "Analysis deleted successfully"}
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -578,4 +544,38 @@ async def delete_analysis(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete analysis"
+        )
+
+
+@router.get("/{analysis_id}", response_model=AnalysisResponse)
+async def get_analysis(
+    analysis_id: int,
+    current_user: User = Depends(get_current_user)
+) -> AnalysisResponse:
+    """Get full analysis details with conversation mode (requires authentication).
+
+    Returns complete analysis including the full report and conversation mode,
+    which is only available to authenticated users who own the analysis.
+    """
+    try:
+        analysis_service = AnalysisService()
+        analysis, conversation = await analysis_service.get_analysis_with_conversation_mode(
+            analysis_id, current_user.id
+        )
+
+        if not analysis:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Analysis not found or you don't have permission to access it"
+            )
+
+        return AnalysisResponse.from_analysis(analysis, conversation)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting analysis {analysis_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get analysis"
         )
