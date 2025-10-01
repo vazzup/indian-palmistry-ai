@@ -24,12 +24,29 @@ export interface User {
   updated_at: string;
 }
 
+export interface CurrentAnalysis {
+  id: number;
+  user_id: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  summary?: string;
+  full_report?: string;
+  key_features?: string[];
+  strengths?: string[];
+  guidance?: string[];
+  left_image_url?: string;
+  right_image_url?: string;
+}
+
 interface AuthState {
   // State
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
   error: string | null;
+  currentAnalysis: CurrentAnalysis | null;
+  analysisLoading: boolean;
 
   // Actions
   login: (email: string, password: string) => Promise<User>;
@@ -39,6 +56,9 @@ interface AuthState {
   clearError: () => void;
   setUser: (user: User | null) => void;
   associateAnalysisIfNeeded: () => Promise<string | null>;
+  fetchCurrentAnalysis: () => Promise<CurrentAnalysis | null>;
+  setCurrentAnalysis: (analysis: CurrentAnalysis | null) => void;
+  clearCurrentAnalysis: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -49,6 +69,8 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       user: null,
       error: null,
+      currentAnalysis: null,
+      analysisLoading: false,
 
       // Login action
       login: async (email: string, password: string) => {
@@ -107,11 +129,13 @@ export const useAuthStore = create<AuthState>()(
           // Even if logout fails on server, clear local state
           console.warn('Logout API call failed, clearing local state anyway');
         } finally {
-          set({ 
-            isAuthenticated: false, 
-            user: null, 
+          set({
+            isAuthenticated: false,
+            user: null,
             isLoading: false,
-            error: null 
+            error: null,
+            currentAnalysis: null,
+            analysisLoading: false
           });
         }
       },
@@ -170,39 +194,89 @@ export const useAuthStore = create<AuthState>()(
       // Associate analysis if returnToAnalysis exists in sessionStorage
       associateAnalysisIfNeeded: async () => {
         if (typeof window === 'undefined') return null;
-        
+
         const analysisId = sessionStorage.getItem('returnToAnalysis');
         if (!analysisId) {
           console.log('No returnToAnalysis found in sessionStorage');
           return null;
         }
-        
+
         try {
           console.log(`Attempting to associate analysis ${analysisId} with current user`);
           await analysisApi.associateAnalysis(analysisId);
-          
+
           // Clear the sessionStorage after successful association
           sessionStorage.removeItem('returnToAnalysis');
           console.log(`Successfully associated analysis ${analysisId} and cleared sessionStorage`);
-          
+
           return analysisId;
         } catch (error: any) {
           console.error(`Failed to associate analysis ${analysisId}:`, error);
-          
+
           // Clear sessionStorage even on failure to prevent retry loops
           sessionStorage.removeItem('returnToAnalysis');
-          
+
           // Don't throw error - we want login/register to succeed even if association fails
           return null;
         }
       },
+
+      // Fetch current analysis for authenticated user
+      fetchCurrentAnalysis: async () => {
+        const { isAuthenticated } = get();
+
+        if (!isAuthenticated) {
+          console.log('[DEBUG] fetchCurrentAnalysis: Not authenticated, skipping');
+          return null;
+        }
+
+        set({ analysisLoading: true });
+        try {
+          console.log('[DEBUG] fetchCurrentAnalysis: Fetching current analysis');
+          const analysis = await analysisApi.getCurrentReading();
+          console.log('[DEBUG] fetchCurrentAnalysis: Got analysis:', analysis?.id);
+          set({ currentAnalysis: analysis, analysisLoading: false });
+          return analysis;
+        } catch (error: any) {
+          console.log('[DEBUG] fetchCurrentAnalysis: Error:', error);
+          // 404 means no current reading - this is normal
+          const is404 = error?.response?.status === 404 ||
+                        error?.status === 404 ||
+                        error?.message?.includes('404') ||
+                        error?.message?.includes('not found');
+
+          if (is404) {
+            console.log('[DEBUG] fetchCurrentAnalysis: No current reading found (404)');
+            set({ currentAnalysis: null, analysisLoading: false });
+            return null;
+          }
+
+          // Other errors - log but don't throw
+          console.error('Failed to fetch current analysis:', error);
+          set({ currentAnalysis: null, analysisLoading: false });
+          return null;
+        }
+      },
+
+      // Set current analysis directly
+      setCurrentAnalysis: (analysis: CurrentAnalysis | null) => {
+        console.log('[DEBUG] setCurrentAnalysis:', analysis?.id);
+        set({ currentAnalysis: analysis });
+      },
+
+      // Clear current analysis
+      clearCurrentAnalysis: () => {
+        console.log('[DEBUG] clearCurrentAnalysis');
+        set({ currentAnalysis: null });
+      },
     }),
     {
       name: 'auth-storage', // unique name for localStorage
-      partialize: (state) => ({ 
-        // Only persist user data, not loading states or errors
+      partialize: (state) => ({
+        // Only persist user data and current analysis, not loading states or errors
         isAuthenticated: state.isAuthenticated,
-        user: state.user
+        user: state.user,
+        currentAnalysis: state.currentAnalysis
       }),
     }
   )
@@ -214,20 +288,22 @@ export const useAuth = () => {
   const isLoading = useAuthStore(state => state.isLoading);
   const user = useAuthStore(state => state.user);
   const error = useAuthStore(state => state.error);
+  const currentAnalysis = useAuthStore(state => state.currentAnalysis);
+  const analysisLoading = useAuthStore(state => state.analysisLoading);
   const login = useAuthStore(state => state.login);
   const register = useAuthStore(state => state.register);
   const logout = useAuthStore(state => state.logout);
-  
+
   // Fix invalid state: cannot be authenticated without user data
   const isAuthenticated = storedIsAuthenticated && user !== null;
-  
-  
+
+
   // If we detect invalid state, clear it
   React.useEffect(() => {
     if (storedIsAuthenticated && !user) {
-      useAuthStore.setState({ 
-        isAuthenticated: false, 
-        user: null 
+      useAuthStore.setState({
+        isAuthenticated: false,
+        user: null
       });
     }
   }, [storedIsAuthenticated, user]);
@@ -235,12 +311,17 @@ export const useAuth = () => {
   const clearError = useAuthStore(state => state.clearError);
   const setUser = useAuthStore(state => state.setUser);
   const associateAnalysisIfNeeded = useAuthStore(state => state.associateAnalysisIfNeeded);
+  const fetchCurrentAnalysis = useAuthStore(state => state.fetchCurrentAnalysis);
+  const setCurrentAnalysis = useAuthStore(state => state.setCurrentAnalysis);
+  const clearCurrentAnalysis = useAuthStore(state => state.clearCurrentAnalysis);
 
   return {
     isAuthenticated,
     isLoading,
     user,
     error,
+    currentAnalysis,
+    analysisLoading,
     login,
     register,
     logout,
@@ -248,6 +329,9 @@ export const useAuth = () => {
     clearError,
     setUser,
     associateAnalysisIfNeeded,
+    fetchCurrentAnalysis,
+    setCurrentAnalysis,
+    clearCurrentAnalysis,
   };
 };
 

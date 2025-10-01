@@ -42,8 +42,11 @@ async def get_user_conversations(
         analysis_service = AnalysisService()
         current_analysis = await analysis_service.get_current_analysis(current_user.id)
 
+        logger.info(f"[DEBUG] get_user_conversations: user_id={current_user.id}, current_analysis_id={current_analysis.id if current_analysis else None}")
+
         if not current_analysis:
             # No current analysis, return empty list
+            logger.info(f"[DEBUG] get_user_conversations: No current analysis found for user {current_user.id}")
             return ConversationListResponse(
                 conversations=[],
                 total=0
@@ -56,10 +59,12 @@ async def get_user_conversations(
             user_id=current_user.id
         )
 
+        logger.info(f"[DEBUG] get_user_conversations: Found {len(conversations)} conversations for analysis {current_analysis.id}")
+
         # Convert to response objects
         conversation_responses = []
         for conv in conversations:
-            logger.info(f"Debug: Conversation {conv.id} - created_at={conv.created_at}, updated_at={conv.updated_at}, last_message_at={conv.last_message_at}")
+            logger.info(f"[DEBUG] get_user_conversations: Conversation {conv.id} - analysis_id={conv.analysis_id}, title={conv.title}, created_at={conv.created_at}")
             conversation_responses.append(ConversationResponse.from_conversation(conv, current_user.id))
 
         # Apply sorting

@@ -207,49 +207,6 @@ export function NewReadingModal({ isOpen, onClose, onComplete }: NewReadingModal
 
         {/* Modal Content */}
         <div className="p-6 space-y-6">
-          {/* Warning Dialog */}
-          {showWarning && currentReading && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-6 h-6 text-amber-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-amber-900 mb-2">
-                    Warning: You'll lose your conversations
-                  </h3>
-                  <p className="text-amber-800 mb-4">
-                    Creating a new reading will replace your current reading and delete all associated conversations.
-                    Your current reading and all associated conversations will be permanently lost.
-                  </p>
-                  <div className="flex items-center gap-4 text-sm text-amber-700 mb-4">
-                    <div className="flex items-center gap-2">
-                      <MessageCircle className="w-4 h-4" />
-                      <span>All conversations will be deleted</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <input
-                      type="checkbox"
-                      id="confirm-warning"
-                      checked={warningConfirmed}
-                      onChange={(e) => setWarningConfirmed(e.target.checked)}
-                      className="w-4 h-4 text-amber-600 bg-white border-amber-300 rounded focus:ring-amber-500"
-                    />
-                    <label htmlFor="confirm-warning" className="text-sm text-amber-800">
-                      I understand I will lose all my conversations and want to proceed
-                    </label>
-                  </div>
-                  {!warningConfirmed && (
-                    <p className="text-sm text-amber-700 italic">
-                      Please confirm you understand the consequences before uploading new images.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Welcome Message */}
           <div className="text-center">
             <div className="flex items-center justify-center mb-4">
@@ -283,10 +240,42 @@ export function NewReadingModal({ isOpen, onClose, onComplete }: NewReadingModal
               <MobileImageUpload
                 onUpload={handleUpload}
                 isUploading={isUploading}
-                disabled={isUploading || (showWarning && !warningConfirmed)}
+                disabled={isUploading}
+                uploadButtonDisabled={showWarning && !warningConfirmed}
               />
             </CardContent>
           </Card>
+
+          {/* Warning Dialog - appears after upload section */}
+          {showWarning && currentReading && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-semibold text-amber-900 mb-2">
+                    Warning: You'll lose your conversations
+                  </h3>
+                  <p className="text-sm text-amber-800 mb-3">
+                    Creating a new reading will delete your current reading and all conversations. This cannot be undone.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="confirm-warning"
+                      checked={warningConfirmed}
+                      onChange={(e) => setWarningConfirmed(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 bg-white border-amber-300 rounded focus:ring-amber-500"
+                    />
+                    <label htmlFor="confirm-warning" className="text-sm text-amber-800">
+                      I understand and want to proceed
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Benefits Section */}
           <div className="bg-saffron-50 rounded-lg p-4">

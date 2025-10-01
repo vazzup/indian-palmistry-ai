@@ -27,7 +27,7 @@ import { QUESTION_PROMPTS } from '@/lib/question-prompts';
 
 export default function ReadingPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user, currentAnalysis, setCurrentAnalysis } = useAuth();
 
   const [analysis, setAnalysis] = React.useState<Analysis | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -59,6 +59,8 @@ export default function ReadingPage() {
       const response = await analysisApi.getCurrentReading();
       console.log('[DEBUG] ReadingPage: Got response:', response);
       setAnalysis(response);
+      // Also update the global store
+      setCurrentAnalysis(response);
 
     } catch (err: any) {
       console.error('[DEBUG] ReadingPage: Error caught:', err);
@@ -195,6 +197,14 @@ export default function ReadingPage() {
     // Refresh the current reading data
     fetchCurrentReading();
   }, [fetchCurrentReading]);
+
+  // Sync local state with global store if needed
+  React.useEffect(() => {
+    if (currentAnalysis && !analysis) {
+      console.log('[DEBUG] ReadingPage: Syncing from global store:', currentAnalysis.id);
+      setAnalysis(currentAnalysis);
+    }
+  }, [currentAnalysis, analysis]);
 
   // Loading state
   if (authLoading || loading) {

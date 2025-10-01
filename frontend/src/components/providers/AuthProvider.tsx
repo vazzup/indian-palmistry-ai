@@ -9,6 +9,7 @@ import { useAuthStore } from '@/lib/auth';
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkAuth = useAuthStore(state => state.checkAuth);
+  const fetchCurrentAnalysis = useAuthStore(state => state.fetchCurrentAnalysis);
   const isLoading = useAuthStore(state => state.isLoading);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const user = useAuthStore(state => state.user);
@@ -16,20 +17,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const initializeAuth = async () => {
-      
+
       try {
         // Check if user has a valid session with the server
         const authUser = await checkAuth();
-        
+
         if (authUser) {
+          // User is authenticated, fetch their current analysis
+          console.log('[DEBUG] AuthProvider: User authenticated, fetching current analysis');
+          await fetchCurrentAnalysis();
         } else {
+          console.log('[DEBUG] AuthProvider: No authenticated user');
         }
-        
+
         // Auth check completed successfully - set initialized
         setHasInitialized(true);
       } catch (error) {
         // Auth check failed, user is not authenticated
-        
+        console.log('[DEBUG] AuthProvider: Auth check failed:', error);
+
         // Even on error, we consider auth initialized (just failed)
         setHasInitialized(true);
       }
@@ -39,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!hasInitialized) {
       initializeAuth();
     }
-  }, [checkAuth, hasInitialized, isAuthenticated, user]);
+  }, [checkAuth, fetchCurrentAnalysis, hasInitialized, isAuthenticated, user]);
 
   // Show loading spinner only during initial authentication check
   if (!hasInitialized) {

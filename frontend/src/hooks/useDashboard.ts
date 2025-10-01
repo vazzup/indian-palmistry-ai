@@ -721,7 +721,7 @@ export function useConversationsList(options?: {
     try {
       setLoading(true);
       setError(null);
-      
+
       // If skipCache is true, refresh cache first
       if (skipCache) {
         setIsRefreshing(true);
@@ -731,8 +731,19 @@ export function useConversationsList(options?: {
           console.warn('Cache refresh failed, continuing with regular fetch:', cacheError);
         }
       }
-      
+
+      console.log('[DEBUG] useConversationsList: Fetching conversations with options:', options);
       const conversationsData = await conversationsApi.getUserConversations(options);
+      console.log('[DEBUG] useConversationsList: Received data:', {
+        total: conversationsData.total,
+        count: conversationsData.conversations?.length,
+        conversations: conversationsData.conversations?.map(c => ({
+          id: c.id,
+          analysis_id: c.analysis_id,
+          title: c.title,
+          created_at: c.created_at
+        }))
+      });
       setData(conversationsData);
       setLastRefresh(new Date());
     } catch (err) {

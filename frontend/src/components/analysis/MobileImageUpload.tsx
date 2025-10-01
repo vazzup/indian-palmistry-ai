@@ -20,6 +20,8 @@ interface MobileImageUploadProps {
   isUploading?: boolean;
   /** Whether to disable the component entirely */
   disabled?: boolean;
+  /** Whether to disable only the upload/submit button (e.g., when confirmation required) */
+  uploadButtonDisabled?: boolean;
 }
 
 /**
@@ -57,6 +59,7 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
   maxSize = 15,
   isUploading = false,
   disabled = false,
+  uploadButtonDisabled = false,
 }) => {
   const [isDragging, setIsDragging] = React.useState(false);
   const [previews, setPreviews] = React.useState<{
@@ -371,7 +374,7 @@ export const MobileImageUpload: React.FC<MobileImageUploadProps> = ({
           {/* Upload confirmation button */}
           <Button
             onClick={handleConfirmUpload}
-            disabled={isUploading || disabled || selectedFiles.length === 0}
+            disabled={isUploading || disabled || uploadButtonDisabled || selectedFiles.length === 0}
             size="lg"
             className="w-full bg-saffron-600 hover:bg-saffron-700"
           >

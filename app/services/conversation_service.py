@@ -568,6 +568,7 @@ class ConversationService:
             List of conversations
         """
         try:
+            logger.info(f"[DEBUG] get_conversations_for_analysis: Fetching conversations for analysis_id={analysis_id}, user_id={user_id}")
             async with await self.get_session() as db:
                 # Join with Analysis to check ownership
                 stmt = (
@@ -583,6 +584,10 @@ class ConversationService:
                 )
                 result = await db.execute(stmt)
                 conversations = result.scalars().all()
+
+                logger.info(f"[DEBUG] get_conversations_for_analysis: Found {len(conversations)} conversations")
+                for conv in conversations:
+                    logger.info(f"[DEBUG] get_conversations_for_analysis: Conversation {conv.id} has analysis_id={conv.analysis_id}")
 
                 return list(conversations)
 

@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  MessageCircle, 
-  Search, 
+import {
+  MessageCircle,
+  Search,
   Calendar,
   Hand,
   Eye,
@@ -21,39 +21,43 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { 
-  useConversationsList, 
-  formatAnalysisDate, 
+import { useAuth } from '@/lib/auth';
+import {
+  useConversationsList,
+  formatAnalysisDate,
   getStatusColorClass,
-  type ConversationListItem 
+  type ConversationListItem
 } from '@/hooks/useDashboard';
 import { DataInconsistencyErrorBoundary } from '@/components/errors/DataInconsistencyErrorBoundary';
 
 export default function ConversationsPage() {
   const router = useRouter();
+  const { currentAnalysis, analysisLoading } = useAuth();
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [filterAnalysis, setFilterAnalysis] = React.useState<string>('all');
   const [sortBy, setSortBy] = React.useState<'newest' | 'oldest' | 'most_active'>('newest');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [localSearchQuery, setLocalSearchQuery] = React.useState('');
-  
+
   // Debounce search query
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setSearchQuery(localSearchQuery);
       setCurrentPage(1); // Reset to first page when searching
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [localSearchQuery]);
 
   // Fetch conversations from API with current filters
-  const apiParams = React.useMemo(() => ({
-    page: currentPage,
-    limit: 10,
-    analysis_id: filterAnalysis === 'all' ? undefined : filterAnalysis,
-    sort: sortBy === 'newest' ? '-updated_at' : sortBy === 'oldest' ? 'updated_at' : '-message_count',
-  }), [currentPage, filterAnalysis, sortBy]);
+  const apiParams = React.useMemo(() => {
+    console.log('[DEBUG] ConversationsPage: Building API params with currentAnalysis:', currentAnalysis?.id);
+    return {
+      page: currentPage,
+      limit: 10,
+      analysis_id: currentAnalysis?.id?.toString(),
+      sort: sortBy === 'newest' ? '-updated_at' : sortBy === 'oldest' ? 'updated_at' : '-message_count',
+    };
+  }, [currentPage, currentAnalysis?.id, sortBy]);
 
   const { 
     data: conversationsData, 
@@ -79,14 +83,7 @@ export default function ConversationsPage() {
     );
   }, [conversationsData?.conversations, searchQuery]);
 
-  // Note: Conversations could be grouped by analysis if needed in the future
-
-  // Handle filter changes
-  const handleFilterChange = (newFilter: string) => {
-    setFilterAnalysis(newFilter);
-    setCurrentPage(1); // Reset to first page when filtering
-  };
-
+  // Handle sort changes
   const handleSortChange = (newSort: 'newest' | 'oldest' | 'most_active') => {
     setSortBy(newSort);
     setCurrentPage(1); // Reset to first page when sorting
@@ -129,7 +126,7 @@ export default function ConversationsPage() {
   };
 
   // Loading state
-  if (loading) {
+  if (loading || analysisLoading) {
     return (
       <DashboardLayout
         title="Conversations"
@@ -139,6 +136,33 @@ export default function ConversationsPage() {
           <Loader2 className="w-8 h-8 animate-spin text-saffron-600" />
           <span className="ml-3 text-gray-600">Loading your conversations...</span>
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  // No current analysis state
+  if (!currentAnalysis) {
+    return (
+      <DashboardLayout
+        title="Conversations"
+        description="View and continue your palm reading discussions"
+      >
+        <Card>
+          <CardContent className="py-12 text-center">
+            <div className="w-16 h-16 bg-saffron-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageCircle className="w-8 h-8 text-saffron-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Current Reading
+            </h3>
+            <p className="text-gray-600 mb-4">
+              You need to have an active palm reading before starting conversations
+            </p>
+            <Button onClick={() => router.push('/reading')}>
+              Get Your Palm Reading
+            </Button>
+          </CardContent>
+        </Card>
       </DashboardLayout>
     );
   }
