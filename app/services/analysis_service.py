@@ -370,15 +370,18 @@ class AnalysisService:
     
     async def associate_analysis(self, analysis_id: int, user_id: int) -> bool:
         """Associate an anonymous analysis with a user.
-        
+
         This method allows authenticated users to claim ownership of an anonymous analysis
         that was created before they logged in. The analysis must have user_id = null to be
         associable.
-        
+
+        In the single reading model, this will mark any previous current analysis for this
+        user as inactive before associating the new analysis.
+
         Args:
             analysis_id: Analysis ID to associate
             user_id: User ID to associate the analysis with
-            
+
         Returns:
             True if association was successful, False otherwise
         """
@@ -388,27 +391,36 @@ class AnalysisService:
                 stmt = select(Analysis).where(Analysis.id == analysis_id)
                 result = await db.execute(stmt)
                 analysis = result.scalar_one_or_none()
-                
+
                 if not analysis:
                     logger.warning(f"Analysis {analysis_id} not found for association")
                     return False
-                
+
                 # Check if analysis is anonymous (user_id is null)
                 if analysis.user_id is not None:
-                    logger.warning(f"Analysis {analysis_id} is already associated with user {analysis.user_id}")
+                    # If already associated with THIS user, return success (idempotent)
+                    if analysis.user_id == user_id:
+                        logger.info(f"Analysis {analysis_id} already associated with user {user_id} (idempotent)")
+                        return True
+                    # If associated with a DIFFERENT user, return failure
+                    logger.warning(f"Analysis {analysis_id} is already associated with different user {analysis.user_id}")
                     return False
-                
-                # Associate the analysis with the user
+
+                # Mark previous current analyses as inactive (single reading model)
+                await self._mark_previous_analyses_inactive(db, user_id)
+
+                # Associate the analysis with the user and mark as current
                 analysis.user_id = user_id
+                analysis.is_current = True
                 await db.commit()
-                
+
                 # Invalidate user cache to ensure dashboard shows new analysis immediately
                 await self._invalidate_user_cache(user_id)
                 logger.debug(f"Invalidated cache for user {user_id} after associating analysis {analysis_id}")
-                
+
                 logger.info(f"Successfully associated analysis {analysis_id} with user {user_id}")
                 return True
-                
+
         except Exception as e:
             logger.error(f"Error associating analysis {analysis_id} with user {user_id}: {e}")
             return False
