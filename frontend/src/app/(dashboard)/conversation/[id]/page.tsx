@@ -38,6 +38,18 @@ export default function ConversationPage() {
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
   const [shouldScrollToQuestion, setShouldScrollToQuestion] = React.useState(false);
   const [lastQuestionId, setLastQuestionId] = React.useState<number | null>(null);
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  // Detect mobile screen size
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // 768px is Tailwind's md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Auto-scroll to show the question near the top after getting AI response
   React.useEffect(() => {
@@ -136,7 +148,7 @@ export default function ConversationPage() {
   };
 
   const handleBackToConversations = () => {
-    router.push('/conversations');
+    router.push('/reading');
   };
 
   /**
@@ -161,97 +173,92 @@ export default function ConversationPage() {
 
   // Error state
   if (error) {
-    return (
+    const errorContent = (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Unable to Load Conversation
+          </h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={fetchConversation}>Try Again</Button>
+            <Button variant="outline" onClick={handleBackToConversations}>
+              Back to Conversations
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+
+    return isMobile ? (
+      <div className="h-screen flex items-center justify-center bg-white p-4">
+        {errorContent}
+      </div>
+    ) : (
       <DashboardLayout
         title="Conversation"
         description="Chat about your palm reading"
       >
-        <Card>
-          <CardContent className="py-12 text-center">
-            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Unable to Load Conversation
-            </h3>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <div className="flex gap-2 justify-center">
-              <Button onClick={fetchConversation}>Try Again</Button>
-              <Button variant="outline" onClick={handleBackToConversations}>
-                Back to Conversations
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {errorContent}
       </DashboardLayout>
     );
   }
 
   if (!conversation) {
-    return (
+    const notFoundContent = (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Conversation Not Found
+          </h3>
+          <p className="text-gray-600 mb-4">
+            This conversation may have been deleted or you don't have permission to view it.
+          </p>
+          <Button onClick={handleBackToConversations}>
+            Back to Conversations
+          </Button>
+        </CardContent>
+      </Card>
+    );
+
+    return isMobile ? (
+      <div className="h-screen flex flex-col bg-white">
+        {notFoundContent}
+      </div>
+    ) : (
       <DashboardLayout
         title="Conversation"
         description="Chat about your palm reading"
       >
-        <Card>
-          <CardContent className="py-12 text-center">
-            <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Conversation Not Found
-            </h3>
-            <p className="text-gray-600 mb-4">
-              This conversation may have been deleted or you don't have permission to view it.
-            </p>
-            <Button onClick={handleBackToConversations}>
-              Back to Conversations
-            </Button>
-          </CardContent>
-        </Card>
+        {notFoundContent}
       </DashboardLayout>
     );
   }
 
-  return (
-    <DashboardLayout
-      title={conversation.title}
-      description="Chat about your palm reading"
-    >
-      <div className="space-y-6 h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="outline"
-            onClick={handleBackToConversations}
-            className="flex items-center"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="ml-2">Back</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-red-600 hover:text-red-700 hover:border-red-300 border-red-200"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span className="ml-2">Delete</span>
-          </Button>
-        </div>
-
-
-        {/* Enhanced chat interface - Using the exact design from analyses page */}
-        <Card className="flex flex-col bg-gradient-to-b from-saffron-50/30 to-white h-[calc(100vh-200px)] max-h-[800px]">
-          <CardHeader className="border-b border-saffron-100 flex-shrink-0">
-            <CardTitle className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-saffron-600" />
-              Conversation about your Palm Reading
-            </CardTitle>
-            <CardDescription>
-              Your questions and AI insights about this palm reading
-            </CardDescription>
-          </CardHeader>
+  // Shared chat interface content
+  const chatContent = (
+    <>
+      {/* Enhanced chat interface - Using the exact design from analyses page */}
+      <Card className={`flex flex-col bg-gradient-to-b from-saffron-50/30 to-white ${
+        isMobile ? 'h-full border-0 rounded-none shadow-none' : 'h-[calc(100vh-200px)] max-h-[800px]'
+      }`}>
+          {!isMobile && (
+            <CardHeader className="border-b border-saffron-100 flex-shrink-0 py-6">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MessageCircle className="w-5 h-5 text-saffron-600" />
+                Conversation about your Palm Reading
+              </CardTitle>
+              <CardDescription>
+                Your questions and AI insights about this palm reading
+              </CardDescription>
+            </CardHeader>
+          )}
 
           {/* Messages Area - Scrollable */}
           <div className="flex-1 overflow-y-auto" ref={messagesContainerRef}>
-            <div className="space-y-6 p-6 min-h-0">
+            <div className="space-y-4 md:space-y-6 p-4 md:p-6 min-h-0">
               {messages.length === 0 && !isSending ? (
                 // Empty state
                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -273,21 +280,21 @@ export default function ConversationPage() {
                   data-message-id={message.id}
                   className={`flex ${message.role.toLowerCase() === 'user' ? 'justify-end' : 'justify-start'} group`}
                 >
-                  <div className={`flex items-start space-x-3 max-w-[80%] ${
+                  <div className={`flex items-start space-x-2 md:space-x-3 max-w-[90%] md:max-w-[80%] ${
                     message.role.toLowerCase() === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                   }`}>
                     {/* Avatar */}
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    <div className={`flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm font-medium ${
                       message.role.toLowerCase() === 'user'
                         ? 'bg-saffron-600 text-white shadow-sm'
                         : 'bg-gradient-to-br from-saffron-500 to-saffron-600 text-white shadow-md'
                     }`}>
-                      {message.role.toLowerCase() === 'user' ? getUserInitial() : <Hand className="w-4 h-4" />}
+                      {message.role.toLowerCase() === 'user' ? getUserInitial() : <Hand className="w-3.5 h-3.5 md:w-4 md:h-4" />}
                     </div>
 
                     {/* Message content */}
                     <div
-                      className={`rounded-2xl px-4 py-3 shadow-sm relative ${
+                      className={`rounded-2xl px-3 py-2.5 md:px-4 md:py-3 shadow-sm relative ${
                         message.role.toLowerCase() === 'user'
                           ? 'bg-saffron-600 text-white rounded-tr-sm'
                           : 'bg-white text-gray-900 border border-saffron-100 rounded-tl-sm'
@@ -303,23 +310,23 @@ export default function ConversationPage() {
                       <div className="relative">
                         {/* MARKDOWN RENDERING: Render markdown for AI messages, plain text for user messages */}
                         {message.role.toLowerCase() === 'assistant' ? (
-                          <div className="text-sm leading-relaxed">
+                          <div className="text-base md:text-sm leading-relaxed">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]} // GitHub Flavored Markdown support
                               components={{
                                 // Custom styled headers with hierarchical saffron theming
-                                h1: ({children}) => <h1 className="text-base font-bold text-gray-900 mb-2 mt-0">{children}</h1>,
-                                h2: ({children}) => <h2 className="text-sm font-bold text-gray-900 mb-2 mt-3 first:mt-0">{children}</h2>,
-                                h3: ({children}) => <h3 className="text-sm font-semibold text-saffron-700 mb-2 mt-3 first:mt-0">{children}</h3>,
-                                h4: ({children}) => <h4 className="text-sm font-semibold text-gray-800 mb-1 mt-2 first:mt-0">{children}</h4>,
+                                h1: ({children}) => <h1 className="text-lg md:text-base font-bold text-gray-900 mb-2 mt-0">{children}</h1>,
+                                h2: ({children}) => <h2 className="text-base md:text-sm font-bold text-gray-900 mb-2 mt-3 first:mt-0">{children}</h2>,
+                                h3: ({children}) => <h3 className="text-base md:text-sm font-semibold text-saffron-700 mb-2 mt-3 first:mt-0">{children}</h3>,
+                                h4: ({children}) => <h4 className="text-base md:text-sm font-semibold text-gray-800 mb-1 mt-2 first:mt-0">{children}</h4>,
                                 // Bold text gets saffron accent for emphasis
                                 strong: ({children}) => <strong className="font-semibold text-saffron-700">{children}</strong>,
                                 // Lists with proper indentation and spacing
                                 ul: ({children}) => <ul className="list-disc ml-4 mb-2 space-y-1">{children}</ul>,
                                 ol: ({children}) => <ol className="list-decimal ml-4 mb-2 space-y-1">{children}</ol>,
-                                li: ({children}) => <li className="text-sm text-gray-800">{children}</li>,
+                                li: ({children}) => <li className="text-base md:text-sm text-gray-800">{children}</li>,
                                 // Paragraphs with consistent spacing
-                                p: ({children}) => <p className="text-sm text-gray-800 mb-2 last:mb-0">{children}</p>
+                                p: ({children}) => <p className="text-base md:text-sm text-gray-800 mb-2 last:mb-0">{children}</p>
                               }}
                             >
                               {message.content}
@@ -327,7 +334,7 @@ export default function ConversationPage() {
                           </div>
                         ) : (
                           // User messages remain as plain text with whitespace preservation
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                          <p className="text-base md:text-sm leading-relaxed whitespace-pre-wrap">
                             {message.content}
                           </p>
                         )}
@@ -356,14 +363,14 @@ export default function ConversationPage() {
 
               {isSending && (
                 <div className="flex justify-start group">
-                  <div className="flex items-start space-x-3 max-w-[80%]">
+                  <div className="flex items-start space-x-2 md:space-x-3 max-w-[90%] md:max-w-[80%]">
                     {/* AI Avatar */}
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-gradient-to-br from-saffron-500 to-saffron-600 text-white shadow-md">
-                      <Hand className="w-4 h-4" />
+                    <div className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm font-medium bg-gradient-to-br from-saffron-500 to-saffron-600 text-white shadow-md">
+                      <Hand className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     </div>
 
                     {/* Typing indicator */}
-                    <div className="bg-white text-gray-900 border border-saffron-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm relative">
+                    <div className="bg-white text-gray-900 border border-saffron-100 rounded-2xl rounded-tl-sm px-3 py-2.5 md:px-4 md:py-3 shadow-sm relative">
                       <div className="absolute top-2 left-0 -translate-x-1/2 rotate-45 bg-white border-l border-t border-saffron-100 w-3 h-3" />
                       <div className="flex items-center space-x-3">
                         <div className="flex space-x-1">
@@ -371,7 +378,7 @@ export default function ConversationPage() {
                           <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
                           <div className="w-2 h-2 bg-saffron-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                         </div>
-                        <span className="text-sm text-gray-600">The mystic is contemplating...</span>
+                        <span className="text-sm md:text-sm text-gray-600">The mystic is contemplating...</span>
                       </div>
                     </div>
                   </div>
@@ -383,8 +390,8 @@ export default function ConversationPage() {
           {/* Message Input Area - Fixed at Bottom */}
           <div className="border-t border-saffron-100 bg-white/80 backdrop-blur-sm flex-shrink-0">
             {/* Question Prompt Chips */}
-            <div className="px-4 pt-3 pb-2">
-              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+            <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1 md:pb-2">
+              <div className="flex gap-2 md:gap-3 overflow-x-auto scrollbar-hide pb-2">
                 {QUESTION_PROMPTS.map((prompt, index) => (
                   <button
                     key={index}
@@ -401,7 +408,7 @@ export default function ConversationPage() {
                     }}
                     className={`
                       flex-shrink-0 bg-white/75 backdrop-blur-md border border-saffron-200/60 text-saffron-700
-                      px-4 py-2 rounded-full text-xs font-medium shadow-md
+                      px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs font-medium shadow-md
                       hover:bg-saffron-50/80 hover:border-saffron-300/70 hover:shadow-lg hover:scale-105
                       focus:scale-105 focus:outline-none focus:ring-2 focus:ring-saffron-500/30
                       active:scale-95 transition-all duration-300 ease-out whitespace-nowrap
@@ -413,8 +420,8 @@ export default function ConversationPage() {
               </div>
             </div>
 
-            <div className="p-4">
-              <div className="flex space-x-3 items-end">
+            <div className="p-3 md:p-4">
+              <div className="flex space-x-2 md:space-x-3 items-end">
                 <div className="flex-1 relative">
                   <Input
                     type="text"
@@ -428,15 +435,15 @@ export default function ConversationPage() {
                       }
                     }}
                     disabled={isSending}
-                    className="border-saffron-200 focus:border-saffron-500 focus:ring-saffron-500 rounded-xl bg-white"
+                    className="h-12 md:h-10 text-base md:text-sm border-saffron-200 focus:border-saffron-500 focus:ring-saffron-500 rounded-xl bg-white"
                   />
                 </div>
                 <Button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || isSending}
-                  className="bg-saffron-600 hover:bg-saffron-700 text-white rounded-xl px-6 py-2 font-medium"
+                  className="h-12 w-12 md:h-10 md:w-auto md:px-6 bg-saffron-600 hover:bg-saffron-700 text-white rounded-xl font-medium flex items-center justify-center"
                 >
-                  {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {isSending ? <Loader2 className="w-5 h-5 md:w-4 md:h-4 animate-spin" /> : <Send className="w-5 h-5 md:w-4 md:h-4" />}
                 </Button>
               </div>
 
@@ -451,6 +458,66 @@ export default function ConversationPage() {
             </div>
           </div>
         </Card>
+    </>
+  );
+
+  // Mobile layout - full screen without DashboardLayout
+  if (isMobile) {
+    return (
+      <div className="h-screen flex flex-col bg-gradient-to-b from-saffron-50/30 to-white">
+        {/* Minimal mobile header */}
+        <div className="flex-shrink-0 bg-white border-b border-saffron-100 px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={handleBackToConversations}
+            className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-saffron-50 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Hand className="w-5 h-5 text-saffron-600 flex-shrink-0" />
+            <h1 className="text-base font-semibold text-gray-900 truncate">
+              {conversation.title}
+            </h1>
+          </div>
+        </div>
+
+        {/* Chat content - takes full remaining height */}
+        <div className="flex-1 overflow-hidden">
+          {chatContent}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout - with DashboardLayout
+  return (
+    <DashboardLayout
+      title={conversation.title}
+      description="Chat about your palm reading"
+    >
+      <div className="space-y-6 h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            onClick={handleBackToConversations}
+            className="flex items-center"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="ml-2">Back</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex text-red-600 hover:text-red-700 hover:border-red-300 border-red-200"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="ml-2">Delete</span>
+          </Button>
+        </div>
+
+        {chatContent}
       </div>
     </DashboardLayout>
   );
