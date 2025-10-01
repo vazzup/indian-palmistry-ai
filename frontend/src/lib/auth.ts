@@ -26,7 +26,7 @@ export interface User {
 
 export interface CurrentAnalysis {
   id: number;
-  user_id: number;
+  user_id?: number;  // Optional because guest users don't have user_id
   status: string;
   created_at: string;
   updated_at: string;
