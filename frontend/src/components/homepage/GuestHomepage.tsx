@@ -48,6 +48,13 @@ export function GuestHomepage() {
     setWelcomeMessage(getRandomMessage('welcome'));
   }, []);
 
+  // Scroll to top when analysis starts
+  React.useEffect(() => {
+    if (analysis && !uploadError) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [analysis, uploadError]);
+
   // Define all callbacks before any conditional returns
   const handleAnalysisComplete = React.useCallback((result: any) => {
     console.log('handleAnalysisComplete called with:', result, 'analysis:', analysis);
